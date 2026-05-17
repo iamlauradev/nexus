@@ -1,4 +1,4 @@
-package com.example.tracker_app
+package dev.iamlaura.nexus
 
 import io.flutter.embedding.android.FlutterActivity
 
