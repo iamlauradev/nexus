@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:provider/provider.dart';
+import '../main.dart' show EntryChangeNotifier;
 import '../theme/rpg_theme.dart';
 import '../services/api_service.dart';
 import '../widgets/ornamental_border.dart';
@@ -14,11 +16,29 @@ class StatsScreen extends StatefulWidget {
 class _StatsScreenState extends State<StatsScreen> {
   Map<String, dynamic>? _stats;
   bool _loading = true;
+  EntryChangeNotifier? _entryNotifier;
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final notifier = context.read<EntryChangeNotifier>();
+    if (_entryNotifier != notifier) {
+      _entryNotifier?.removeListener(_load);
+      _entryNotifier = notifier;
+      _entryNotifier!.addListener(_load);
+    }
+  }
+
+  @override
+  void dispose() {
+    _entryNotifier?.removeListener(_load);
+    super.dispose();
   }
 
   Future<void> _load() async {

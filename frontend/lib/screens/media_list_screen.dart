@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../main.dart' show EntryChangeNotifier;
 import '../theme/rpg_theme.dart';
 import '../models/user_entry.dart';
 import '../services/api_service.dart';
@@ -32,6 +34,8 @@ class _MediaListScreenState extends State<MediaListScreen> {
   final _searchCtrl = TextEditingController();
   Timer? _debounce;
 
+  EntryChangeNotifier? _entryNotifier;
+
   @override
   void initState() {
     super.initState();
@@ -39,7 +43,19 @@ class _MediaListScreenState extends State<MediaListScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final notifier = context.read<EntryChangeNotifier>();
+    if (_entryNotifier != notifier) {
+      _entryNotifier?.removeListener(_loadEntries);
+      _entryNotifier = notifier;
+      _entryNotifier!.addListener(_loadEntries);
+    }
+  }
+
+  @override
   void dispose() {
+    _entryNotifier?.removeListener(_loadEntries);
     _searchCtrl.dispose();
     _debounce?.cancel();
     super.dispose();

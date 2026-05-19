@@ -13,6 +13,11 @@ import 'screens/search_screen.dart';
 import 'screens/import_export_screen.dart';
 import 'screens/profile_screen.dart';
 
+// Notifier that catalog and stats screens listen to for auto-refresh
+class EntryChangeNotifier extends ChangeNotifier {
+  void entryAdded() => notifyListeners();
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -37,6 +42,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()..init()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => EntryChangeNotifier()),
       ],
       child: const NexusApp(),
     ),
@@ -184,9 +190,9 @@ class _MainShellState extends State<MainShell> {
       body: IndexedStack(index: _idx, children: _pages),
       floatingActionButton: _isCatalog
           ? FloatingActionButton(
-              onPressed: () {
+              onPressed: () async {
                 final section = _currentSection!;
-                Navigator.push(
+                await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => AddEntryScreen(
@@ -195,6 +201,9 @@ class _MainShellState extends State<MainShell> {
                     ),
                   ),
                 );
+                if (mounted) {
+                  context.read<EntryChangeNotifier>().entryAdded();
+                }
               },
               backgroundColor: RpgColors.goldDark,
               child: const Icon(Icons.add, color: RpgColors.goldLight),
