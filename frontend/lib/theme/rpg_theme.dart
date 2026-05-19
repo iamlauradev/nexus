@@ -78,20 +78,18 @@ class RatingConfigCache {
 
   static Color colorFor(String? key) {
     if (key == null) return RpgColors.ratingSinValorar;
-    final c = _configs.firstWhere(
-      (c) => c['key'] == key,
-      orElse: () => <String, dynamic>{'color': '#484F58'},
-    );
-    return _hexColor(c['color'] as String? ?? '#484F58');
+    for (final c in _configs) {
+      if (c['key'] == key) return _hexColor(c['color'] as String? ?? '#484F58');
+    }
+    return _hexColor('#484F58');
   }
 
   static String labelFor(String? key) {
     if (key == null) return '· Sin valorar';
-    final c = _configs.firstWhere(
-      (c) => c['key'] == key,
-      orElse: () => <String, dynamic>{'label': key},
-    );
-    return c['label'] as String? ?? key;
+    for (final c in _configs) {
+      if (c['key'] == key) return c['label'] as String? ?? key;
+    }
+    return key;
   }
 }
 
