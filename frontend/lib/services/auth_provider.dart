@@ -16,8 +16,9 @@ class AuthProvider extends ChangeNotifier {
       try {
         final r = await ApiService.getMe();
         _user = AppUser.fromJson(r);
+        await ApiService.loadAndCacheRatingConfigs();
       } catch (_) {
-        await ApiService.clearToken();
+        await ApiService.clearTokens();
       }
     }
     _loading = false;
@@ -26,20 +27,27 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> login(String username, String password) async {
     final data = await ApiService.login(username, password);
-    await ApiService.saveToken(data['access_token']);
+    await ApiService.saveTokenPair(
+      data['access_token'] as String,
+      (data['refresh_token'] as String?) ?? '',
+    );
     _user = AppUser.fromJson(data['user']);
+    await ApiService.loadAndCacheRatingConfigs();
     notifyListeners();
   }
 
   Future<void> register(String username, String password, {String? displayName}) async {
     final data = await ApiService.register(username, password, displayName: displayName);
-    await ApiService.saveToken(data['access_token']);
+    await ApiService.saveTokenPair(
+      data['access_token'] as String,
+      (data['refresh_token'] as String?) ?? '',
+    );
     _user = AppUser.fromJson(data['user']);
     notifyListeners();
   }
 
   Future<void> logout() async {
-    await ApiService.clearToken();
+    await ApiService.logout();
     _user = null;
     notifyListeners();
   }

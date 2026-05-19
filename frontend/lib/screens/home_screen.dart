@@ -4,7 +4,6 @@ import '../theme/rpg_theme.dart';
 import '../models/user_entry.dart';
 import '../services/api_service.dart';
 import '../services/auth_provider.dart';
-import '../widgets/ornamental_border.dart';
 import '../widgets/media_card.dart';
 import 'detail_screen.dart';
 
@@ -28,8 +27,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _load() async {
     try {
-      final stats = await ApiService.getStats();
-      final recent = await ApiService.getEntries(status: 'watching', limit: 10);
+      final stats  = await ApiService.getStats();
+      final recent = await ApiService.getEntries(status: 'watching', limit: 12);
       if (mounted) setState(() { _stats = stats; _recent = recent; _loading = false; });
     } catch (_) {
       if (mounted) setState(() { _loading = false; });
@@ -47,31 +46,19 @@ class _HomeScreenState extends State<HomeScreen> {
         slivers: [
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Bienvenida, ${user?.name ?? ''}',
-                    style: const TextStyle(
-                      fontFamily: 'Crimson',
-                      fontSize: 18,
-                      color: RpgColors.textSecondary,
-                      fontStyle: FontStyle.italic,
-                    ),
+                    'Hola, ${user?.name ?? ''}',
+                    style: const TextStyle(fontFamily: 'Crimson', fontSize: 16, color: RpgColors.textSecondary),
                   ),
-                  const SizedBox(height: 4),
                   const Text(
-                    'Nexus',
-                    style: TextStyle(
-                      fontFamily: 'Cinzel',
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: RpgColors.gold,
-                      letterSpacing: 3,
-                    ),
+                    'Tu colección',
+                    style: TextStyle(fontFamily: 'Cinzel', fontSize: 26, fontWeight: FontWeight.bold,
+                      color: RpgColors.textPrimary, letterSpacing: 2),
                   ),
-                  const SizedBox(height: 16),
                 ],
               ),
             ),
@@ -83,7 +70,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: _StatsRow(stats: _stats!),
               ),
             ),
-          const SliverToBoxAdapter(child: SizedBox(height: 20)),
+          const SliverToBoxAdapter(child: SizedBox(height: 16)),
+          if (!_loading && _stats != null)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _TypeStats(byType: (_stats!['by_type'] as Map<String, dynamic>?) ?? {}),
+              ),
+            ),
+          const SliverToBoxAdapter(child: SizedBox(height: 16)),
           if (_loading)
             const SliverFillRemaining(
               child: Center(child: CircularProgressIndicator(color: RpgColors.gold)),
@@ -91,26 +86,24 @@ class _HomeScreenState extends State<HomeScreen> {
           else ...[
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: _buildTypeStats(),
-              ),
-            ),
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
-                child: GoldDivider(label: 'VIENDO AHORA'),
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+                child: Row(children: [
+                  Container(width: 3, height: 14, decoration: BoxDecoration(
+                    color: RpgColors.statusWatching, borderRadius: BorderRadius.circular(2))),
+                  const SizedBox(width: 8),
+                  const Text('Viendo ahora', style: TextStyle(
+                    fontFamily: 'Cinzel', fontSize: 13, color: RpgColors.textSecondary, letterSpacing: 1)),
+                ]),
               ),
             ),
             if (_recent.isEmpty)
               const SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.all(32),
-                  child: Center(
-                    child: Text(
-                      'Nada en progreso — empieza tu aventura',
-                      style: TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 14),
-                    ),
-                  ),
+                  child: Center(child: Text(
+                    'Nada en progreso todavía',
+                    style: TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 14),
+                  )),
                 ),
               )
             else
@@ -126,10 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     childCount: _recent.length,
                   ),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                    childAspectRatio: 0.55,
+                    crossAxisCount: 3, crossAxisSpacing: 8, mainAxisSpacing: 8, childAspectRatio: 0.55,
                   ),
                 ),
               ),
@@ -137,46 +127,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ],
       ),
-    );
-  }
-
-  Widget _buildTypeStats() {
-    if (_stats == null) return const SizedBox.shrink();
-    final byType = (_stats!['by_type'] as Map?) ?? {};
-    final types = ['DORAMA', 'MOVIE', 'SERIES', 'MANGA', 'MANHWA', 'MANHUA', 'ANIME'];
-    final icons = [Icons.tv, Icons.movie, Icons.theaters, Icons.auto_stories, Icons.menu_book, Icons.book, Icons.live_tv];
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        childAspectRatio: 1.1,
-      ),
-      itemCount: types.length,
-      itemBuilder: (context, i) {
-        final count = byType[types[i]] ?? 0;
-        return Container(
-          decoration: BoxDecoration(
-            color: RpgColors.surface,
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: RpgColors.border),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icons[i], color: RpgColors.amethystLight, size: 22),
-              const SizedBox(height: 4),
-              Text('$count', style: const TextStyle(
-                fontFamily: 'Cinzel', fontSize: 16, color: RpgColors.gold, fontWeight: FontWeight.bold)),
-              Text(typeLabel(types[i]), style: const TextStyle(
-                fontFamily: 'Crimson', fontSize: 10, color: RpgColors.textMuted)),
-            ],
-          ),
-        );
-      },
     );
   }
 }
@@ -187,17 +137,15 @@ class _StatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _StatBox(value: '${stats['total'] ?? 0}', label: 'Total', color: RpgColors.gold),
-        const SizedBox(width: 8),
-        _StatBox(value: '${stats['watching'] ?? 0}', label: 'Viendo', color: RpgColors.statusWatching),
-        const SizedBox(width: 8),
-        _StatBox(value: '${stats['completed'] ?? 0}', label: 'Completas', color: RpgColors.statusComplete),
-        const SizedBox(width: 8),
-        _StatBox(value: '${stats['plan'] ?? 0}', label: 'Pendientes', color: RpgColors.statusPlan),
-      ],
-    );
+    return Row(children: [
+      _StatBox(value: '${stats['total'] ?? 0}',     label: 'Total',     color: RpgColors.textPrimary),
+      const SizedBox(width: 8),
+      _StatBox(value: '${stats['watching'] ?? 0}',  label: 'Viendo',    color: RpgColors.statusWatching),
+      const SizedBox(width: 8),
+      _StatBox(value: '${stats['completed'] ?? 0}', label: 'Completos', color: RpgColors.statusComplete),
+      const SizedBox(width: 8),
+      _StatBox(value: '${stats['plan'] ?? 0}',      label: 'Pendiente', color: RpgColors.statusPlan),
+    ]);
   }
 }
 
@@ -213,18 +161,57 @@ class _StatBox extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: RpgColors.surface,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: color.withOpacity(0.4)),
+          color: RpgColors.charcoal,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: RpgColors.border),
         ),
-        child: Column(
-          children: [
-            Text(value, style: TextStyle(fontFamily: 'Cinzel', fontSize: 20, color: color, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 2),
-            Text(label, style: const TextStyle(fontFamily: 'Crimson', fontSize: 11, color: RpgColors.textMuted)),
-          ],
-        ),
+        child: Column(children: [
+          Text(value, style: TextStyle(fontFamily: 'Cinzel', fontSize: 20, color: color, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 2),
+          Text(label, style: const TextStyle(fontFamily: 'Crimson', fontSize: 11, color: RpgColors.textMuted)),
+        ]),
       ),
+    );
+  }
+}
+
+class _TypeStats extends StatelessWidget {
+  final Map<String, dynamic> byType;
+  const _TypeStats({required this.byType});
+
+  int _sum(List<String> keys) =>
+      keys.fold(0, (acc, k) => acc + ((byType[k] as int?) ?? 0));
+
+  @override
+  Widget build(BuildContext context) {
+    final sections = [
+      (label: 'Películas', icon: Icons.movie,         count: _sum(['MOVIE'])),
+      (label: 'Doramas',   icon: Icons.live_tv,       count: _sum(['DORAMA'])),
+      (label: 'Series',    icon: Icons.tv,             count: _sum(['SERIES'])),
+      (label: 'Cómics',    icon: Icons.auto_stories,  count: _sum(['MANGA', 'MANHWA', 'MANHUA', 'WEBTOON'])),
+      (label: 'Anime',     icon: Icons.animation,      count: _sum(['ANIME'])),
+    ];
+
+    return Row(
+      children: sections.map((s) => Expanded(
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 3),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: RpgColors.charcoal,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: RpgColors.border),
+          ),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(s.icon, color: RpgColors.gold.withOpacity(0.7), size: 18),
+            const SizedBox(height: 4),
+            Text('${s.count}', style: const TextStyle(
+              fontFamily: 'Cinzel', fontSize: 14, color: RpgColors.textPrimary, fontWeight: FontWeight.bold)),
+            Text(s.label, style: const TextStyle(
+              fontFamily: 'Crimson', fontSize: 9, color: RpgColors.textMuted)),
+          ]),
+        ),
+      )).toList(),
     );
   }
 }

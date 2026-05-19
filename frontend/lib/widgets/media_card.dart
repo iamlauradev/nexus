@@ -74,6 +74,12 @@ class MediaCard extends StatelessWidget {
                       top: 6, right: 6,
                       child: StatusBadge(status: entry.status),
                     ),
+                    // Emission badge top-left for AIRING content being watched
+                    if (entry.media?.emissionStatus == 'AIRING' && entry.status == 'watching')
+                      Positioned(
+                        top: 6, left: 6,
+                        child: EmissionBadge(status: 'AIRING'),
+                      ),
                     // Rating color bar at bottom
                     if (entry.ratingLabel != null && entry.ratingLabel != 'sin_valorar')
                       Positioned(

@@ -1,75 +1,112 @@
 import 'package:flutter/material.dart';
 
+// ---------------------------------------------------------------------------
+// Color palette — modern dark media tracker
+// ---------------------------------------------------------------------------
 class RpgColors {
-  // Base palette
-  static const Color obsidian      = Color(0xFF0A0A0F);
-  static const Color darkVoid      = Color(0xFF111118);
-  static const Color charcoal      = Color(0xFF1A1A25);
-  static const Color surface       = Color(0xFF1E1E2E);
-  static const Color surfaceHigh   = Color(0xFF262638);
-  static const Color border        = Color(0xFF2D2D45);
+  // Backgrounds
+  static const Color obsidian    = Color(0xFF0D1117);
+  static const Color darkVoid    = Color(0xFF161B22);
+  static const Color charcoal    = Color(0xFF1C2128);
+  static const Color surface     = Color(0xFF21262D);
+  static const Color surfaceHigh = Color(0xFF2D333B);
+  static const Color border      = Color(0xFF30363D);
 
-  // Gold accents
-  static const Color gold          = Color(0xFFD4A843);
-  static const Color goldLight     = Color(0xFFE8C876);
-  static const Color goldDark      = Color(0xFF8B6914);
-  static const Color goldGlow      = Color(0x40D4A843);
+  // Primary accent — indigo-blue
+  static const Color accent      = Color(0xFF667EEA);  // alias for gold
+  static const Color gold        = Color(0xFF667EEA);  // primary (was gold)
+  static const Color goldLight   = Color(0xFF9BAEFF);
+  static const Color goldDark    = Color(0xFF3D4FB5);
+  static const Color goldGlow    = Color(0x40667EEA);
 
-  // Purple accents
-  static const Color amethyst      = Color(0xFF7B2FBE);
-  static const Color amethystLight = Color(0xFF9D4EDD);
-  static const Color amethystGlow  = Color(0x407B2FBE);
+  // Secondary — purple
+  static const Color amethyst      = Color(0xFF764BA2);
+  static const Color amethystLight = Color(0xFFBC8CFF);
+  static const Color amethystGlow  = Color(0x40764BA2);
   static const Color violet        = Color(0xFF4A0E8F);
 
   // Text
-  static const Color textPrimary   = Color(0xFFE8DCC8);
-  static const Color textSecondary = Color(0xFFAA9E87);
-  static const Color textMuted     = Color(0xFF6B6358);
+  static const Color textPrimary   = Color(0xFFE6EDF3);
+  static const Color textSecondary = Color(0xFF8B949E);
+  static const Color textMuted     = Color(0xFF484F58);
 
-  // Rating colors
-  static const Color ratingMust       = Color(0xFF674EA7);  // purple
-  static const Color ratingMeEncanta  = Color(0xFF45818E);  // teal
-  static const Color ratingMuyBonita  = Color(0xFFF1C232);  // yellow-gold
-  static const Color ratingBonita     = Color(0xFF6AA84F);  // green
-  static const Color ratingPasable    = Color(0xFFE69138);  // orange
-  static const Color ratingNoMeGusto  = Color(0xFFCC4125);  // red
-  static const Color ratingAbandonado = Color(0xFF666666);  // gray
-  static const Color ratingSinValorar = Color(0xFF2D2D45);  // dark
+  // Emission status colors
+  static const Color emissionAiring    = Color(0xFF3FB950);
+  static const Color emissionFinished  = Color(0xFF58A6FF);
+  static const Color emissionUpcoming  = Color(0xFFD29922);
+  static const Color emissionCancelled = Color(0xFFF85149);
+  static const Color emissionHiatus    = Color(0xFFD2A800);
 
   // Status colors
-  static const Color statusWatching = Color(0xFF4FC3F7);
-  static const Color statusComplete = Color(0xFF81C784);
-  static const Color statusPlan     = Color(0xFFFFB74D);
-  static const Color statusOnHold   = Color(0xFFBA68C8);
-  static const Color statusDropped  = Color(0xFFE57373);
+  static const Color statusWatching = Color(0xFF58A6FF);
+  static const Color statusComplete = Color(0xFF3FB950);
+  static const Color statusPlan     = Color(0xFFD29922);
+  static const Color statusOnHold   = Color(0xFFBC8CFF);
+  static const Color statusDropped  = Color(0xFFF85149);
+
+  // Rating defaults (overridden by user config)
+  static const Color ratingMust       = Color(0xFFF0C040);
+  static const Color ratingMeEncanta  = Color(0xFF58A6FF);
+  static const Color ratingMuyBonita  = Color(0xFF3FB950);
+  static const Color ratingBonita     = Color(0xFF56CC9D);
+  static const Color ratingPasable    = Color(0xFFD29922);
+  static const Color ratingNoMeGusto  = Color(0xFFF85149);
+  static const Color ratingSinValorar = Color(0xFF484F58);
 }
 
-Color ratingColor(String? label) {
-  switch (label) {
-    case 'must':        return RpgColors.ratingMust;
-    case 'me_encanta':  return RpgColors.ratingMeEncanta;
-    case 'muy_bonita':  return RpgColors.ratingMuyBonita;
-    case 'bonita':      return RpgColors.ratingBonita;
-    case 'pasable':     return RpgColors.ratingPasable;
-    case 'no_me_gusto': return RpgColors.ratingNoMeGusto;
-    case 'abandonado':  return RpgColors.ratingAbandonado;
-    default:            return RpgColors.ratingSinValorar;
+// ---------------------------------------------------------------------------
+// Dynamic rating config cache
+// ---------------------------------------------------------------------------
+class RatingConfigCache {
+  static List<Map<String, dynamic>> _configs = _defaultConfigs();
+
+  static List<Map<String, dynamic>> _defaultConfigs() => [
+    {'key': 'must',        'label': '★ Must',          'color': '#F0C040', 'sort_order': 0},
+    {'key': 'me_encanta',  'label': '♥ Me encanta',    'color': '#58A6FF', 'sort_order': 1},
+    {'key': 'muy_bonita',  'label': '✦ Muy bonita',    'color': '#3FB950', 'sort_order': 2},
+    {'key': 'bonita',      'label': '◆ Bonita',        'color': '#56CC9D', 'sort_order': 3},
+    {'key': 'pasable',     'label': '◇ Pasable',       'color': '#D29922', 'sort_order': 4},
+    {'key': 'no_me_gusto', 'label': '✕ No me gustó',  'color': '#F85149', 'sort_order': 5},
+    {'key': 'sin_valorar', 'label': '· Sin valorar',  'color': '#484F58', 'sort_order': 6},
+  ];
+
+  static void update(List<Map<String, dynamic>> configs) {
+    if (configs.isNotEmpty) _configs = configs;
+  }
+
+  static List<Map<String, dynamic>> get configs => List.unmodifiable(_configs);
+
+  static Color colorFor(String? key) {
+    if (key == null) return RpgColors.ratingSinValorar;
+    final c = _configs.firstWhere(
+      (c) => c['key'] == key,
+      orElse: () => {'color': '#484F58'},
+    );
+    return _hexColor(c['color'] as String? ?? '#484F58');
+  }
+
+  static String labelFor(String? key) {
+    if (key == null) return '· Sin valorar';
+    final c = _configs.firstWhere(
+      (c) => c['key'] == key,
+      orElse: () => {'label': key},
+    );
+    return c['label'] as String? ?? key;
   }
 }
 
-String ratingLabel(String? label) {
-  switch (label) {
-    case 'must':        return '★ Must';
-    case 'me_encanta':  return '♥ Me encanta';
-    case 'muy_bonita':  return '✦ Es muy bonita';
-    case 'bonita':      return '◆ Es bonita';
-    case 'pasable':     return '◇ Pasable';
-    case 'no_me_gusto': return '✕ No me ha gustado';
-    case 'abandonado':  return '— Abandonado';
-    default:            return '· Sin valorar';
-  }
+Color _hexColor(String hex) {
+  final clean = hex.replaceFirst('#', '');
+  return Color(int.parse('FF$clean', radix: 16));
 }
 
+// Keep these for backward compat within theme files
+Color ratingColor(String? label)  => RatingConfigCache.colorFor(label);
+String ratingLabel(String? label) => RatingConfigCache.labelFor(label);
+
+// ---------------------------------------------------------------------------
+// Status / type helpers
+// ---------------------------------------------------------------------------
 Color statusColor(String? status) {
   switch (status) {
     case 'watching':      return RpgColors.statusWatching;
@@ -92,12 +129,35 @@ String statusLabel(String? status) {
   }
 }
 
+Color emissionColor(String? status) {
+  switch (status) {
+    case 'AIRING':    return RpgColors.emissionAiring;
+    case 'FINISHED':  return RpgColors.emissionFinished;
+    case 'UPCOMING':  return RpgColors.emissionUpcoming;
+    case 'CANCELLED': return RpgColors.emissionCancelled;
+    case 'HIATUS':    return RpgColors.emissionHiatus;
+    default:          return RpgColors.textMuted;
+  }
+}
+
+String emissionLabel(String? status) {
+  switch (status) {
+    case 'AIRING':    return 'En emisión';
+    case 'FINISHED':  return 'Finalizada';
+    case 'UPCOMING':  return 'Próximamente';
+    case 'CANCELLED': return 'Cancelada';
+    case 'HIATUS':    return 'En hiato';
+    default:          return '';
+  }
+}
+
 String typeLabel(String? type) {
   switch (type) {
     case 'MANGA':   return 'Manga';
     case 'MANHWA':  return 'Manhwa';
     case 'MANHUA':  return 'Manhua';
     case 'WEBTOON': return 'Webtoon';
+    case 'NOVEL':   return 'Novela';
     case 'ANIME':   return 'Anime';
     case 'MOVIE':   return 'Película';
     case 'SERIES':  return 'Serie';
@@ -106,6 +166,9 @@ String typeLabel(String? type) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Theme
+// ---------------------------------------------------------------------------
 ThemeData buildRpgTheme() {
   return ThemeData(
     useMaterial3: true,
@@ -115,21 +178,21 @@ ThemeData buildRpgTheme() {
       primary:    RpgColors.gold,
       secondary:  RpgColors.amethyst,
       surface:    RpgColors.surface,
-      error:      RpgColors.ratingNoMeGusto,
+      error:      RpgColors.statusDropped,
       onPrimary:  RpgColors.obsidian,
       onSecondary: RpgColors.textPrimary,
       onSurface:  RpgColors.textPrimary,
     ),
     appBarTheme: const AppBarTheme(
       backgroundColor: RpgColors.darkVoid,
-      foregroundColor: RpgColors.gold,
+      foregroundColor: RpgColors.textPrimary,
       elevation: 0,
       centerTitle: true,
       titleTextStyle: TextStyle(
         fontFamily: 'Cinzel',
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: FontWeight.bold,
-        color: RpgColors.gold,
+        color: RpgColors.textPrimary,
         letterSpacing: 2,
       ),
     ),
@@ -141,9 +204,9 @@ ThemeData buildRpgTheme() {
     ),
     cardTheme: CardThemeData(
       color: RpgColors.surface,
-      elevation: 4,
+      elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         side: const BorderSide(color: RpgColors.border, width: 1),
       ),
     ),
@@ -151,43 +214,106 @@ ThemeData buildRpgTheme() {
       filled: true,
       fillColor: RpgColors.charcoal,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
         borderSide: const BorderSide(color: RpgColors.border),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
         borderSide: const BorderSide(color: RpgColors.border),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(6),
-        borderSide: const BorderSide(color: RpgColors.gold, width: 2),
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: RpgColors.gold, width: 1.5),
       ),
-      labelStyle: const TextStyle(color: RpgColors.textSecondary),
-      hintStyle: const TextStyle(color: RpgColors.textMuted),
+      labelStyle: const TextStyle(color: RpgColors.textSecondary, fontFamily: 'Crimson'),
+      hintStyle: const TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson'),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: RpgColors.goldDark,
-        foregroundColor: RpgColors.textPrimary,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-        textStyle: const TextStyle(fontFamily: 'Cinzel', letterSpacing: 1),
+        backgroundColor: RpgColors.gold,
+        foregroundColor: RpgColors.obsidian,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        textStyle: const TextStyle(fontFamily: 'Cinzel', letterSpacing: 1, fontWeight: FontWeight.bold),
       ),
     ),
     textTheme: const TextTheme(
-      displayLarge: TextStyle(fontFamily: 'Cinzel', color: RpgColors.gold, letterSpacing: 3),
-      displayMedium: TextStyle(fontFamily: 'Cinzel', color: RpgColors.gold, letterSpacing: 2),
-      titleLarge: TextStyle(fontFamily: 'Cinzel', color: RpgColors.textPrimary, fontSize: 18, letterSpacing: 1),
-      titleMedium: TextStyle(fontFamily: 'Cinzel', color: RpgColors.textPrimary, fontSize: 14),
-      bodyLarge: TextStyle(fontFamily: 'Crimson', color: RpgColors.textPrimary, fontSize: 16),
-      bodyMedium: TextStyle(fontFamily: 'Crimson', color: RpgColors.textSecondary, fontSize: 14),
-      labelMedium: TextStyle(fontFamily: 'Crimson', color: RpgColors.textMuted, fontSize: 12),
+      displayLarge:  TextStyle(fontFamily: 'Cinzel', color: RpgColors.textPrimary, letterSpacing: 2),
+      displayMedium: TextStyle(fontFamily: 'Cinzel', color: RpgColors.textPrimary, letterSpacing: 1),
+      titleLarge:    TextStyle(fontFamily: 'Cinzel', color: RpgColors.textPrimary, fontSize: 18, letterSpacing: 1),
+      titleMedium:   TextStyle(fontFamily: 'Cinzel', color: RpgColors.textPrimary, fontSize: 14),
+      bodyLarge:     TextStyle(fontFamily: 'Crimson', color: RpgColors.textPrimary, fontSize: 16),
+      bodyMedium:    TextStyle(fontFamily: 'Crimson', color: RpgColors.textSecondary, fontSize: 14),
+      labelMedium:   TextStyle(fontFamily: 'Crimson', color: RpgColors.textMuted, fontSize: 12),
     ),
     dividerTheme: const DividerThemeData(color: RpgColors.border),
     chipTheme: ChipThemeData(
       backgroundColor: RpgColors.charcoal,
-      labelStyle: const TextStyle(color: RpgColors.textSecondary, fontSize: 12),
+      labelStyle: const TextStyle(color: RpgColors.textSecondary, fontSize: 12, fontFamily: 'Crimson'),
       side: const BorderSide(color: RpgColors.border),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+    ),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Light / Dark theme switcher
+// ---------------------------------------------------------------------------
+class AppTheme {
+  static ThemeData dark() => buildRpgTheme();
+
+  static ThemeData light() => ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.light,
+    scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+    colorScheme: const ColorScheme.light(
+      primary: RpgColors.accent,
+      surface: Colors.white,
+    ),
+    fontFamily: 'Crimson',
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFFEEEEEE),
+      foregroundColor: Color(0xFF1A1A2E),
+      elevation: 0,
+      centerTitle: true,
+      titleTextStyle: TextStyle(
+        fontFamily: 'Cinzel',
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: Color(0xFF1A1A2E),
+        letterSpacing: 2,
+      ),
+    ),
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      backgroundColor: Color(0xFFEEEEEE),
+      selectedItemColor: RpgColors.accent,
+      unselectedItemColor: Color(0xFF888888),
+      type: BottomNavigationBarType.fixed,
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Color(0xFFCCCCCC)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Color(0xFFCCCCCC)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: RpgColors.accent, width: 1.5),
+      ),
+      labelStyle: const TextStyle(color: Color(0xFF555555), fontFamily: 'Crimson'),
+      hintStyle: const TextStyle(color: Color(0xFF999999), fontFamily: 'Crimson'),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: RpgColors.accent,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        textStyle: const TextStyle(fontFamily: 'Cinzel', letterSpacing: 1, fontWeight: FontWeight.bold),
+      ),
     ),
   );
 }

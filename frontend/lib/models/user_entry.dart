@@ -10,8 +10,10 @@ class UserEntry {
   final String? ratingLabel;
   final String? notes;
   final String? platform;
-  final String? startedAt;
-  final String? completedAt;
+  final DateTime? startedAt;
+  final DateTime? completedAt;
+  final int? epCurrent;
+  final int? epTotal;
   final DateTime updatedAt;
   final MediaItem? media;
 
@@ -27,6 +29,8 @@ class UserEntry {
     this.platform,
     this.startedAt,
     this.completedAt,
+    this.epCurrent,
+    this.epTotal,
     required this.updatedAt,
     this.media,
   });
@@ -41,11 +45,17 @@ class UserEntry {
     ratingLabel: j['rating_label'],
     notes:       j['notes'],
     platform:    j['platform'],
-    startedAt:   j['started_at'],
-    completedAt: j['completed_at'],
+    startedAt:   j['started_at'] != null ? DateTime.tryParse(j['started_at']) : null,
+    completedAt: j['completed_at'] != null ? DateTime.tryParse(j['completed_at']) : null,
+    epCurrent:   j['ep_current'] as int?,
+    epTotal:     j['ep_total'] as int?,
     updatedAt:   DateTime.parse(j['updated_at']),
     media:       j['media'] != null ? MediaItem.fromJson(j['media']) : null,
   );
+
+  // Helper to get ISO string for API calls
+  String? get startedAtStr => startedAt?.toIso8601String().split('T').first;
+  String? get completedAtStr => completedAt?.toIso8601String().split('T').first;
 }
 
 class AppUser {

@@ -2,7 +2,7 @@ import hashlib
 import secrets
 import base64
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Optional, Tuple
 import json
 
 from config import SECRET_KEY, TOKEN_EXPIRE_MINUTES
@@ -47,3 +47,20 @@ def decode_token(token: str) -> Optional[dict]:
         return payload
     except Exception:
         return None
+
+
+def create_refresh_token(user_id: int) -> Tuple[str, datetime]:
+    """Generates an opaque refresh token (64 bytes) with 7-day expiry."""
+    token_string = secrets.token_urlsafe(64)
+    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+    return token_string, expires_at
+
+
+def is_token_blacklisted(token_sig: str) -> bool:
+    """Returns True if the given token signature is in the blacklist."""
+    from database import fetchone
+    row = fetchone(
+        "SELECT 1 FROM token_blacklist WHERE token_sig = %s AND expires_at > NOW()",
+        (token_sig,),
+    )
+    return row is not None

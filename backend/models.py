@@ -1,18 +1,29 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 from enum import Enum
 from datetime import date, datetime
+import re
 
 
 class MediaType(str, Enum):
-    MANGA   = "MANGA"
-    MANHWA  = "MANHWA"
-    MANHUA  = "MANHUA"
-    WEBTOON = "WEBTOON"
-    ANIME   = "ANIME"
-    MOVIE   = "MOVIE"
-    SERIES  = "SERIES"
-    DORAMA  = "DORAMA"
+    MANGA    = "MANGA"
+    MANHWA   = "MANHWA"
+    MANHUA   = "MANHUA"
+    WEBTOON  = "WEBTOON"
+    ANIME    = "ANIME"
+    MOVIE    = "MOVIE"
+    SERIES   = "SERIES"
+    DORAMA   = "DORAMA"
+    NOVEL    = "NOVEL"
+
+
+class EmissionStatus(str, Enum):
+    AIRING    = "AIRING"
+    FINISHED  = "FINISHED"
+    UPCOMING  = "UPCOMING"
+    CANCELLED = "CANCELLED"
+    HIATUS    = "HIATUS"
+    UNKNOWN   = "UNKNOWN"
 
 
 class TrackingStatus(str, Enum):
@@ -23,21 +34,19 @@ class TrackingStatus(str, Enum):
     DROPPED  = "dropped"
 
 
-class RatingLabel(str, Enum):
-    MUST        = "must"
-    ME_ENCANTA  = "me_encanta"
-    MUY_BONITA  = "muy_bonita"
-    BONITA      = "bonita"
-    PASABLE     = "pasable"
-    NO_ME_GUSTO = "no_me_gusto"
-    ABANDONADO  = "abandonado"
-    SIN_VALORAR = "sin_valorar"
-
-
 class UserCreate(BaseModel):
     username: str = Field(min_length=3, max_length=50)
     display_name: Optional[str] = None
-    password: str = Field(min_length=6)
+    password: str = Field(min_length=8)
+
+    @field_validator('password')
+    @classmethod
+    def password_complexity(cls, v):
+        if not re.search(r'[A-Za-z]', v):
+            raise ValueError('La contraseña debe contener al menos una letra')
+        if not re.search(r'[0-9]', v):
+            raise ValueError('La contraseña debe contener al menos un número')
+        return v
 
 
 class UserLogin(BaseModel):
@@ -60,6 +69,13 @@ class Token(BaseModel):
     user: UserOut
 
 
+class TokenPair(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    user: UserOut
+
+
 class MediaCreate(BaseModel):
     type: MediaType
     title: str
@@ -73,6 +89,7 @@ class MediaCreate(BaseModel):
     network: Optional[str] = None
     cast_text: Optional[str] = None
     external_score: Optional[float] = None
+    emission_status: Optional[EmissionStatus] = None
     tmdb_id: Optional[int] = None
     anilist_id: Optional[int] = None
     platform: Optional[str] = None
@@ -89,22 +106,26 @@ class EntryCreate(BaseModel):
     status: TrackingStatus = TrackingStatus.PLAN
     progress: Optional[str] = None
     score: Optional[float] = None
-    rating_label: Optional[RatingLabel] = RatingLabel.SIN_VALORAR
+    rating_label: Optional[str] = "sin_valorar"
     notes: Optional[str] = None
     platform: Optional[str] = None
     started_at: Optional[date] = None
     completed_at: Optional[date] = None
+    ep_current: Optional[int] = None
+    ep_total: Optional[int] = None
 
 
 class EntryUpdate(BaseModel):
     status: Optional[TrackingStatus] = None
     progress: Optional[str] = None
     score: Optional[float] = None
-    rating_label: Optional[RatingLabel] = None
+    rating_label: Optional[str] = None
     notes: Optional[str] = None
     platform: Optional[str] = None
     started_at: Optional[date] = None
     completed_at: Optional[date] = None
+    ep_current: Optional[int] = None
+    ep_total: Optional[int] = None
 
 
 class EntryOut(BaseModel):
@@ -114,11 +135,13 @@ class EntryOut(BaseModel):
     status: TrackingStatus
     progress: Optional[str]
     score: Optional[float]
-    rating_label: Optional[RatingLabel]
+    rating_label: Optional[str]
     notes: Optional[str]
     platform: Optional[str]
     started_at: Optional[date]
     completed_at: Optional[date]
+    ep_current: Optional[int]
+    ep_total: Optional[int]
     created_at: datetime
     updated_at: datetime
     media: Optional[MediaOut] = None
@@ -137,6 +160,21 @@ class SearchResult(BaseModel):
     type: MediaType
     duration: Optional[str] = None
     country: Optional[str] = None
+    emission_status: Optional[EmissionStatus] = None
+    network: Optional[str] = None
+    cast_text: Optional[str] = None
+
+
+class RatingConfigCreate(BaseModel):
+    key: str = Field(min_length=1, max_length=50)
+    label: str = Field(min_length=1, max_length=100)
+    color: str = Field(default="#888888", pattern=r"^#[0-9A-Fa-f]{6}$")
+    sort_order: int = 0
+
+
+class RatingConfigOut(RatingConfigCreate):
+    id: int
+    user_id: int
 
 
 class StatsOut(BaseModel):
@@ -147,3 +185,7 @@ class StatsOut(BaseModel):
     completed: int
     watching: int
     plan: int
+    top_genres: list
+    monthly_added: list
+    score_distribution: list
+    time_spent_hours: float

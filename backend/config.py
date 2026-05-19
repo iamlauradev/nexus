@@ -19,7 +19,7 @@ DB_USER     = os.environ.get("DB_USER", "nexus")
 DB_PASSWORD = os.environ.get("DB_PASSWORD", "nexus2024")
 
 SECRET_KEY  = os.environ.get("SECRET_KEY", "dev-secret-key")
-TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", 10080))
+TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", 15))
 
 TMDB_API_KEY   = os.environ.get("TMDB_API_KEY", "")
 ANILIST_URL    = os.environ.get("ANILIST_URL", "https://graphql.anilist.co")

@@ -1,7 +1,10 @@
 import requests
+import ipaddress
+from urllib.parse import urlparse
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import Optional, List
-from models import MediaCreate, MediaOut, SearchResult, MediaType
+from pydantic import BaseModel
+from models import MediaCreate, MediaOut, SearchResult, MediaType, EmissionStatus
 from database import get_conn, fetchone, fetchall
 from routers.auth_router import get_current_user
 from config import TMDB_API_KEY, ANILIST_URL
@@ -12,38 +15,88 @@ TMDB_BASE = "https://api.themoviedb.org/3"
 TMDB_IMG  = "https://image.tmdb.org/t/p/w500"
 TMDB_HEADERS = {"Accept": "application/json", "Content-Type": "application/json"}
 
+JIKAN_BASE = "https://api.jikan.moe/v4"
+
+# Países considerados dorama
+DORAMA_COUNTRIES = {"KR", "JP", "TH", "CN", "TW", "HK", "SG", "PH", "ID", "VN"}
+
 ANILIST_QUERY = """
 query ($search: String, $type: MediaType) {
-  Page(page: 1, perPage: 10) {
+  Page(page: 1, perPage: 15) {
     media(search: $search, type: $type, sort: [SEARCH_MATCH]) {
       id title { romaji english native }
-      format status chapters volumes
+      format status chapters volumes episodes
       startDate { year }
       description(asHtml: false)
-      coverImage { large }
+      coverImage { extraLarge large }
       genres averageScore countryOfOrigin
+      studios(isMain: true) { nodes { name } }
+      staff(perPage: 5, sort: [RELEVANCE]) {
+        edges { role node { name { full } } }
+      }
+      duration
     }
   }
 }
 """
+
+_ANILIST_STATUS_MAP = {
+    "RELEASING":        EmissionStatus.AIRING,
+    "FINISHED":         EmissionStatus.FINISHED,
+    "NOT_YET_RELEASED": EmissionStatus.UPCOMING,
+    "CANCELLED":        EmissionStatus.CANCELLED,
+    "HIATUS":           EmissionStatus.HIATUS,
+}
 
 
 def _tmdb_get(path: str, params: dict = None) -> dict:
     if not TMDB_API_KEY:
         return {}
     p = {"language": "es-ES", **(params or {})}
-    r = requests.get(f"{TMDB_BASE}{path}", params=p,
-                     headers={**TMDB_HEADERS, "Authorization": f"Bearer {TMDB_API_KEY}"},
-                     timeout=10)
-    if r.status_code != 200:
+    try:
+        r = requests.get(
+            f"{TMDB_BASE}{path}",
+            params=p,
+            headers={**TMDB_HEADERS, "Authorization": f"Bearer {TMDB_API_KEY}"},
+            timeout=10,
+        )
+        if r.status_code != 200:
+            return {}
+        return r.json()
+    except Exception:
         return {}
-    return r.json()
 
+
+def _jikan_get(path: str, params: dict = None) -> dict:
+    try:
+        r = requests.get(f"{JIKAN_BASE}{path}", params=params or {}, timeout=10)
+        if r.status_code != 200:
+            return {}
+        return r.json()
+    except Exception:
+        return {}
+
+
+def _tmdb_genres_map() -> dict:
+    """Returns {id: name} for TV and movie genres (cached in module scope on first call)."""
+    return _tmdb_genres_map._cache if hasattr(_tmdb_genres_map, "_cache") else {}
+
+
+def _strip_html(text: str) -> str:
+    if not text:
+        return text
+    import re
+    return re.sub(r"<[^>]+>", "", text).strip()
+
+
+# ---------------------------------------------------------------------------
+# MOVIES  (TMDB)
+# ---------------------------------------------------------------------------
 
 def _search_tmdb_movies(query: str) -> List[SearchResult]:
-    data = _tmdb_get("/search/movie", {"query": query})
+    data = _tmdb_get("/search/movie", {"query": query, "include_adult": False})
     results = []
-    for m in data.get("results", [])[:5]:
+    for m in data.get("results", [])[:8]:
         results.append(SearchResult(
             source="tmdb",
             external_id=str(m["id"]),
@@ -52,37 +105,114 @@ def _search_tmdb_movies(query: str) -> List[SearchResult]:
             year=int(m["release_date"][:4]) if m.get("release_date") else None,
             cover_url=f"{TMDB_IMG}{m['poster_path']}" if m.get("poster_path") else None,
             genres=None,
-            synopsis=m.get("overview"),
-            score=m.get("vote_average"),
+            synopsis=m.get("overview") or None,
+            score=round(m["vote_average"], 1) if m.get("vote_average") else None,
             type=MediaType.MOVIE,
+            country=m.get("original_language", "").upper() or None,
         ))
     return results
 
 
-def _search_tmdb_tv(query: str, media_type: MediaType) -> List[SearchResult]:
-    data = _tmdb_get("/search/tv", {"query": query})
+# ---------------------------------------------------------------------------
+# SERIES  (TMDB)
+# ---------------------------------------------------------------------------
+
+def _build_tmdb_tv_result(m: dict, forced_type: Optional[MediaType] = None) -> SearchResult:
+    origin = m.get("origin_country", [])
+    if forced_type:
+        t = forced_type
+    else:
+        t = MediaType.DORAMA if any(c in DORAMA_COUNTRIES for c in origin) else MediaType.SERIES
+
+    return SearchResult(
+        source="tmdb",
+        external_id=str(m["id"]),
+        title=m.get("name", ""),
+        title_original=m.get("original_name"),
+        year=int(m["first_air_date"][:4]) if m.get("first_air_date") else None,
+        cover_url=f"{TMDB_IMG}{m['poster_path']}" if m.get("poster_path") else None,
+        genres=None,
+        synopsis=m.get("overview") or None,
+        score=round(m["vote_average"], 1) if m.get("vote_average") else None,
+        type=t,
+        country=", ".join(origin) if origin else None,
+    )
+
+
+def _search_tmdb_series(query: str) -> List[SearchResult]:
+    """Series occidentales: filtra resultados que NO sean de países dorama."""
+    data = _tmdb_get("/search/tv", {"query": query, "include_adult": False})
     results = []
-    for m in data.get("results", [])[:5]:
+    for m in data.get("results", [])[:10]:
         origin = m.get("origin_country", [])
-        # Guess type from origin country
-        t = media_type
-        if t == MediaType.SERIES and origin and any(c in ["KR", "JP", "TH", "CN"] for c in origin):
-            t = MediaType.DORAMA
-        results.append(SearchResult(
-            source="tmdb",
-            external_id=str(m["id"]),
-            title=m.get("name", ""),
-            title_original=m.get("original_name"),
-            year=int(m["first_air_date"][:4]) if m.get("first_air_date") else None,
-            cover_url=f"{TMDB_IMG}{m['poster_path']}" if m.get("poster_path") else None,
-            genres=None,
-            synopsis=m.get("overview"),
-            score=m.get("vote_average"),
-            type=t,
-            country=", ".join(origin) if origin else None,
-        ))
-    return results
+        if not any(c in DORAMA_COUNTRIES for c in origin):
+            results.append(_build_tmdb_tv_result(m, forced_type=MediaType.SERIES))
+    # Si no hay resultados no-asiáticos, devuelve todo
+    if not results:
+        for m in data.get("results", [])[:5]:
+            results.append(_build_tmdb_tv_result(m, forced_type=MediaType.SERIES))
+    return results[:6]
 
+
+def _search_tmdb_dorama(query: str) -> List[SearchResult]:
+    """
+    Doramas asiáticos: busca en TMDB y prioriza contenido de países asiáticos.
+    Hace búsqueda extra en coreano/japonés si hay pocos resultados.
+    """
+    seen_ids: set = set()
+    results: List[SearchResult] = []
+
+    def _add_from_data(data: dict, max_items: int = 10):
+        for m in data.get("results", [])[:max_items]:
+            if str(m["id"]) in seen_ids:
+                continue
+            origin = m.get("origin_country", [])
+            if any(c in DORAMA_COUNTRIES for c in origin):
+                seen_ids.add(str(m["id"]))
+                results.append(_build_tmdb_tv_result(m, forced_type=MediaType.DORAMA))
+
+    # Búsqueda principal en español
+    _add_from_data(_tmdb_get("/search/tv", {"query": query, "include_adult": False}))
+
+    # Búsqueda adicional con idioma original (inglés, para títulos romanizados)
+    if len(results) < 5:
+        _add_from_data(_tmdb_get("/search/tv", {
+            "query": query,
+            "include_adult": False,
+            "language": "en-US",
+        }))
+
+    # Fallback: discover con países asiáticos + query aproximado por popularidad
+    if len(results) < 3:
+        for lang in ["ko", "ja", "zh", "th"]:
+            disc = _tmdb_get("/discover/tv", {
+                "with_original_language": lang,
+                "sort_by": "vote_count.desc",
+                "include_adult": False,
+                "vote_count.gte": 50,
+                "language": "es-ES",
+            })
+            # El discover no filtra por texto, así que hacemos match manual
+            for m in disc.get("results", [])[:20]:
+                title_lower = (m.get("name", "") + " " + m.get("original_name", "")).lower()
+                if any(word.lower() in title_lower for word in query.split() if len(word) > 2):
+                    if str(m["id"]) not in seen_ids:
+                        seen_ids.add(str(m["id"]))
+                        results.append(_build_tmdb_tv_result(m, forced_type=MediaType.DORAMA))
+
+    # Si aún sin resultados asiáticos, devuelve cualquier resultado de la búsqueda
+    if not results:
+        data = _tmdb_get("/search/tv", {"query": query, "include_adult": False})
+        for m in data.get("results", [])[:5]:
+            if str(m["id"]) not in seen_ids:
+                results.append(_build_tmdb_tv_result(m, forced_type=MediaType.DORAMA))
+
+    return results[:8]
+
+
+# ---------------------------------------------------------------------------
+# ANIME  (AniList primario + Jikan/MAL secundario)
+# ---------------------------------------------------------------------------
 
 def _search_anilist(query: str, media_type: str) -> List[SearchResult]:
     try:
@@ -95,32 +225,123 @@ def _search_anilist(query: str, media_type: str) -> List[SearchResult]:
         data = r.json()
     except Exception:
         return []
+
     results = []
-    for m in data.get("data", {}).get("Page", {}).get("media", [])[:5]:
-        fmt = m.get("format", "")
-        country = m.get("countryOfOrigin", "")
-        t = MediaType.MANGA
-        if fmt == "MANHWA" or country == "KR":
-            t = MediaType.MANHWA
-        elif fmt == "MANHUA" or country in ("CN", "TW"):
-            t = MediaType.MANHUA
-        elif media_type == "ANIME":
+    for m in data.get("data", {}).get("Page", {}).get("media", [])[:8]:
+        fmt = m.get("format", "") or ""
+        country = m.get("countryOfOrigin", "") or ""
+
+        if media_type == "ANIME":
             t = MediaType.ANIME
+        elif fmt in ("MANHWA",) or country == "KR":
+            t = MediaType.MANHWA
+        elif fmt in ("MANHUA",) or country in ("CN", "TW"):
+            t = MediaType.MANHUA
+        elif fmt in ("WEBTOON",):
+            t = MediaType.WEBTOON
+        else:
+            t = MediaType.MANGA
+
         titles = m.get("title", {})
+        cover = (m.get("coverImage") or {})
+        synopsis = _strip_html(m.get("description"))
+
+        # Studio / cadena
+        studios = (m.get("studios") or {}).get("nodes", [])
+        network = studios[0]["name"] if studios else None
+
+        # Staff: director + guionistas
+        cast_parts = []
+        for edge in (m.get("staff") or {}).get("edges", []):
+            role = edge.get("role", "")
+            name = (edge.get("node") or {}).get("name", {}).get("full", "")
+            if name and ("Director" in role or "Story" in role or "Script" in role):
+                cast_parts.append(f"{name} ({role})")
+        cast_text = ", ".join(cast_parts) if cast_parts else None
+
+        duration_min = m.get("duration")
+        duration = f"{duration_min} min" if duration_min else None
+
+        emission_status = _ANILIST_STATUS_MAP.get(m.get("status", ""))
+
         results.append(SearchResult(
             source="anilist",
             external_id=str(m["id"]),
             title=titles.get("romaji") or titles.get("english") or "",
             title_original=titles.get("native"),
             year=(m.get("startDate") or {}).get("year"),
-            cover_url=(m.get("coverImage") or {}).get("large"),
-            genres=m.get("genres"),
-            synopsis=m.get("description"),
-            score=m.get("averageScore", 0) / 10 if m.get("averageScore") else None,
+            cover_url=cover.get("extraLarge") or cover.get("large"),
+            genres=m.get("genres") or None,
+            synopsis=synopsis or None,
+            score=round(m["averageScore"] / 10, 1) if m.get("averageScore") else None,
             type=t,
+            duration=duration,
+            country=country or None,
+            emission_status=emission_status,
+            network=network,
+            cast_text=cast_text,
         ))
     return results
 
+
+def _search_jikan_anime(query: str) -> List[SearchResult]:
+    """MyAnimeList via Jikan v4 — fuente secundaria de anime."""
+    data = _jikan_get("/anime", {"q": query, "limit": 8, "sfw": True})
+    seen_mal_ids: set = set()
+    results = []
+    for m in data.get("data", []):
+        mal_id = str(m.get("mal_id", ""))
+        if mal_id in seen_mal_ids:
+            continue
+        seen_mal_ids.add(mal_id)
+
+        images = (m.get("images") or {}).get("jpg", {})
+        cover = images.get("large_image_url") or images.get("image_url")
+
+        genres = [g["name"] for g in (m.get("genres") or []) + (m.get("themes") or [])]
+
+        aired = (m.get("aired") or {}).get("from")
+        year = None
+        if aired:
+            try:
+                year = int(aired[:4])
+            except Exception:
+                pass
+
+        duration_raw = m.get("duration", "") or ""
+        duration = duration_raw.replace(" per ep", "").strip() or None
+
+        results.append(SearchResult(
+            source="jikan",
+            external_id=f"mal_{mal_id}",
+            title=m.get("title_english") or m.get("title") or "",
+            title_original=m.get("title_japanese"),
+            year=year,
+            cover_url=cover,
+            genres=genres or None,
+            synopsis=m.get("synopsis") or None,
+            score=round(float(m["score"]), 1) if m.get("score") else None,
+            type=MediaType.ANIME,
+            duration=duration,
+            country="JP",
+        ))
+    return results
+
+
+# ---------------------------------------------------------------------------
+# MANGA / MANHWA / MANHUA / WEBTOON  (AniList)
+# ---------------------------------------------------------------------------
+
+def _search_manga(query: str, requested_type: MediaType) -> List[SearchResult]:
+    results = _search_anilist(query, "MANGA")
+    # Si se pidió un tipo específico, filtra primero por ese tipo; si no hay, devuelve todo
+    typed = [r for r in results if r.type == requested_type]
+    return typed if typed else results
+
+
+# ---------------------------------------------------------------------------
+# Endpoint principal
+# ---------------------------------------------------------------------------
 
 @router.get("/search", response_model=List[SearchResult])
 def search_metadata(
@@ -128,20 +349,32 @@ def search_metadata(
     type: MediaType = Query(MediaType.DORAMA),
     _user = Depends(get_current_user),
 ):
-    results = []
-    if type in (MediaType.MOVIE,):
-        results += _search_tmdb_movies(q)
-    elif type in (MediaType.SERIES, MediaType.DORAMA):
-        results += _search_tmdb_tv(q, type)
-    elif type in (MediaType.MANGA, MediaType.MANHWA, MediaType.MANHUA, MediaType.WEBTOON):
-        results += _search_anilist(q, "MANGA")
-    elif type == MediaType.ANIME:
-        results += _search_anilist(q, "ANIME")
-    # Always add TMDB cross-reference for doramas/series
-    if type == MediaType.DORAMA and not results:
-        results += _search_tmdb_tv(q, type)
-    return results
+    if type == MediaType.MOVIE:
+        return _search_tmdb_movies(q)
 
+    if type == MediaType.SERIES:
+        return _search_tmdb_series(q)
+
+    if type == MediaType.DORAMA:
+        return _search_tmdb_dorama(q)
+
+    if type == MediaType.ANIME:
+        anilist = _search_anilist(q, "ANIME")
+        jikan = _search_jikan_anime(q)
+        # Merge: preferir AniList, añadir Jikan si hay resultados únicos
+        seen_titles = {r.title.lower() for r in anilist}
+        extras = [r for r in jikan if r.title.lower() not in seen_titles]
+        return (anilist + extras)[:10]
+
+    if type in (MediaType.MANGA, MediaType.MANHWA, MediaType.MANHUA, MediaType.WEBTOON):
+        return _search_manga(q, type)
+
+    return []
+
+
+# ---------------------------------------------------------------------------
+# CRUD de media
+# ---------------------------------------------------------------------------
 
 @router.post("/", response_model=MediaOut)
 def create_media(data: MediaCreate, _user = Depends(get_current_user)):
@@ -150,19 +383,18 @@ def create_media(data: MediaCreate, _user = Depends(get_current_user)):
         cur.execute("""
             INSERT INTO media (type, title, title_original, year, genres, synopsis,
                 cover_url, duration, country, network, cast_text, external_score,
-                tmdb_id, anilist_id, platform)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                emission_status, tmdb_id, anilist_id, platform)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             ON CONFLICT DO NOTHING
             RETURNING *
         """, (
             data.type, data.title, data.title_original, data.year,
             data.genres, data.synopsis, data.cover_url, data.duration,
             data.country, data.network, data.cast_text, data.external_score,
-            data.tmdb_id, data.anilist_id, data.platform,
+            data.emission_status, data.tmdb_id, data.anilist_id, data.platform,
         ))
         row = cur.fetchone()
         if not row:
-            # Already exists - find by title+type
             cur.execute("SELECT * FROM media WHERE title=%s AND type=%s", (data.title, data.type))
             row = cur.fetchone()
     return MediaOut(**dict(row))
@@ -193,6 +425,48 @@ def list_media(
 @router.get("/{media_id}", response_model=MediaOut)
 def get_media(media_id: int, _user = Depends(get_current_user)):
     row = fetchone("SELECT * FROM media WHERE id = %s", (media_id,))
+    if not row:
+        raise HTTPException(404, "Media no encontrada")
+    return MediaOut(**dict(row))
+
+
+class CoverUpdate(BaseModel):
+    cover_url: str
+
+
+def _validate_cover_url(url: str) -> bool:
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ('http', 'https'):
+            return False
+        host = parsed.hostname
+        if not host:
+            return False
+        # Block private/local IPs
+        try:
+            addr = ipaddress.ip_address(host)
+            if addr.is_private or addr.is_loopback or addr.is_link_local:
+                return False
+        except ValueError:
+            # It's a hostname, check it's not localhost
+            if host.lower() in ('localhost', '0.0.0.0'):
+                return False
+        return True
+    except Exception:
+        return False
+
+
+@router.patch("/{media_id}/cover", response_model=MediaOut)
+def update_cover(media_id: int, data: CoverUpdate, _user = Depends(get_current_user)):
+    if not _validate_cover_url(data.cover_url):
+        raise HTTPException(400, "URL de portada no válida")
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE media SET cover_url = %s, updated_at = NOW() WHERE id = %s RETURNING *",
+            (data.cover_url, media_id),
+        )
+        row = cur.fetchone()
     if not row:
         raise HTTPException(404, "Media no encontrada")
     return MediaOut(**dict(row))

@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:intl/intl.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:share_plus/share_plus.dart';
 import '../theme/rpg_theme.dart';
 import '../models/user_entry.dart';
 import '../services/api_service.dart';
 import '../widgets/ornamental_border.dart';
+import 'dart:io';
+import 'dart:typed_data';
 
 const _statuses = {
   'plan_to_watch': 'Pendiente',
@@ -13,15 +18,13 @@ const _statuses = {
   'dropped':       'Abandonado',
 };
 
-const _ratings = {
-  'must':        '★ Must',
-  'me_encanta':  '♥ Me encanta',
-  'muy_bonita':  '✦ Es muy bonita',
-  'bonita':      '◆ Es bonita',
-  'pasable':     '◇ Pasable',
-  'no_me_gusto': '✕ No me ha gustado',
-  'abandonado':  '— Abandonado',
-  'sin_valorar': '· Sin valorar',
+const _emissionStatuses = {
+  '':          'Desconocido',
+  'AIRING':    'En emisión',
+  'FINISHED':  'Finalizada',
+  'UPCOMING':  'Próximamente',
+  'CANCELLED': 'Cancelada',
+  'HIATUS':    'En hiato',
 };
 
 class DetailScreen extends StatefulWidget {
@@ -36,18 +39,24 @@ class _DetailScreenState extends State<DetailScreen> {
   late UserEntry _entry;
   bool _editing = false;
   bool _saving = false;
+  bool _synopsisExpanded = false;
 
   late String _status;
-  late String? _ratingLabel;
-  late String? _progress;
-  late String? _notes;
-  late String? _platform;
-  double? _score;
+  late String _ratingLabel;
+  late String _emissionStatus;
+  DateTime? _startedAt;
+  DateTime? _completedAt;
+  String? _coverUrl;
 
   final _progressCtrl = TextEditingController();
   final _notesCtrl    = TextEditingController();
   final _platformCtrl = TextEditingController();
   final _scoreCtrl    = TextEditingController();
+  final _coverUrlCtrl = TextEditingController();
+  final _epCurrentCtrl = TextEditingController();
+  final _epTotalCtrl   = TextEditingController();
+
+  final ScreenshotController _screenshotController = ScreenshotController();
 
   @override
   void initState() {
@@ -57,16 +66,20 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 
   void _initFields() {
-    _status      = _entry.status;
-    _ratingLabel = _entry.ratingLabel ?? 'sin_valorar';
-    _progress    = _entry.progress;
-    _notes       = _entry.notes;
-    _platform    = _entry.platform;
-    _score       = _entry.score;
-    _progressCtrl.text = _entry.progress ?? '';
-    _notesCtrl.text    = _entry.notes ?? '';
-    _platformCtrl.text = _entry.platform ?? '';
-    _scoreCtrl.text    = _entry.score?.toString() ?? '';
+    _status          = _entry.status;
+    _ratingLabel     = _entry.ratingLabel ?? 'sin_valorar';
+    _emissionStatus  = _entry.media?.emissionStatus ?? '';
+    _startedAt       = _entry.startedAt;
+    _completedAt     = _entry.completedAt;
+    _coverUrl        = _entry.media?.coverUrl;
+    _progressCtrl.text  = _entry.progress ?? '';
+    _notesCtrl.text     = _entry.notes ?? '';
+    _platformCtrl.text  = _entry.platform ?? '';
+    _scoreCtrl.text     = _entry.score?.toString() ?? '';
+    _coverUrlCtrl.text  = _entry.media?.coverUrl ?? '';
+    _epCurrentCtrl.text = _entry.epCurrent?.toString() ?? '';
+    _epTotalCtrl.text   = _entry.epTotal?.toString() ?? '';
+    // startedAt / completedAt are now DateTime? — no text controllers needed
   }
 
   @override
@@ -75,12 +88,23 @@ class _DetailScreenState extends State<DetailScreen> {
     _notesCtrl.dispose();
     _platformCtrl.dispose();
     _scoreCtrl.dispose();
+    _coverUrlCtrl.dispose();
+    _epCurrentCtrl.dispose();
+    _epTotalCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     setState(() => _saving = true);
     try {
+      // Update cover if changed
+      final newCoverUrl = _coverUrlCtrl.text.trim().isEmpty ? null : _coverUrlCtrl.text.trim();
+      if (newCoverUrl != _coverUrl && _entry.media != null) {
+        if (newCoverUrl != null) {
+          await ApiService.updateCover(_entry.media!.id, newCoverUrl);
+        }
+      }
+
       final updated = await ApiService.updateEntry(_entry.id, {
         'status':       _status,
         'rating_label': _ratingLabel,
@@ -88,14 +112,18 @@ class _DetailScreenState extends State<DetailScreen> {
         'notes':        _notesCtrl.text.isEmpty ? null : _notesCtrl.text,
         'platform':     _platformCtrl.text.isEmpty ? null : _platformCtrl.text,
         'score':        double.tryParse(_scoreCtrl.text),
+        'started_at':   _startedAt?.toIso8601String().split('T').first,
+        'completed_at': _completedAt?.toIso8601String().split('T').first,
+        'ep_current':   int.tryParse(_epCurrentCtrl.text),
+        'ep_total':     int.tryParse(_epTotalCtrl.text),
       });
-      // Rebuild with existing media since update doesn't return it
       setState(() {
         _entry = UserEntry(
           id: updated.id, userId: updated.userId, mediaId: updated.mediaId,
           status: updated.status, progress: updated.progress, score: updated.score,
           ratingLabel: updated.ratingLabel, notes: updated.notes, platform: updated.platform,
           startedAt: updated.startedAt, completedAt: updated.completedAt,
+          epCurrent: updated.epCurrent, epTotal: updated.epTotal,
           updatedAt: updated.updatedAt, media: _entry.media,
         );
         _editing = false;
@@ -105,7 +133,7 @@ class _DetailScreenState extends State<DetailScreen> {
     } catch (e) {
       setState(() => _saving = false);
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: RpgColors.ratingNoMeGusto));
+        SnackBar(content: Text('Error: $e'), backgroundColor: RpgColors.statusDropped));
     }
   }
 
@@ -114,16 +142,17 @@ class _DetailScreenState extends State<DetailScreen> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: RpgColors.surface,
-        title: const Text('Eliminar entrada', style: TextStyle(color: RpgColors.gold, fontFamily: 'Cinzel')),
+        title: const Text('Eliminar', style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Cinzel', fontSize: 16)),
         content: Text(
-          '¿Eliminar "${_entry.media?.title}" de tu lista?',
+          '¿Quitar "${_entry.media?.title}" de tu lista?',
           style: const TextStyle(color: RpgColors.textSecondary, fontFamily: 'Crimson'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar', style: TextStyle(color: RpgColors.textMuted))),
+          TextButton(onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar', style: TextStyle(color: RpgColors.textMuted))),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: RpgColors.ratingNoMeGusto),
+            style: ElevatedButton.styleFrom(backgroundColor: RpgColors.statusDropped),
             child: const Text('Eliminar', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -135,249 +164,397 @@ class _DetailScreenState extends State<DetailScreen> {
     }
   }
 
+  Future<void> _share() async {
+    try {
+      final Uint8List? imageBytes = await _screenshotController.capture(pixelRatio: 2.0);
+      if (imageBytes == null) return;
+      final tempDir = Directory.systemTemp;
+      final file = File('${tempDir.path}/nexus_share.png');
+      await file.writeAsBytes(imageBytes);
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: '${_entry.media?.title ?? ''} — Nexus Media Tracker',
+      );
+    } catch (e) {
+      // Fallback: share as text
+      final title = _entry.media?.title ?? '';
+      final status = statusLabel(_entry.status);
+      final rating = RatingConfigCache.labelFor(_entry.ratingLabel);
+      await Share.share('$title\n$status · $rating\n— Nexus Media Tracker');
+    }
+  }
+
+  Future<void> _pickDate({required bool isStart}) async {
+    final initial = (isStart ? _startedAt : _completedAt) ?? DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(1900),
+      lastDate: DateTime(2100),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: RpgColors.gold,
+            onPrimary: RpgColors.obsidian,
+            surface: RpgColors.surface,
+            onSurface: RpgColors.textPrimary,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      setState(() {
+        if (isStart) _startedAt = picked;
+        else _completedAt = picked;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final media = _entry.media;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(media?.title ?? '', style: const TextStyle(fontSize: 16)),
-        actions: [
-          if (!_editing)
-            IconButton(
-              icon: const Icon(Icons.edit, color: RpgColors.gold),
-              onPressed: () => setState(() => _editing = true),
+      body: CustomScrollView(
+        slivers: [
+          _buildSliverHeader(media),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: _editing ? _buildEditForm() : _buildView(media),
             ),
-          if (!_editing)
-            IconButton(
-              icon: const Icon(Icons.delete_outline, color: RpgColors.ratingNoMeGusto),
-              onPressed: _delete,
-            ),
+          ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildHeader(media),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: _editing ? _buildEditForm() : _buildView(),
-            ),
-          ],
-        ),
-      ),
       floatingActionButton: _editing
-        ? FloatingActionButton.extended(
-            onPressed: _saving ? null : _save,
-            backgroundColor: RpgColors.goldDark,
-            label: _saving
-              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: RpgColors.gold))
-              : const Text('Guardar', style: TextStyle(fontFamily: 'Cinzel', color: RpgColors.goldLight, letterSpacing: 1)),
-            icon: const Icon(Icons.save, color: RpgColors.goldLight),
-          )
-        : null,
+          ? FloatingActionButton.extended(
+              onPressed: _saving ? null : _save,
+              backgroundColor: RpgColors.gold,
+              label: _saving
+                  ? const SizedBox(width: 20, height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('Guardar', style: TextStyle(
+                      fontFamily: 'Cinzel', color: RpgColors.obsidian, fontWeight: FontWeight.bold)),
+              icon: const Icon(Icons.save_outlined, color: RpgColors.obsidian),
+            )
+          : null,
     );
   }
 
-  Widget _buildHeader(dynamic media) {
-    if (media == null) return const SizedBox.shrink();
-    return Stack(
-      children: [
-        // Background blur cover
-        if (media.coverUrl != null)
-          SizedBox(
-            height: 220,
-            width: double.infinity,
-            child: CachedNetworkImage(
-              imageUrl: media.coverUrl!,
-              fit: BoxFit.cover,
-              color: Colors.black.withOpacity(0.6),
-              colorBlendMode: BlendMode.darken,
-            ),
-          )
-        else
-          Container(height: 220, color: RpgColors.charcoal),
-
-        // Bottom gradient
-        Positioned(
-          bottom: 0, left: 0, right: 0,
-          child: Container(height: 80, decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter, end: Alignment.bottomCenter,
-              colors: [Colors.transparent, RpgColors.obsidian],
-            ),
-          )),
-        ),
-
-        // Cover + info row
-        Positioned(
-          bottom: 12, left: 16, right: 16,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+  Widget _buildSliverHeader(dynamic media) {
+    return SliverAppBar(
+      expandedHeight: 260,
+      pinned: true,
+      backgroundColor: RpgColors.darkVoid,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back, color: RpgColors.textPrimary),
+        onPressed: () => Navigator.pop(context),
+      ),
+      actions: [
+        if (!_editing) ...[
+          IconButton(
+            icon: const Icon(Icons.share_outlined, color: RpgColors.gold),
+            onPressed: _share,
+            tooltip: 'Compartir',
+          ),
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, color: RpgColors.gold),
+            onPressed: () => setState(() => _editing = true),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: RpgColors.statusDropped),
+            onPressed: _delete,
+          ),
+        ] else
+          IconButton(
+            icon: const Icon(Icons.close, color: RpgColors.textMuted),
+            onPressed: () { setState(() { _editing = false; _initFields(); }); },
+          ),
+      ],
+      flexibleSpace: FlexibleSpaceBar(
+        background: Screenshot(
+          controller: _screenshotController,
+          child: Stack(
+            fit: StackFit.expand,
             children: [
-              if (media.coverUrl != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: CachedNetworkImage(
-                    imageUrl: media.coverUrl!,
-                    width: 90, height: 128, fit: BoxFit.cover,
-                  ),
+              // Background blurred cover
+              if (media?.coverUrl != null)
+                CachedNetworkImage(
+                  imageUrl: media!.coverUrl!,
+                  fit: BoxFit.cover,
+                  color: Colors.black.withOpacity(0.55),
+                  colorBlendMode: BlendMode.darken,
                 )
               else
-                Container(width: 90, height: 128, decoration: BoxDecoration(
-                  color: RpgColors.surface,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: RpgColors.border),
-                )),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+                Container(color: RpgColors.charcoal),
+              // Bottom gradient
+              Positioned(
+                bottom: 0, left: 0, right: 0,
+                child: Container(
+                  height: 120,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, RpgColors.obsidian],
+                    ),
+                  ),
+                ),
+              ),
+              // Cover + info
+              Positioned(
+                bottom: 16, left: 16, right: 16,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(media.title, style: const TextStyle(
-                      fontFamily: 'Cinzel', fontSize: 16, color: RpgColors.textPrimary,
-                      fontWeight: FontWeight.bold, shadows: [Shadow(blurRadius: 4, color: Colors.black)],
-                    )),
-                    if (media.year != null) Text('${media.year}', style: const TextStyle(
-                      fontFamily: 'Crimson', fontSize: 13, color: RpgColors.textSecondary)),
-                    const SizedBox(height: 6),
-                    Row(children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: RpgColors.amethyst.withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(3),
-                          border: Border.all(color: RpgColors.amethystLight.withOpacity(0.5)),
-                        ),
-                        child: Text(typeLabel(media.type), style: const TextStyle(
-                          color: RpgColors.amethystLight, fontSize: 11, fontFamily: 'Crimson')),
+                    // Cover thumbnail
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: media?.coverUrl != null
+                          ? CachedNetworkImage(
+                              imageUrl: media!.coverUrl!,
+                              width: 100, height: 145, fit: BoxFit.cover,
+                            )
+                          : Container(
+                              width: 100, height: 145,
+                              color: RpgColors.charcoal,
+                              child: const Icon(Icons.image_outlined, color: RpgColors.border, size: 36),
+                            ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (media?.titleOriginal != null)
+                            Text(media!.titleOriginal!, maxLines: 1, overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 12)),
+                          Text(media?.title ?? '', maxLines: 2, overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: RpgColors.textPrimary, fontFamily: 'Cinzel', fontSize: 17,
+                              fontWeight: FontWeight.bold, height: 1.2,
+                              shadows: [Shadow(blurRadius: 8, color: Colors.black)],
+                            )),
+                          const SizedBox(height: 6),
+                          Row(children: [
+                            _TypePill(media?.type),
+                            const SizedBox(width: 6),
+                            if (media?.year != null)
+                              Text('${media!.year}', style: const TextStyle(
+                                color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 13)),
+                          ]),
+                          const SizedBox(height: 6),
+                          Row(children: [
+                            EmissionBadge(status: media?.emissionStatus),
+                            if (media?.externalScore != null) ...[
+                              const SizedBox(width: 8),
+                              const Icon(Icons.star_rounded, color: RpgColors.statusPlan, size: 14),
+                              Text(' ${media!.externalScore!.toStringAsFixed(1)}',
+                                style: const TextStyle(color: RpgColors.statusPlan, fontFamily: 'Crimson', fontSize: 13)),
+                            ],
+                          ]),
+                        ],
                       ),
-                      if (media.externalScore != null) ...[
-                        const SizedBox(width: 8),
-                        const Icon(Icons.star, color: RpgColors.gold, size: 14),
-                        Text(' ${media.externalScore!.toStringAsFixed(1)}',
-                          style: const TextStyle(color: RpgColors.gold, fontSize: 13, fontFamily: 'Crimson')),
-                      ],
-                    ]),
+                    ),
                   ],
                 ),
               ),
             ],
           ),
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildView() {
-    final media = _entry.media;
+  Widget _buildView(dynamic media) {
+    final ratingColor = RatingConfigCache.colorFor(_ratingLabel);
+    final ratingText  = RatingConfigCache.labelFor(_ratingLabel);
+    final df = DateFormat('dd/MM/yyyy');
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Rating + status row
-        Row(
-          children: [
-            Expanded(child: _InfoBox(
-              label: 'Estado',
-              child: Row(children: [
-                Icon(Icons.circle, size: 10, color: statusColor(_entry.status)),
-                const SizedBox(width: 6),
-                Text(statusLabel(_entry.status), style: const TextStyle(
-                  color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 14)),
-              ]),
-            )),
-            const SizedBox(width: 10),
-            Expanded(child: _InfoBox(
-              label: 'Valoración',
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: ratingColor(_entry.ratingLabel).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(ratingLabel(_entry.ratingLabel), style: TextStyle(
-                  color: ratingColor(_entry.ratingLabel), fontFamily: 'Crimson', fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                )),
-              ),
-            )),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (_entry.progress != null)
-          _InfoBox(label: 'Progreso', child: Text(_entry.progress!, style: const TextStyle(
-            color: RpgColors.gold, fontFamily: 'Crimson', fontSize: 14))),
-        if (_entry.score != null) ...[
+        // My tracking section
+        _SectionHeader('Mi seguimiento'),
+        const SizedBox(height: 10),
+        Row(children: [
+          Expanded(child: _InfoTile(
+            icon: Icons.circle_outlined,
+            label: 'Mi estado',
+            value: statusLabel(_status),
+            valueColor: statusColor(_status),
+          )),
+          const SizedBox(width: 10),
+          Expanded(child: _InfoTile(
+            icon: Icons.bookmark_outlined,
+            label: 'Progreso',
+            value: _entry.progress ?? '—',
+            valueColor: RpgColors.gold,
+          )),
+        ]),
+        const SizedBox(height: 10),
+        Row(children: [
+          Expanded(child: _InfoTile(
+            icon: Icons.star_outline,
+            label: 'Mi puntuación',
+            value: _entry.score != null ? '${_entry.score}/10' : '—',
+            valueColor: RpgColors.statusPlan,
+          )),
+          const SizedBox(width: 10),
+          Expanded(child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: ratingColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: ratingColor.withOpacity(0.4)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('VALORACIÓN', style: const TextStyle(
+                  fontFamily: 'Cinzel', fontSize: 9, color: RpgColors.textMuted, letterSpacing: 1.5)),
+                const SizedBox(height: 4),
+                Text(ratingText, style: TextStyle(
+                  color: ratingColor, fontFamily: 'Crimson', fontSize: 14, fontWeight: FontWeight.w600)),
+              ],
+            ),
+          )),
+        ]),
+        // Dates
+        if (_entry.startedAt != null || _entry.completedAt != null) ...[
           const SizedBox(height: 10),
-          _InfoBox(label: 'Mi puntuación', child: Text('${_entry.score}', style: const TextStyle(
-            color: RpgColors.gold, fontFamily: 'Cinzel', fontSize: 18))),
+          Row(children: [
+            if (_entry.startedAt != null)
+              Expanded(child: _InfoTile(
+                icon: Icons.play_circle_outline,
+                label: 'Fecha inicio',
+                value: _formatDateDt(_entry.startedAt, df),
+                valueColor: RpgColors.statusWatching,
+              )),
+            if (_entry.startedAt != null && _entry.completedAt != null)
+              const SizedBox(width: 10),
+            if (_entry.completedAt != null)
+              Expanded(child: _InfoTile(
+                icon: Icons.check_circle_outline,
+                label: 'Fecha fin',
+                value: _formatDateDt(_entry.completedAt, df),
+                valueColor: RpgColors.statusComplete,
+              )),
+          ]),
+        ],
+        // Episode progress bar
+        if (_entry.epCurrent != null || _entry.epTotal != null) ...[
+          const SizedBox(height: 10),
+          _EpisodeProgressBar(epCurrent: _entry.epCurrent, epTotal: _entry.epTotal),
         ],
         if (_entry.platform != null) ...[
           const SizedBox(height: 10),
-          _InfoBox(label: 'Visto en', child: Text(_entry.platform!, style: const TextStyle(
-            color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 14))),
+          _InfoTile(icon: Icons.devices_outlined, label: 'Visto en', value: _entry.platform!),
         ],
         if (_entry.notes != null && _entry.notes!.isNotEmpty) ...[
           const SizedBox(height: 12),
-          _InfoBox(
-            label: 'Mis notas',
+          _SectionHeader('Mis notas'),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: RpgColors.charcoal,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: RpgColors.border),
+            ),
             child: Text(_entry.notes!, style: const TextStyle(
-              color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 14,
-              fontStyle: FontStyle.italic, height: 1.5,
-            )),
+              color: RpgColors.textSecondary, fontFamily: 'Crimson',
+              fontSize: 14, height: 1.6, fontStyle: FontStyle.italic)),
           ),
         ],
+
+        // Media info
         if (media != null) ...[
-          const SizedBox(height: 16),
-          const GoldDivider(label: 'INFO'),
-          const SizedBox(height: 12),
-          if (media.duration != null)
-            _InfoRow('Duración', media.duration!),
-          if (media.country != null)
-            _InfoRow('País', media.country!),
-          if (media.network != null)
-            _InfoRow('Cadena', media.network!),
+          const SizedBox(height: 20),
+          _SectionHeader('Información'),
+          const SizedBox(height: 10),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            if (media.country != null)   _MetaChip(Icons.flag_outlined, media.country!),
+            if (media.duration != null)  _MetaChip(Icons.timer_outlined, media.duration!),
+            if (media.network != null)   _MetaChip(Icons.broadcast_on_home_outlined, media.network!),
+          ]),
           if (media.genres != null && media.genres!.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Wrap(
               spacing: 6, runSpacing: 6,
-              children: media.genres!.map((g) => Chip(
-                label: Text(g, style: const TextStyle(fontSize: 11, color: RpgColors.textSecondary, fontFamily: 'Crimson')),
-                backgroundColor: RpgColors.charcoal,
-                side: const BorderSide(color: RpgColors.border),
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                padding: EdgeInsets.zero,
+              children: (media.genres as List<String>).map((g) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: RpgColors.charcoal,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: RpgColors.border),
+                ),
+                child: Text(g, style: const TextStyle(
+                  fontSize: 12, color: RpgColors.textSecondary, fontFamily: 'Crimson')),
               )).toList(),
             ),
           ],
           if (media.synopsis != null && media.synopsis!.isNotEmpty) ...[
             const SizedBox(height: 16),
-            const GoldDivider(label: 'SINOPSIS'),
+            _SectionHeader('Sinopsis'),
             const SizedBox(height: 8),
-            Text(media.synopsis!, style: const TextStyle(
-              color: RpgColors.textSecondary, fontFamily: 'Crimson',
-              fontSize: 14, height: 1.6,
-            )),
+            GestureDetector(
+              onTap: () => setState(() => _synopsisExpanded = !_synopsisExpanded),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    media.synopsis!,
+                    maxLines: _synopsisExpanded ? null : 4,
+                    overflow: _synopsisExpanded ? null : TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: RpgColors.textSecondary, fontFamily: 'Crimson',
+                      fontSize: 14, height: 1.6),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _synopsisExpanded ? 'Ver menos ↑' : 'Ver más ↓',
+                    style: const TextStyle(color: RpgColors.gold, fontFamily: 'Crimson', fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
           ],
           if (media.castText != null && media.castText!.isNotEmpty) ...[
             const SizedBox(height: 16),
-            const GoldDivider(label: 'REPARTO'),
+            _SectionHeader('Reparto / Staff'),
             const SizedBox(height: 8),
             Text(media.castText!, style: const TextStyle(
               color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 13, height: 1.5)),
           ],
         ],
-        const SizedBox(height: 40),
+        const SizedBox(height: 16),
+        _HistorySection(entryId: _entry.id),
+        const SizedBox(height: 80),
       ],
     );
   }
 
+  String _formatDate(String? raw, DateFormat df) {
+    if (raw == null) return '—';
+    try { return df.format(DateTime.parse(raw)); } catch (_) { return raw; }
+  }
+
+  String _formatDateDt(DateTime? dt, DateFormat df) {
+    if (dt == null) return '—';
+    return df.format(dt);
+  }
+
   Widget _buildEditForm() {
+    final ratings = RatingConfigCache.configs;
+    final df = DateFormat('dd/MM/yyyy');
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Estado', style: TextStyle(fontFamily: 'Cinzel', color: RpgColors.textSecondary, fontSize: 12, letterSpacing: 1)),
-        const SizedBox(height: 6),
+        _SectionHeader('Mi estado'),
+        const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           value: _status,
           dropdownColor: RpgColors.surface,
@@ -386,31 +563,54 @@ class _DetailScreenState extends State<DetailScreen> {
           items: _statuses.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
           onChanged: (v) { if (v != null) setState(() => _status = v); },
         ),
-        const SizedBox(height: 16),
-        const Text('Valoración', style: TextStyle(fontFamily: 'Cinzel', color: RpgColors.textSecondary, fontSize: 12, letterSpacing: 1)),
-        const SizedBox(height: 6),
+        const SizedBox(height: 14),
+        _SectionHeader('Estado de emisión'),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          value: _emissionStatus,
+          dropdownColor: RpgColors.surface,
+          decoration: const InputDecoration(isDense: true),
+          style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+          items: _emissionStatuses.entries.map((e) => DropdownMenuItem(
+            value: e.key,
+            child: Row(children: [
+              if (e.key.isNotEmpty) Container(
+                width: 8, height: 8,
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(color: emissionColor(e.key), shape: BoxShape.circle),
+              ),
+              Text(e.value),
+            ]),
+          )).toList(),
+          onChanged: (v) { if (v != null) setState(() => _emissionStatus = v); },
+        ),
+        const SizedBox(height: 14),
+        _SectionHeader('Valoración'),
+        const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           value: _ratingLabel,
           dropdownColor: RpgColors.surface,
           decoration: const InputDecoration(isDense: true),
           style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
-          items: _ratings.entries.map((e) => DropdownMenuItem(
-            value: e.key,
-            child: Row(children: [
-              Container(width: 10, height: 10, decoration: BoxDecoration(
-                color: ratingColor(e.key), shape: BoxShape.circle)),
-              const SizedBox(width: 8),
-              Text(e.value),
-            ]),
-          )).toList(),
+          items: ratings.map((r) {
+            final color = RatingConfigCache.colorFor(r['key']);
+            return DropdownMenuItem(
+              value: r['key'] as String,
+              child: Row(children: [
+                Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                const SizedBox(width: 8),
+                Text(r['label'] as String),
+              ]),
+            );
+          }).toList(),
           onChanged: (v) { if (v != null) setState(() => _ratingLabel = v); },
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
         TextField(
           controller: _progressCtrl,
           decoration: const InputDecoration(
             labelText: 'Progreso (ej: T2 E5, Cap 23)',
-            prefixIcon: Icon(Icons.bookmark, color: RpgColors.gold, size: 18),
+            prefixIcon: Icon(Icons.bookmark_outline, color: RpgColors.gold, size: 18),
           ),
           style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
         ),
@@ -419,8 +619,8 @@ class _DetailScreenState extends State<DetailScreen> {
           controller: _scoreCtrl,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: const InputDecoration(
-            labelText: 'Mi puntuación (ej: 9.5)',
-            prefixIcon: Icon(Icons.star, color: RpgColors.gold, size: 18),
+            labelText: 'Mi puntuación (0–10)',
+            prefixIcon: Icon(Icons.star_outline, color: RpgColors.statusPlan, size: 18),
           ),
           style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
         ),
@@ -428,10 +628,70 @@ class _DetailScreenState extends State<DetailScreen> {
         TextField(
           controller: _platformCtrl,
           decoration: const InputDecoration(
-            labelText: 'Plataforma (ej: Netflix, Crunchyroll)',
-            prefixIcon: Icon(Icons.devices, color: RpgColors.gold, size: 18),
+            labelText: 'Plataforma (Netflix, Crunchyroll…)',
+            prefixIcon: Icon(Icons.devices_outlined, color: RpgColors.gold, size: 18),
           ),
           style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+        ),
+        const SizedBox(height: 12),
+        // Ep current + total
+        Row(children: [
+          Expanded(
+            child: TextField(
+              controller: _epCurrentCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Ep. actual',
+                prefixIcon: Icon(Icons.play_arrow_outlined, color: RpgColors.gold, size: 18),
+              ),
+              style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextField(
+              controller: _epTotalCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Ep. total',
+                prefixIcon: Icon(Icons.list_outlined, color: RpgColors.gold, size: 18),
+              ),
+              style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+            ),
+          ),
+        ]),
+        const SizedBox(height: 12),
+        // Date pickers
+        _SectionHeader('Fechas'),
+        const SizedBox(height: 8),
+        Row(children: [
+          Expanded(
+            child: _DatePickerTile(
+              label: 'Fecha de inicio',
+              value: _formatDateDt(_startedAt, df),
+              onTap: () => _pickDate(isStart: true),
+              onClear: _startedAt != null ? () => setState(() => _startedAt = null) : null,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _DatePickerTile(
+              label: 'Fecha de fin',
+              value: _formatDateDt(_completedAt, df),
+              onTap: () => _pickDate(isStart: false),
+              onClear: _completedAt != null ? () => setState(() => _completedAt = null) : null,
+            ),
+          ),
+        ]),
+        const SizedBox(height: 12),
+        // Cover URL
+        TextField(
+          controller: _coverUrlCtrl,
+          decoration: const InputDecoration(
+            labelText: 'URL de portada',
+            prefixIcon: Icon(Icons.image_outlined, color: RpgColors.gold, size: 18),
+          ),
+          style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13),
         ),
         const SizedBox(height: 12),
         TextField(
@@ -440,69 +700,255 @@ class _DetailScreenState extends State<DetailScreen> {
           decoration: const InputDecoration(
             labelText: 'Mis notas / reseña',
             alignLabelWithHint: true,
-            prefixIcon: Padding(
-              padding: EdgeInsets.only(bottom: 80),
-              child: Icon(Icons.notes, color: RpgColors.gold, size: 18),
-            ),
           ),
           style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 14, height: 1.5),
         ),
-        const SizedBox(height: 80),
+        const SizedBox(height: 100),
       ],
     );
   }
 }
 
-class _InfoBox extends StatelessWidget {
+// ---- Helper widgets ----
+
+class _DatePickerTile extends StatelessWidget {
   final String label;
-  final Widget child;
-  const _InfoBox({required this.label, required this.child});
+  final String value;
+  final VoidCallback onTap;
+  final VoidCallback? onClear;
+
+  const _DatePickerTile({
+    required this.label,
+    required this.value,
+    required this.onTap,
+    this.onClear,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: RpgColors.surface,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: RpgColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label.toUpperCase(), style: const TextStyle(
-            fontFamily: 'Cinzel', fontSize: 10, color: RpgColors.textMuted, letterSpacing: 1.5)),
-          const SizedBox(height: 4),
-          child,
-        ],
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: RpgColors.charcoal,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: RpgColors.border),
+        ),
+        child: Row(children: [
+          const Icon(Icons.calendar_today_outlined, size: 14, color: RpgColors.gold),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(label.toUpperCase(), style: const TextStyle(
+                fontFamily: 'Cinzel', fontSize: 8, color: RpgColors.textMuted, letterSpacing: 1)),
+              const SizedBox(height: 2),
+              Text(value, style: const TextStyle(
+                color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13)),
+            ]),
+          ),
+          if (onClear != null)
+            GestureDetector(
+              onTap: onClear,
+              child: const Icon(Icons.close, size: 14, color: RpgColors.textMuted),
+            ),
+        ]),
       ),
     );
   }
 }
 
-class _InfoRow extends StatelessWidget {
-  final String label;
-  final String value;
-  const _InfoRow(this.label, this.value);
+class _EpisodeProgressBar extends StatelessWidget {
+  final int? epCurrent;
+  final int? epTotal;
+
+  const _EpisodeProgressBar({this.epCurrent, this.epTotal});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(label, style: const TextStyle(
-              color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 13)),
-          ),
-          const Text(' · ', style: TextStyle(color: RpgColors.border, fontSize: 13)),
-          Expanded(child: Text(value, style: const TextStyle(
-            color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 13))),
-        ],
+    final current = epCurrent ?? 0;
+    final total = epTotal ?? 0;
+    final pct = (total > 0) ? (current / total).clamp(0.0, 1.0) : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: RpgColors.charcoal,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: RpgColors.border),
       ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          const Text('EPISODIOS', style: TextStyle(
+            fontFamily: 'Cinzel', fontSize: 9, color: RpgColors.textMuted, letterSpacing: 1.5)),
+          Text(
+            total > 0 ? '$current / $total' : 'Ep. $current',
+            style: const TextStyle(color: RpgColors.gold, fontFamily: 'Cinzel', fontSize: 12, fontWeight: FontWeight.bold),
+          ),
+        ]),
+        if (total > 0) ...[
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: Stack(children: [
+              Container(height: 6, color: RpgColors.surface),
+              FractionallySizedBox(
+                widthFactor: pct,
+                child: Container(height: 6, color: RpgColors.gold),
+              ),
+            ]),
+          ),
+        ],
+      ]),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String text;
+  const _SectionHeader(this.text);
+
+  @override
+  Widget build(BuildContext context) => Text(
+    text.toUpperCase(),
+    style: const TextStyle(
+      fontFamily: 'Cinzel', fontSize: 10, color: RpgColors.textMuted, letterSpacing: 2),
+  );
+}
+
+class _InfoTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color? valueColor;
+  const _InfoTile({required this.icon, required this.label, required this.value, this.valueColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: RpgColors.charcoal,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: RpgColors.border),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label.toUpperCase(), style: const TextStyle(
+          fontFamily: 'Cinzel', fontSize: 9, color: RpgColors.textMuted, letterSpacing: 1.5)),
+        const SizedBox(height: 4),
+        Row(children: [
+          Icon(icon, size: 14, color: valueColor ?? RpgColors.textSecondary),
+          const SizedBox(width: 5),
+          Expanded(child: Text(value, style: TextStyle(
+            color: valueColor ?? RpgColors.textPrimary,
+            fontFamily: 'Crimson', fontSize: 14, fontWeight: FontWeight.w600),
+            maxLines: 1, overflow: TextOverflow.ellipsis)),
+        ]),
+      ]),
+    );
+  }
+}
+
+class _MetaChip extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  const _MetaChip(this.icon, this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: RpgColors.charcoal,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: RpgColors.border),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 13, color: RpgColors.textMuted),
+        const SizedBox(width: 5),
+        Text(text, style: const TextStyle(
+          color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 13)),
+      ]),
+    );
+  }
+}
+
+class _TypePill extends StatelessWidget {
+  final String? type;
+  const _TypePill(this.type);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: RpgColors.amethyst.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: RpgColors.amethystLight.withOpacity(0.4)),
+      ),
+      child: Text(typeLabel(type), style: const TextStyle(
+        color: RpgColors.amethystLight, fontSize: 11, fontFamily: 'Crimson')),
+    );
+  }
+}
+
+// ---- History section ----
+
+class _HistorySection extends StatefulWidget {
+  final int entryId;
+  const _HistorySection({required this.entryId});
+
+  @override
+  State<_HistorySection> createState() => _HistorySectionState();
+}
+
+class _HistorySectionState extends State<_HistorySection> {
+  bool _expanded = false;
+  List<dynamic> _history = [];
+  bool _loaded = false;
+
+  Future<void> _load() async {
+    if (_loaded) return;
+    try {
+      final h = await ApiService.getEntryHistory(widget.entryId);
+      if (mounted) setState(() { _history = h; _loaded = true; });
+    } catch (_) {
+      if (mounted) setState(() { _loaded = true; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ExpansionTile(
+      title: const Text('Historial de cambios',
+          style: TextStyle(color: RpgColors.textSecondary, fontFamily: 'Cinzel', fontSize: 13)),
+      iconColor: RpgColors.gold,
+      collapsedIconColor: RpgColors.textMuted,
+      onExpansionChanged: (v) {
+        if (v) _load();
+        setState(() => _expanded = v);
+      },
+      children: _history.isEmpty && _loaded
+          ? [const Padding(
+              padding: EdgeInsets.all(12),
+              child: Text('Sin cambios registrados',
+                  style: TextStyle(color: RpgColors.textMuted, fontSize: 12)))]
+          : _history.map((h) {
+              final date = DateTime.tryParse(h['changed_at'] ?? '');
+              final dateStr = date != null ? '${date.day}/${date.month}/${date.year}' : '';
+              return ListTile(
+                dense: true,
+                title: Text(
+                  '${h['field_name']}: ${h['old_value'] ?? '—'} → ${h['new_value'] ?? '—'}',
+                  style: const TextStyle(
+                      color: RpgColors.textSecondary,
+                      fontSize: 12,
+                      fontFamily: 'Crimson'),
+                ),
+                trailing: Text(dateStr,
+                    style: const TextStyle(color: RpgColors.textMuted, fontSize: 11)),
+              );
+            }).toList(),
     );
   }
 }

@@ -1,0 +1,19 @@
+# PostgreSQL data (binarios, no se versiona)
+data/
+
+# Variables de entorno (contienen credenciales)
+.env
+
+# Flutter build artifacts
+frontend/build/
+frontend/.dart_tool/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+
+# Python
+backend/__pycache__/
+backend/*.pyc
+backend/routers/__pycache__/
+
+# APK output
+*.apk
