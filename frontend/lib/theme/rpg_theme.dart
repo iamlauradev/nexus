@@ -80,7 +80,7 @@ class RatingConfigCache {
     if (key == null) return RpgColors.ratingSinValorar;
     final c = _configs.firstWhere(
       (c) => c['key'] == key,
-      orElse: () => {'color': '#484F58'},
+      orElse: () => <String, dynamic>{'color': '#484F58'},
     );
     return _hexColor(c['color'] as String? ?? '#484F58');
   }
@@ -89,7 +89,7 @@ class RatingConfigCache {
     if (key == null) return '· Sin valorar';
     final c = _configs.firstWhere(
       (c) => c['key'] == key,
-      orElse: () => {'label': key},
+      orElse: () => <String, dynamic>{'label': key},
     );
     return c['label'] as String? ?? key;
   }
