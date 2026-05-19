@@ -15,6 +15,23 @@ import 'screens/profile_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Show real errors instead of silent gray screens in release builds
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return Material(
+      color: const Color(0xFF7F1D1D),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            'ERROR: ${details.exceptionAsString()}\n\n${details.stack}',
+            style: const TextStyle(color: Colors.white, fontSize: 11, fontFamily: 'monospace'),
+          ),
+        ),
+      ),
+    );
+  };
+
   runApp(
     MultiProvider(
       providers: [
