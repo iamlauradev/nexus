@@ -75,11 +75,8 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.play_circle_filled_rounded, color: RpgColors.accent, size: 52),
+                  Image.asset('assets/images/logo.png', width: 96, height: 96),
                   const SizedBox(height: 12),
-                  const Text('NEXUS', style: TextStyle(
-                    fontFamily: 'Cinzel', fontSize: 28, fontWeight: FontWeight.bold,
-                    color: RpgColors.textPrimary, letterSpacing: 4)),
                   const Text('Media Tracker', style: TextStyle(
                     fontFamily: 'Crimson', fontSize: 14,
                     color: RpgColors.textSecondary, letterSpacing: 2)),
