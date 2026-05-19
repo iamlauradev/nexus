@@ -1,57 +1,57 @@
 import 'package:flutter/material.dart';
 
 // ---------------------------------------------------------------------------
-// Color palette — modern dark media tracker
+// Color palette — vibrant dark media tracker
 // ---------------------------------------------------------------------------
 class RpgColors {
-  // Backgrounds
-  static const Color obsidian    = Color(0xFF0D1117);
-  static const Color darkVoid    = Color(0xFF161B22);
-  static const Color charcoal    = Color(0xFF1C2128);
-  static const Color surface     = Color(0xFF21262D);
-  static const Color surfaceHigh = Color(0xFF2D333B);
-  static const Color border      = Color(0xFF30363D);
+  // Backgrounds — dark blue-black base
+  static const Color obsidian    = Color(0xFF0A0E1A);
+  static const Color darkVoid    = Color(0xFF0F1629);
+  static const Color charcoal    = Color(0xFF161D31);
+  static const Color surface     = Color(0xFF1C2440);
+  static const Color surfaceHigh = Color(0xFF232B4A);
+  static const Color border      = Color(0xFF2A3352);
 
-  // Primary accent — indigo-blue
-  static const Color accent      = Color(0xFF667EEA);  // alias for gold
-  static const Color gold        = Color(0xFF667EEA);  // primary (was gold)
-  static const Color goldLight   = Color(0xFF9BAEFF);
-  static const Color goldDark    = Color(0xFF3D4FB5);
-  static const Color goldGlow    = Color(0x40667EEA);
+  // Primary accent — bright violet
+  static const Color accent      = Color(0xFF8B5CF6);
+  static const Color gold        = Color(0xFF8B5CF6);  // alias
+  static const Color goldLight   = Color(0xFFA78BFA);
+  static const Color goldDark    = Color(0xFF6D28D9);
+  static const Color goldGlow    = Color(0x408B5CF6);
 
-  // Secondary — purple
-  static const Color amethyst      = Color(0xFF764BA2);
-  static const Color amethystLight = Color(0xFFBC8CFF);
-  static const Color amethystGlow  = Color(0x40764BA2);
-  static const Color violet        = Color(0xFF4A0E8F);
+  // Secondary — teal/cyan
+  static const Color amethyst      = Color(0xFF06B6D4);
+  static const Color amethystLight = Color(0xFF67E8F9);
+  static const Color amethystGlow  = Color(0x4006B6D4);
+  static const Color violet        = Color(0xFF4C1D95);
 
   // Text
-  static const Color textPrimary   = Color(0xFFE6EDF3);
-  static const Color textSecondary = Color(0xFF8B949E);
-  static const Color textMuted     = Color(0xFF484F58);
+  static const Color textPrimary   = Color(0xFFF0F4FF);
+  static const Color textSecondary = Color(0xFF94A3B8);
+  static const Color textMuted     = Color(0xFF475569);
 
-  // Emission status colors
-  static const Color emissionAiring    = Color(0xFF3FB950);
-  static const Color emissionFinished  = Color(0xFF58A6FF);
-  static const Color emissionUpcoming  = Color(0xFFD29922);
-  static const Color emissionCancelled = Color(0xFFF85149);
-  static const Color emissionHiatus    = Color(0xFFD2A800);
+  // Emission status
+  static const Color emissionAiring    = Color(0xFF10B981);
+  static const Color emissionFinished  = Color(0xFF60A5FA);
+  static const Color emissionUpcoming  = Color(0xFFFBBF24);
+  static const Color emissionCancelled = Color(0xFFEF4444);
+  static const Color emissionHiatus    = Color(0xFFF97316);
 
-  // Status colors
-  static const Color statusWatching = Color(0xFF58A6FF);
-  static const Color statusComplete = Color(0xFF3FB950);
-  static const Color statusPlan     = Color(0xFFD29922);
-  static const Color statusOnHold   = Color(0xFFBC8CFF);
-  static const Color statusDropped  = Color(0xFFF85149);
+  // Status — vibrant
+  static const Color statusWatching = Color(0xFF60A5FA);
+  static const Color statusComplete = Color(0xFF34D399);
+  static const Color statusPlan     = Color(0xFFFBBF24);
+  static const Color statusOnHold   = Color(0xFFC084FC);
+  static const Color statusDropped  = Color(0xFFF87171);
 
   // Rating defaults (overridden by user config)
-  static const Color ratingMust       = Color(0xFFF0C040);
-  static const Color ratingMeEncanta  = Color(0xFF58A6FF);
-  static const Color ratingMuyBonita  = Color(0xFF3FB950);
-  static const Color ratingBonita     = Color(0xFF56CC9D);
-  static const Color ratingPasable    = Color(0xFFD29922);
-  static const Color ratingNoMeGusto  = Color(0xFFF85149);
-  static const Color ratingSinValorar = Color(0xFF484F58);
+  static const Color ratingMust       = Color(0xFFFBBF24);
+  static const Color ratingMeEncanta  = Color(0xFF60A5FA);
+  static const Color ratingMuyBonita  = Color(0xFF34D399);
+  static const Color ratingBonita     = Color(0xFF6EE7B7);
+  static const Color ratingPasable    = Color(0xFFF97316);
+  static const Color ratingNoMeGusto  = Color(0xFFF87171);
+  static const Color ratingSinValorar = Color(0xFF475569);
 }
 
 // ---------------------------------------------------------------------------
@@ -61,13 +61,13 @@ class RatingConfigCache {
   static List<Map<String, dynamic>> _configs = _defaultConfigs();
 
   static List<Map<String, dynamic>> _defaultConfigs() => [
-    {'key': 'must',        'label': '★ Must',          'color': '#F0C040', 'sort_order': 0},
-    {'key': 'me_encanta',  'label': '♥ Me encanta',    'color': '#58A6FF', 'sort_order': 1},
-    {'key': 'muy_bonita',  'label': '✦ Muy bonita',    'color': '#3FB950', 'sort_order': 2},
-    {'key': 'bonita',      'label': '◆ Bonita',        'color': '#56CC9D', 'sort_order': 3},
-    {'key': 'pasable',     'label': '◇ Pasable',       'color': '#D29922', 'sort_order': 4},
-    {'key': 'no_me_gusto', 'label': '✕ No me gustó',  'color': '#F85149', 'sort_order': 5},
-    {'key': 'sin_valorar', 'label': '· Sin valorar',  'color': '#484F58', 'sort_order': 6},
+    {'key': 'must',        'label': '★ Must',          'color': '#FBBF24', 'sort_order': 0},
+    {'key': 'me_encanta',  'label': '♥ Me encanta',    'color': '#60A5FA', 'sort_order': 1},
+    {'key': 'muy_bonita',  'label': '✦ Muy bonita',    'color': '#34D399', 'sort_order': 2},
+    {'key': 'bonita',      'label': '◆ Bonita',        'color': '#6EE7B7', 'sort_order': 3},
+    {'key': 'pasable',     'label': '◇ Pasable',       'color': '#F97316', 'sort_order': 4},
+    {'key': 'no_me_gusto', 'label': '✕ No me gustó',  'color': '#F87171', 'sort_order': 5},
+    {'key': 'sin_valorar', 'label': '· Sin valorar',  'color': '#475569', 'sort_order': 6},
   ];
 
   static void update(List<Map<String, dynamic>> configs) {
@@ -183,12 +183,13 @@ ThemeData buildRpgTheme() {
       onSecondary: RpgColors.textPrimary,
       onSurface:  RpgColors.textPrimary,
     ),
-    appBarTheme: const AppBarTheme(
+    appBarTheme: AppBarTheme(
       backgroundColor: RpgColors.darkVoid,
       foregroundColor: RpgColors.textPrimary,
       elevation: 0,
       centerTitle: true,
-      titleTextStyle: TextStyle(
+      shadowColor: RpgColors.accent.withOpacity(0.3),
+      titleTextStyle: const TextStyle(
         fontFamily: 'Cinzel',
         fontSize: 18,
         fontWeight: FontWeight.bold,
@@ -198,9 +199,11 @@ ThemeData buildRpgTheme() {
     ),
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: RpgColors.darkVoid,
-      selectedItemColor: RpgColors.gold,
+      selectedItemColor: RpgColors.accent,
       unselectedItemColor: RpgColors.textMuted,
       type: BottomNavigationBarType.fixed,
+      selectedLabelStyle: TextStyle(fontFamily: 'Crimson', fontSize: 10, fontWeight: FontWeight.w600),
+      unselectedLabelStyle: TextStyle(fontFamily: 'Crimson', fontSize: 9),
     ),
     cardTheme: CardThemeData(
       color: RpgColors.surface,

@@ -161,6 +161,22 @@ class ApiService {
     return _handleResponse(r);
   }
 
+  static Future<Map<String, dynamic>> updateProfile({String? displayName, String? avatarUrl}) async {
+    final body = <String, dynamic>{};
+    if (displayName != null) body['display_name'] = displayName;
+    if (avatarUrl != null) body['avatar_url'] = avatarUrl;
+    final uri = Uri.parse('$_baseUrl/auth/profile');
+    final r = await http.put(uri, headers: _headers, body: jsonEncode(body));
+    return _handleResponse(r, retry: () => http.put(uri, headers: _headers, body: jsonEncode(body)));
+  }
+
+  static Future<void> changePassword(String currentPassword, String newPassword) async {
+    final uri = Uri.parse('$_baseUrl/auth/change-password');
+    final body = jsonEncode({'current_password': currentPassword, 'new_password': newPassword});
+    final r = await http.post(uri, headers: _headers, body: body);
+    await _handleResponse(r, retry: () => http.post(uri, headers: _headers, body: body));
+  }
+
   // Rating configs
   static Future<List<RatingConfig>> getRatingConfigs() async {
     final uri = Uri.parse('$_baseUrl/rating-configs/');

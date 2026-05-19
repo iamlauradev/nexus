@@ -51,4 +51,12 @@ class AuthProvider extends ChangeNotifier {
     _user = null;
     notifyListeners();
   }
+
+  Future<void> refreshUser() async {
+    try {
+      final data = await ApiService.getMe();
+      _user = AppUser.fromJson(data);
+      notifyListeners();
+    } catch (_) {}
+  }
 }

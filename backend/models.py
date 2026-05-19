@@ -189,3 +189,22 @@ class StatsOut(BaseModel):
     monthly_added: list
     score_distribution: list
     time_spent_hours: float
+
+
+class ProfileUpdate(BaseModel):
+    display_name: Optional[str] = None
+    avatar_url: Optional[str] = None
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=8)
+
+    @field_validator('new_password')
+    @classmethod
+    def password_complexity(cls, v):
+        import re
+        if not re.search(r'[A-Za-z]', v):
+            raise ValueError('La contraseña debe contener al menos una letra')
+        if not re.search(r'[0-9]', v):
+            raise ValueError('La contraseña debe contener al menos un número')
+        return v

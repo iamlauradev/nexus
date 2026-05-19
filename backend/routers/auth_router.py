@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Header, Request
 from typing import Optional
 from pydantic import BaseModel
-from models import UserCreate, UserLogin, UserOut, TokenPair
+from models import UserCreate, UserLogin, UserOut, TokenPair, ProfileUpdate, PasswordChange
 from auth import (
     hash_password, verify_password, create_token, decode_token,
     create_refresh_token, is_token_blacklisted,
@@ -131,3 +131,39 @@ def logout(body: LogoutRequest, authorization: Optional[str] = Header(None)):
 @router.get("/me", response_model=UserOut)
 def me(current_user: dict = Depends(get_current_user)):
     return UserOut(**current_user)
+
+
+@router.put("/profile", response_model=UserOut)
+def update_profile(data: ProfileUpdate, current_user: dict = Depends(get_current_user)):
+    fields = {}
+    if data.display_name is not None:
+        fields['display_name'] = data.display_name
+    if data.avatar_url is not None:
+        # Validar que la URL sea externa (anti-SSRF básico)
+        from urllib.parse import urlparse
+        parsed = urlparse(data.avatar_url)
+        if parsed.scheme not in ('http', 'https'):
+            raise HTTPException(400, "URL de avatar no válida")
+        fields['avatar_url'] = data.avatar_url
+    if not fields:
+        raise HTTPException(400, "Nada que actualizar")
+    sets = ', '.join(f"{k}=%s" for k in fields)
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            f"UPDATE users SET {sets} WHERE id=%s RETURNING *",
+            list(fields.values()) + [current_user['id']]
+        )
+        user = dict(cur.fetchone())
+    return UserOut(**user)
+
+
+@router.post("/change-password")
+def change_password(data: PasswordChange, current_user: dict = Depends(get_current_user)):
+    if not verify_password(data.current_password, current_user['password_hash']):
+        raise HTTPException(400, "Contraseña actual incorrecta")
+    new_hash = hash_password(data.new_password)
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute("UPDATE users SET password_hash=%s WHERE id=%s", (new_hash, current_user['id']))
+    return {"ok": True}

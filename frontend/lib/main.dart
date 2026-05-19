@@ -11,6 +11,7 @@ import 'screens/add_entry_screen.dart';
 import 'screens/rating_config_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/import_export_screen.dart';
+import 'screens/profile_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,21 +41,30 @@ class NexusApp extends StatelessWidget {
             builder: (context, auth, _) {
               if (auth.loading) {
                 return Scaffold(
-                  backgroundColor: const Color(0xFF0D1117),
-                  body: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.play_circle_outline, color: Color(0xFF667EEA), size: 72),
-                        const SizedBox(height: 16),
-                        const Text('NEXUS', style: TextStyle(
-                          fontFamily: 'Cinzel', fontSize: 32, color: Colors.white, letterSpacing: 4)),
-                        const SizedBox(height: 8),
-                        const Text('Media Tracker', style: TextStyle(
-                          color: Color(0xFF8B949E), fontFamily: 'Crimson', fontSize: 16)),
-                        const SizedBox(height: 40),
-                        const CircularProgressIndicator(color: Color(0xFF667EEA), strokeWidth: 2),
-                      ],
+                  backgroundColor: const Color(0xFF0A0E1A),
+                  body: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0xFF0F1629), Color(0xFF0A0E1A)],
+                      ),
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.play_circle_outline, color: Color(0xFF8B5CF6), size: 72),
+                          const SizedBox(height: 16),
+                          const Text('NEXUS', style: TextStyle(
+                            fontFamily: 'Cinzel', fontSize: 32, color: Colors.white, letterSpacing: 4)),
+                          const SizedBox(height: 8),
+                          const Text('Media Tracker', style: TextStyle(
+                            color: Color(0xFF94A3B8), fontFamily: 'Crimson', fontSize: 16)),
+                          const SizedBox(height: 40),
+                          const CircularProgressIndicator(color: Color(0xFF8B5CF6), strokeWidth: 2),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -140,6 +150,12 @@ class _MainShellState extends State<MainShell> {
             onPressed: () => Navigator.push(context,
               MaterialPageRoute(builder: (_) => const RatingConfigScreen())),
             tooltip: 'Configurar valoraciones',
+          ),
+          IconButton(
+            icon: const Icon(Icons.account_circle_outlined, color: RpgColors.textMuted, size: 20),
+            onPressed: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const ProfileScreen())),
+            tooltip: 'Mi perfil',
           ),
           IconButton(
             icon: const Icon(Icons.logout_outlined, color: RpgColors.textMuted, size: 20),

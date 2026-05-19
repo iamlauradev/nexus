@@ -77,6 +77,12 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
   @override
   void initState() {
     super.initState();
+    // Asegurar que _ratingLabel existe en los configs actuales
+    final configs = RatingConfigCache.configs;
+    final keys = configs.map((c) => c['key'] as String).toList();
+    if (!keys.contains(_ratingLabel)) {
+      _ratingLabel = keys.isNotEmpty ? keys.last : 'sin_valorar';
+    }
     if (widget.initialType != null) _type = widget.initialType!;
   }
 

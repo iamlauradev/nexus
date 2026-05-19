@@ -69,7 +69,7 @@ class _RatingConfigScreenState extends State<RatingConfigScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: RpgColors.surface,
+      backgroundColor: RpgColors.charcoal,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -95,6 +95,14 @@ class _RatingConfigScreenState extends State<RatingConfigScreen> {
                     style: const TextStyle(color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 13),
                   ),
                 ),
+                if (_configs.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(child: Text(
+                      'Cargando valoraciones...',
+                      style: TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson'))),
+                  )
+                else
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.all(12),
@@ -213,7 +221,9 @@ class _RatingEditorState extends State<_RatingEditor> {
   @override
   Widget build(BuildContext context) {
     final selectedColor = RatingConfigCache.colorFor(_color);
-    return Padding(
+    return Container(
+      color: RpgColors.charcoal,
+      child: Padding(
       padding: EdgeInsets.only(
         left: 16, right: 16, top: 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
@@ -283,7 +293,7 @@ class _RatingEditorState extends State<_RatingEditor> {
           ),
         ],
       ),
-    );
+    ));
   }
 }
 

@@ -58,9 +58,24 @@ class _StatsScreenState extends State<StatsScreen> {
 
     // New optional fields
     final timeSpent   = (_stats!['time_spent_hours'] as num?)?.toDouble() ?? 0.0;
-    final scoreDist   = (_stats!['score_distribution'] as Map?)?.map((k, v) => MapEntry(k.toString(), (v as num).toInt())) ?? <String, int>{};
-    final monthlyAdded = (_stats!['monthly_added'] as Map?)?.map((k, v) => MapEntry(k.toString(), (v as num).toInt())) ?? <String, int>{};
-    final topGenres   = (_stats!['top_genres'] as Map?)?.map((k, v) => MapEntry(k.toString(), (v as num).toInt())) ?? <String, int>{};
+
+    final scoreDistList = (_stats!['score_distribution'] as List?) ?? [];
+    final scoreDist = Map<String, int>.fromEntries(
+      scoreDistList.map((item) => MapEntry(
+        (item['score'] as num).toInt().toString(),
+        (item['count'] as num).toInt())));
+
+    final monthlyList = (_stats!['monthly_added'] as List?) ?? [];
+    final monthlyAdded = Map<String, int>.fromEntries(
+      monthlyList.map((item) => MapEntry(
+        item['month'].toString(),
+        (item['count'] as num).toInt())));
+
+    final genresList = (_stats!['top_genres'] as List?) ?? [];
+    final topGenres = Map<String, int>.fromEntries(
+      genresList.map((item) => MapEntry(
+        item['genre'].toString(),
+        (item['count'] as num).toInt())));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
