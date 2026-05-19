@@ -212,8 +212,14 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
   @override
   Widget build(BuildContext context) {
     final ratings = RatingConfigCache.configs;
+    // Guard: ensure _ratingLabel is valid at build time (cache may update between initState and build)
+    final ratingKeys = ratings.map((r) => r['key'] as String).toList();
+    final effectiveRating = ratingKeys.contains(_ratingLabel)
+        ? _ratingLabel
+        : (ratingKeys.isNotEmpty ? ratingKeys.last : null);
 
     return Scaffold(
+      backgroundColor: RpgColors.surface,
       appBar: AppBar(title: const Text('Añadir')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -328,7 +334,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             const SizedBox(height: 6),
             DropdownButtonFormField<String>(
               value: _status,
-              dropdownColor: RpgColors.surface,
+              dropdownColor: RpgColors.charcoal,
               decoration: const InputDecoration(isDense: true),
               style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
               items: _statuses.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
@@ -341,7 +347,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             const SizedBox(height: 6),
             DropdownButtonFormField<String>(
               value: _emissionStatus,
-              dropdownColor: RpgColors.surface,
+              dropdownColor: RpgColors.charcoal,
               decoration: const InputDecoration(isDense: true),
               style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
               items: _emissionStatuses.entries.map((e) => DropdownMenuItem(
@@ -363,8 +369,8 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             _Label('Valoración'),
             const SizedBox(height: 6),
             DropdownButtonFormField<String>(
-              value: _ratingLabel,
-              dropdownColor: RpgColors.surface,
+              value: effectiveRating,
+              dropdownColor: RpgColors.charcoal,
               decoration: const InputDecoration(isDense: true),
               style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
               items: ratings.map((r) {

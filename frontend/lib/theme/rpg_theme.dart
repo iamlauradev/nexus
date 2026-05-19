@@ -5,12 +5,12 @@ import 'package:flutter/material.dart';
 // ---------------------------------------------------------------------------
 class RpgColors {
   // Backgrounds — dark blue-black base
-  static const Color obsidian    = Color(0xFF0A0E1A);
-  static const Color darkVoid    = Color(0xFF0F1629);
-  static const Color charcoal    = Color(0xFF161D31);
-  static const Color surface     = Color(0xFF1C2440);
-  static const Color surfaceHigh = Color(0xFF232B4A);
-  static const Color border      = Color(0xFF2A3352);
+  static const Color obsidian    = Color(0xFF0D1117);
+  static const Color darkVoid    = Color(0xFF131929);
+  static const Color charcoal    = Color(0xFF1A2236);
+  static const Color surface     = Color(0xFF212B42);
+  static const Color surfaceHigh = Color(0xFF2C3A57);
+  static const Color border      = Color(0xFF3D4F6B);
 
   // Primary accent — bright violet
   static const Color accent      = Color(0xFF8B5CF6);

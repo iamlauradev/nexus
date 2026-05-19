@@ -83,6 +83,7 @@ class _RatingConfigScreenState extends State<RatingConfigScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: RpgColors.surface,
       appBar: AppBar(title: const Text('Mis valoraciones')),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: RpgColors.gold))
