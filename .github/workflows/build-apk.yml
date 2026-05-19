@@ -27,8 +27,7 @@ jobs:
         working-directory: frontend
         run: |
           flutter build apk --release \
-            --dart-define=API_URL=${{ github.event.inputs.api_url || 'https://nexus-api.iamlaura.dev' }} \
-            --no-enable-impeller
+            --dart-define=API_URL=${{ github.event.inputs.api_url || 'https://nexus-api.iamlaura.dev' }}
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
