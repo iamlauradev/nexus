@@ -37,8 +37,12 @@ class _RatingConfigScreenState extends State<RatingConfigScreen> {
       RatingConfigCache.update(configs.map((c) => {
         'key': c.key, 'label': c.label, 'color': c.color, 'sort_order': c.sortOrder,
       }).toList());
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al cargar: $e'), backgroundColor: RpgColors.statusDropped));
+      }
     }
   }
 
