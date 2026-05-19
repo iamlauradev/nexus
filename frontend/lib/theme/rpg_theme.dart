@@ -57,37 +57,54 @@ class RpgColors {
 // ---------------------------------------------------------------------------
 // Dynamic rating config cache
 // ---------------------------------------------------------------------------
-class RatingConfigCache {
-  static List<Map<String, dynamic>> _configs = _defaultConfigs();
+class _RatingEntry {
+  final String key;
+  final String label;
+  final String color;
+  final int sortOrder;
+  const _RatingEntry(this.key, this.label, this.color, this.sortOrder);
+}
 
-  static List<Map<String, dynamic>> _defaultConfigs() => [
-    {'key': 'must',        'label': '★ Must',          'color': '#FBBF24', 'sort_order': 0},
-    {'key': 'me_encanta',  'label': '♥ Me encanta',    'color': '#60A5FA', 'sort_order': 1},
-    {'key': 'muy_bonita',  'label': '✦ Muy bonita',    'color': '#34D399', 'sort_order': 2},
-    {'key': 'bonita',      'label': '◆ Bonita',        'color': '#6EE7B7', 'sort_order': 3},
-    {'key': 'pasable',     'label': '◇ Pasable',       'color': '#F97316', 'sort_order': 4},
-    {'key': 'no_me_gusto', 'label': '✕ No me gustó',  'color': '#F87171', 'sort_order': 5},
-    {'key': 'sin_valorar', 'label': '· Sin valorar',  'color': '#475569', 'sort_order': 6},
+class RatingConfigCache {
+  static List<_RatingEntry> _entries = _defaults();
+
+  static List<_RatingEntry> _defaults() => [
+    const _RatingEntry('must',        '★ Must',         '#FBBF24', 0),
+    const _RatingEntry('me_encanta',  '♥ Me encanta',   '#60A5FA', 1),
+    const _RatingEntry('muy_bonita',  '✦ Muy bonita',   '#34D399', 2),
+    const _RatingEntry('bonita',      '◆ Bonita',       '#6EE7B7', 3),
+    const _RatingEntry('pasable',     '◇ Pasable',      '#F97316', 4),
+    const _RatingEntry('no_me_gusto', '✕ No me gustó', '#F87171', 5),
+    const _RatingEntry('sin_valorar', '· Sin valorar', '#475569', 6),
   ];
 
   static void update(List<Map<String, dynamic>> configs) {
-    if (configs.isNotEmpty) _configs = configs;
+    if (configs.isEmpty) return;
+    _entries = configs.map((c) => _RatingEntry(
+      c['key']?.toString() ?? '',
+      c['label']?.toString() ?? '',
+      c['color']?.toString() ?? '#475569',
+      (c['sort_order'] as num?)?.toInt() ?? 99,
+    )).toList();
   }
 
-  static List<Map<String, dynamic>> get configs => List.unmodifiable(_configs);
+  // Returns a list of plain maps for backward-compat with existing widgets
+  static List<Map<String, dynamic>> get configs => _entries.map((e) =>
+    <String, dynamic>{'key': e.key, 'label': e.label, 'color': e.color, 'sort_order': e.sortOrder}
+  ).toList();
 
   static Color colorFor(String? key) {
     if (key == null) return RpgColors.ratingSinValorar;
-    for (final c in _configs) {
-      if (c['key'] == key) return _hexColor(c['color'] as String? ?? '#484F58');
+    for (final e in _entries) {
+      if (e.key == key) return _hexColor(e.color);
     }
     return _hexColor('#484F58');
   }
 
   static String labelFor(String? key) {
     if (key == null) return '· Sin valorar';
-    for (final c in _configs) {
-      if (c['key'] == key) return c['label'] as String? ?? key;
+    for (final e in _entries) {
+      if (e.key == key) return e.label;
     }
     return key;
   }
