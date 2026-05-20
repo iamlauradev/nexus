@@ -287,7 +287,9 @@ class ApiService {
   }
 
   static Future<void> deleteEntry(int id) async {
-    await http.delete(Uri.parse('$_baseUrl/entries/$id'), headers: _headers);
+    final uri = Uri.parse('$_baseUrl/entries/$id');
+    final r = await http.delete(uri, headers: _headers);
+    await _handleResponse(r, retry: () => http.delete(uri, headers: _headers));
   }
 
   static Future<Map<String, dynamic>> getStats() async {

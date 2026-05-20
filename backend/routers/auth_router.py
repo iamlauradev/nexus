@@ -136,14 +136,15 @@ def me(current_user: dict = Depends(get_current_user)):
 @router.put("/profile", response_model=UserOut)
 def update_profile(data: ProfileUpdate, current_user: dict = Depends(get_current_user)):
     fields = {}
-    if data.display_name is not None:
+    if 'display_name' in data.model_fields_set:
         fields['display_name'] = data.display_name
-    if data.avatar_url is not None:
-        # Validar que la URL sea externa (anti-SSRF básico)
-        from urllib.parse import urlparse
-        parsed = urlparse(data.avatar_url)
-        if parsed.scheme not in ('http', 'https'):
-            raise HTTPException(400, "URL de avatar no válida")
+    if 'avatar_url' in data.model_fields_set:
+        if data.avatar_url is not None:
+            # Validar que la URL sea externa (anti-SSRF básico)
+            from urllib.parse import urlparse
+            parsed = urlparse(data.avatar_url)
+            if parsed.scheme not in ('http', 'https'):
+                raise HTTPException(400, "URL de avatar no válida")
         fields['avatar_url'] = data.avatar_url
     if not fields:
         raise HTTPException(400, "Nada que actualizar")

@@ -274,7 +274,7 @@ def update_entry(entry_id: int, data: EntryUpdate, current_user = Depends(get_cu
         raise HTTPException(404, "Entrada no encontrada")
 
     existing_dict = dict(existing)
-    fields = {k: v for k, v in data.model_dump().items() if v is not None}
+    fields = data.model_dump(exclude_unset=True)
     if not fields:
         return _build_entry_out(existing_dict)
 

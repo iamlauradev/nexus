@@ -157,8 +157,13 @@ class _DetailScreenState extends State<DetailScreen> {
       ),
     );
     if (confirm == true) {
-      await ApiService.deleteEntry(_entry.id);
-      if (mounted) Navigator.pop(context);
+      try {
+        await ApiService.deleteEntry(_entry.id);
+        if (mounted) Navigator.pop(context);
+      } catch (e) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al eliminar: $e'), backgroundColor: RpgColors.statusDropped));
+      }
     }
   }
 
