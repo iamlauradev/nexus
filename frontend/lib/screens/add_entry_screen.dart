@@ -50,12 +50,14 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
   String _emissionStatus = '';
   String? _startedAt;
   String? _completedAt;
+  int _epCurrent = 0;
+  int? _epTotal;
+  int _rewatchCount = 0;
 
   final _searchCtrl   = TextEditingController();
   final _progressCtrl = TextEditingController();
   final _notesCtrl    = TextEditingController();
   final _platformCtrl = TextEditingController();
-  final _scoreCtrl    = TextEditingController();
   final _titleCtrl    = TextEditingController();
 
   List<SearchResult> _results = [];
@@ -92,7 +94,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
     _progressCtrl.dispose();
     _notesCtrl.dispose();
     _platformCtrl.dispose();
-    _scoreCtrl.dispose();
     _titleCtrl.dispose();
     super.dispose();
   }
@@ -130,10 +131,16 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
     try { return DateFormat('dd/MM/yyyy').format(DateTime.parse(raw)); } catch (_) { return raw; }
   }
 
+  bool get _hasEpisodes => _type != 'MOVIE';
+
   void _applySearchResult(SearchResult r) {
     setState(() {
       _selected = r;
       _emissionStatus = r.emissionStatus ?? '';
+      if (r.episodes != null && r.episodes! > 0) {
+        _epTotal = r.episodes;
+        _epCurrent = 0;
+      }
     });
   }
 
@@ -186,15 +193,17 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
       }
 
       await ApiService.createEntry({
-        'media_id':     mediaId,
-        'status':       _status,
-        'rating_label': _ratingLabel,
-        'progress':     _progressCtrl.text.isEmpty ? null : _progressCtrl.text,
-        'notes':        _notesCtrl.text.isEmpty ? null : _notesCtrl.text,
-        'platform':     _platformCtrl.text.isEmpty ? null : _platformCtrl.text,
-        'score':        double.tryParse(_scoreCtrl.text),
+        'media_id':      mediaId,
+        'status':        _status,
+        'rating_label':  _ratingLabel,
+        'progress':      _progressCtrl.text.isEmpty ? null : _progressCtrl.text,
+        'notes':         _notesCtrl.text.isEmpty ? null : _notesCtrl.text,
+        'platform':      _platformCtrl.text.isEmpty ? null : _platformCtrl.text,
         if (_startedAt != null) 'started_at': _startedAt,
         if (_completedAt != null) 'completed_at': _completedAt,
+        if (_hasEpisodes) 'ep_current': _epCurrent,
+        if (_hasEpisodes && _epTotal != null) 'ep_total': _epTotal,
+        'rewatch_count': _rewatchCount,
       });
 
       if (mounted) {
@@ -342,28 +351,30 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Emission status
-            _Label('Estado de emisión'),
-            const SizedBox(height: 6),
-            DropdownButtonFormField<String>(
-              value: _emissionStatus,
-              dropdownColor: RpgColors.charcoal,
-              decoration: const InputDecoration(isDense: true),
-              style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
-              items: _emissionStatuses.entries.map((e) => DropdownMenuItem(
-                value: e.key,
-                child: Row(children: [
-                  if (e.key.isNotEmpty) Container(
-                    width: 8, height: 8,
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(color: emissionColor(e.key), shape: BoxShape.circle),
-                  ),
-                  Text(e.value),
-                ]),
-              )).toList(),
-              onChanged: (v) { if (v != null) setState(() => _emissionStatus = v); },
-            ),
-            const SizedBox(height: 12),
+            // Emission status (not applicable for movies)
+            if (_type != 'MOVIE') ...[
+              _Label('Estado de emisión'),
+              const SizedBox(height: 6),
+              DropdownButtonFormField<String>(
+                value: _emissionStatus,
+                dropdownColor: RpgColors.charcoal,
+                decoration: const InputDecoration(isDense: true),
+                style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+                items: _emissionStatuses.entries.map((e) => DropdownMenuItem(
+                  value: e.key,
+                  child: Row(children: [
+                    if (e.key.isNotEmpty) Container(
+                      width: 8, height: 8,
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(color: emissionColor(e.key), shape: BoxShape.circle),
+                    ),
+                    Text(e.value),
+                  ]),
+                )).toList(),
+                onChanged: (v) { if (v != null) setState(() => _emissionStatus = v); },
+              ),
+              const SizedBox(height: 12),
+            ],
 
             // Rating
             _Label('Valoración'),
@@ -388,22 +399,35 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             ),
             const SizedBox(height: 12),
 
-            TextField(
-              controller: _progressCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Progreso (ej: Cap 5, T1 E3)',
-                prefixIcon: Icon(Icons.bookmark_outline, color: RpgColors.gold, size: 18),
+            // Episode stepper (series, anime, manga, etc.)
+            if (_hasEpisodes) ...[
+              _EpisodeStepper(
+                label: _type == 'MANGA' || _type == 'MANHWA' || _type == 'MANHUA' || _type == 'WEBTOON' || _type == 'NOVEL'
+                    ? 'CAPÍTULO'
+                    : 'EPISODIO',
+                current: _epCurrent,
+                total: _epTotal,
+                onChanged: (v) => setState(() => _epCurrent = v),
+                onTotalChanged: (v) => setState(() => _epTotal = v),
               ),
-              style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+              const SizedBox(height: 12),
+            ],
+
+            // Rewatch / re-read counter
+            _RewatchCounter(
+              count: _rewatchCount,
+              label: _type == 'MANGA' || _type == 'MANHWA' || _type == 'MANHUA' || _type == 'WEBTOON' || _type == 'NOVEL'
+                  ? 'RELECTURAS'
+                  : _type == 'MOVIE' ? 'REVISIONES' : 'REVISIONADOS',
+              onChanged: (v) => setState(() => _rewatchCount = v),
             ),
             const SizedBox(height: 12),
 
             TextField(
-              controller: _scoreCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              controller: _progressCtrl,
               decoration: const InputDecoration(
-                labelText: 'Mi puntuación (0–10)',
-                prefixIcon: Icon(Icons.star_outline, color: RpgColors.statusPlan, size: 18),
+                labelText: 'Notas de progreso (T2 E5, arc X…)',
+                prefixIcon: Icon(Icons.bookmark_outline, color: RpgColors.gold, size: 18),
               ),
               style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
             ),
@@ -523,6 +547,175 @@ class _Label extends StatelessWidget {
     style: const TextStyle(fontFamily: 'Cinzel', fontSize: 10, color: RpgColors.textMuted, letterSpacing: 1.5),
   );
 }
+
+class _EpisodeStepper extends StatelessWidget {
+  final String label;
+  final int current;
+  final int? total;
+  final ValueChanged<int> onChanged;
+  final ValueChanged<int?> onTotalChanged;
+
+  const _EpisodeStepper({
+    required this.label,
+    required this.current,
+    required this.total,
+    required this.onChanged,
+    required this.onTotalChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = (total != null && total! > 0) ? (current / total!).clamp(0.0, 1.0) : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: RpgColors.charcoal,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: RpgColors.border),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text(label, style: const TextStyle(
+            fontFamily: 'Cinzel', fontSize: 9, color: RpgColors.textMuted, letterSpacing: 1.5)),
+          Row(children: [
+            GestureDetector(
+              onTap: current > 0 ? () => onChanged(current - 1) : null,
+              child: Container(
+                width: 28, height: 28,
+                decoration: BoxDecoration(
+                  color: current > 0 ? RpgColors.surface : RpgColors.obsidian,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: RpgColors.border),
+                ),
+                child: Icon(Icons.remove, size: 14,
+                  color: current > 0 ? RpgColors.textPrimary : RpgColors.textMuted),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Text(
+                total != null ? '$current / $total' : '$current',
+                style: const TextStyle(
+                  color: RpgColors.gold, fontFamily: 'Cinzel', fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+            ),
+            GestureDetector(
+              onTap: (total == null || current < total!) ? () => onChanged(current + 1) : null,
+              child: Container(
+                width: 28, height: 28,
+                decoration: BoxDecoration(
+                  color: (total == null || current < total!) ? RpgColors.gold.withOpacity(0.15) : RpgColors.obsidian,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: (total == null || current < total!) ? RpgColors.gold : RpgColors.border),
+                ),
+                child: Icon(Icons.add, size: 14,
+                  color: (total == null || current < total!) ? RpgColors.gold : RpgColors.textMuted),
+              ),
+            ),
+          ]),
+        ]),
+        if (total != null && total! > 0) ...[
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: Stack(children: [
+              Container(height: 5, color: RpgColors.surface),
+              FractionallySizedBox(
+                widthFactor: pct,
+                child: Container(height: 5, color: RpgColors.gold),
+              ),
+            ]),
+          ),
+        ] else ...[
+          const SizedBox(height: 8),
+          Row(children: [
+            const Text('Total: ', style: TextStyle(
+              color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 12)),
+            Expanded(
+              child: TextField(
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  hintText: 'Desconocido',
+                  isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                ),
+                style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13),
+                onChanged: (v) => onTotalChanged(int.tryParse(v)),
+              ),
+            ),
+          ]),
+        ],
+      ]),
+    );
+  }
+}
+
+
+class _RewatchCounter extends StatelessWidget {
+  final int count;
+  final String label;
+  final ValueChanged<int> onChanged;
+
+  const _RewatchCounter({
+    required this.count,
+    required this.label,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: RpgColors.charcoal,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: RpgColors.border),
+      ),
+      child: Row(children: [
+        const Icon(Icons.replay_outlined, size: 16, color: RpgColors.textMuted),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(label, style: const TextStyle(
+              fontFamily: 'Cinzel', fontSize: 9, color: RpgColors.textMuted, letterSpacing: 1.5)),
+            Text(
+              count == 0 ? 'Sin revisiones' : 'x$count ${count == 1 ? "vez" : "veces"}',
+              style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13),
+            ),
+          ]),
+        ),
+        if (count > 0)
+          GestureDetector(
+            onTap: () => onChanged(count - 1),
+            child: Container(
+              width: 28, height: 28,
+              decoration: BoxDecoration(
+                color: RpgColors.surface,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: RpgColors.border),
+              ),
+              child: const Icon(Icons.remove, size: 14, color: RpgColors.textMuted),
+            ),
+          ),
+        const SizedBox(width: 6),
+        GestureDetector(
+          onTap: () => onChanged(count + 1),
+          child: Container(
+            width: 28, height: 28,
+            decoration: BoxDecoration(
+              color: RpgColors.gold.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: RpgColors.gold),
+            ),
+            child: const Icon(Icons.add, size: 14, color: RpgColors.gold),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
 
 class _SearchResultTile extends StatelessWidget {
   final SearchResult result;

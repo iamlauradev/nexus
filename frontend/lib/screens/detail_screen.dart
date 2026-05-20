@@ -47,14 +47,14 @@ class _DetailScreenState extends State<DetailScreen> {
   DateTime? _startedAt;
   DateTime? _completedAt;
   String? _coverUrl;
+  int _epCurrent = 0;
+  int? _epTotal;
+  int _rewatchCount = 0;
 
   final _progressCtrl = TextEditingController();
   final _notesCtrl    = TextEditingController();
   final _platformCtrl = TextEditingController();
-  final _scoreCtrl    = TextEditingController();
   final _coverUrlCtrl = TextEditingController();
-  final _epCurrentCtrl = TextEditingController();
-  final _epTotalCtrl   = TextEditingController();
 
   final ScreenshotController _screenshotController = ScreenshotController();
 
@@ -72,14 +72,13 @@ class _DetailScreenState extends State<DetailScreen> {
     _startedAt       = _entry.startedAt;
     _completedAt     = _entry.completedAt;
     _coverUrl        = _entry.media?.coverUrl;
-    _progressCtrl.text  = _entry.progress ?? '';
-    _notesCtrl.text     = _entry.notes ?? '';
-    _platformCtrl.text  = _entry.platform ?? '';
-    _scoreCtrl.text     = _entry.score?.toString() ?? '';
-    _coverUrlCtrl.text  = _entry.media?.coverUrl ?? '';
-    _epCurrentCtrl.text = _entry.epCurrent?.toString() ?? '';
-    _epTotalCtrl.text   = _entry.epTotal?.toString() ?? '';
-    // startedAt / completedAt are now DateTime? — no text controllers needed
+    _progressCtrl.text = _entry.progress ?? '';
+    _notesCtrl.text    = _entry.notes ?? '';
+    _platformCtrl.text = _entry.platform ?? '';
+    _coverUrlCtrl.text = _entry.media?.coverUrl ?? '';
+    _epCurrent         = _entry.epCurrent ?? 0;
+    _epTotal           = _entry.epTotal;
+    _rewatchCount      = _entry.rewatchCount;
   }
 
   @override
@@ -87,10 +86,7 @@ class _DetailScreenState extends State<DetailScreen> {
     _progressCtrl.dispose();
     _notesCtrl.dispose();
     _platformCtrl.dispose();
-    _scoreCtrl.dispose();
     _coverUrlCtrl.dispose();
-    _epCurrentCtrl.dispose();
-    _epTotalCtrl.dispose();
     super.dispose();
   }
 
@@ -106,16 +102,17 @@ class _DetailScreenState extends State<DetailScreen> {
       }
 
       final updated = await ApiService.updateEntry(_entry.id, {
-        'status':       _status,
-        'rating_label': _ratingLabel,
-        'progress':     _progressCtrl.text.isEmpty ? null : _progressCtrl.text,
-        'notes':        _notesCtrl.text.isEmpty ? null : _notesCtrl.text,
-        'platform':     _platformCtrl.text.isEmpty ? null : _platformCtrl.text,
-        'score':        double.tryParse(_scoreCtrl.text),
-        'started_at':   _startedAt?.toIso8601String().split('T').first,
-        'completed_at': _completedAt?.toIso8601String().split('T').first,
-        'ep_current':   int.tryParse(_epCurrentCtrl.text),
-        'ep_total':     int.tryParse(_epTotalCtrl.text),
+        'status':        _status,
+        'rating_label':  _ratingLabel,
+        'progress':      _progressCtrl.text.isEmpty ? null : _progressCtrl.text,
+        'notes':         _notesCtrl.text.isEmpty ? null : _notesCtrl.text,
+        'platform':      _platformCtrl.text.isEmpty ? null : _platformCtrl.text,
+        'score':         _entry.score,
+        'started_at':    _startedAt?.toIso8601String().split('T').first,
+        'completed_at':  _completedAt?.toIso8601String().split('T').first,
+        'ep_current':    _entry.media?.type != 'MOVIE' ? _epCurrent : null,
+        'ep_total':      _entry.media?.type != 'MOVIE' ? _epTotal : null,
+        'rewatch_count': _rewatchCount,
       });
       setState(() {
         _entry = UserEntry(
@@ -124,6 +121,7 @@ class _DetailScreenState extends State<DetailScreen> {
           ratingLabel: updated.ratingLabel, notes: updated.notes, platform: updated.platform,
           startedAt: updated.startedAt, completedAt: updated.completedAt,
           epCurrent: updated.epCurrent, epTotal: updated.epTotal,
+          rewatchCount: updated.rewatchCount,
           updatedAt: updated.updatedAt, media: _entry.media,
         );
         _editing = false;
@@ -182,6 +180,46 @@ class _DetailScreenState extends State<DetailScreen> {
       final rating = RatingConfigCache.labelFor(_entry.ratingLabel);
       await Share.share('$title\n$status · $rating\n— Nexus Media Tracker');
     }
+  }
+
+  Future<void> _quickUpdateEpisode(int newCurrent) async {
+    try {
+      final updated = await ApiService.updateEntry(_entry.id, {
+        'ep_current': newCurrent,
+      });
+      setState(() {
+        _entry = UserEntry(
+          id: updated.id, userId: updated.userId, mediaId: updated.mediaId,
+          status: updated.status, progress: updated.progress, score: updated.score,
+          ratingLabel: updated.ratingLabel, notes: updated.notes, platform: updated.platform,
+          startedAt: updated.startedAt, completedAt: updated.completedAt,
+          epCurrent: updated.epCurrent, epTotal: updated.epTotal,
+          rewatchCount: updated.rewatchCount,
+          updatedAt: updated.updatedAt, media: _entry.media,
+        );
+        _epCurrent = updated.epCurrent ?? 0;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _quickUpdateRewatch(int newCount) async {
+    try {
+      final updated = await ApiService.updateEntry(_entry.id, {
+        'rewatch_count': newCount,
+      });
+      setState(() {
+        _entry = UserEntry(
+          id: updated.id, userId: updated.userId, mediaId: updated.mediaId,
+          status: updated.status, progress: updated.progress, score: updated.score,
+          ratingLabel: updated.ratingLabel, notes: updated.notes, platform: updated.platform,
+          startedAt: updated.startedAt, completedAt: updated.completedAt,
+          epCurrent: updated.epCurrent, epTotal: updated.epTotal,
+          rewatchCount: updated.rewatchCount,
+          updatedAt: updated.updatedAt, media: _entry.media,
+        );
+        _rewatchCount = updated.rewatchCount;
+      });
+    } catch (_) {}
   }
 
   Future<void> _pickDate({required bool isStart}) async {
@@ -393,33 +431,25 @@ class _DetailScreenState extends State<DetailScreen> {
           )),
         ]),
         const SizedBox(height: 10),
-        Row(children: [
-          Expanded(child: _InfoTile(
-            icon: Icons.star_outline,
-            label: 'Mi puntuación',
-            value: _entry.score != null ? '${_entry.score}/10' : '—',
-            valueColor: RpgColors.statusPlan,
-          )),
-          const SizedBox(width: 10),
-          Expanded(child: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: ratingColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: ratingColor.withOpacity(0.4)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('VALORACIÓN', style: const TextStyle(
-                  fontFamily: 'Cinzel', fontSize: 9, color: RpgColors.textMuted, letterSpacing: 1.5)),
-                const SizedBox(height: 4),
-                Text(ratingText, style: TextStyle(
-                  color: ratingColor, fontFamily: 'Crimson', fontSize: 14, fontWeight: FontWeight.w600)),
-              ],
-            ),
-          )),
-        ]),
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: ratingColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: ratingColor.withOpacity(0.4)),
+          ),
+          child: Row(children: [
+            const Icon(Icons.star_outline, size: 14, color: RpgColors.textMuted),
+            const SizedBox(width: 8),
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('VALORACIÓN', style: TextStyle(
+                fontFamily: 'Cinzel', fontSize: 9, color: RpgColors.textMuted, letterSpacing: 1.5)),
+              const SizedBox(height: 2),
+              Text(ratingText, style: TextStyle(
+                color: ratingColor, fontFamily: 'Crimson', fontSize: 14, fontWeight: FontWeight.w600)),
+            ]),
+          ]),
+        ),
         // Dates
         if (_entry.startedAt != null || _entry.completedAt != null) ...[
           const SizedBox(height: 10),
@@ -442,11 +472,27 @@ class _DetailScreenState extends State<DetailScreen> {
               )),
           ]),
         ],
-        // Episode progress bar
-        if (_entry.epCurrent != null || _entry.epTotal != null) ...[
+        // Episode progress bar (interactive)
+        if (_entry.media?.type != 'MOVIE' && (_entry.epCurrent != null || _entry.epTotal != null)) ...[
           const SizedBox(height: 10),
-          _EpisodeProgressBar(epCurrent: _entry.epCurrent, epTotal: _entry.epTotal),
+          _EpisodeProgressBar(
+            epCurrent: _entry.epCurrent,
+            epTotal: _entry.epTotal,
+            onIncrement: (_entry.epTotal == null || (_entry.epCurrent ?? 0) < _entry.epTotal!)
+                ? () => _quickUpdateEpisode((_entry.epCurrent ?? 0) + 1)
+                : null,
+            onDecrement: (_entry.epCurrent ?? 0) > 0
+                ? () => _quickUpdateEpisode((_entry.epCurrent ?? 0) - 1)
+                : null,
+          ),
         ],
+        // Rewatch counter
+        const SizedBox(height: 10),
+        _RewatchTile(
+          count: _entry.rewatchCount,
+          onIncrement: () => _quickUpdateRewatch(_entry.rewatchCount + 1),
+          onDecrement: _entry.rewatchCount > 0 ? () => _quickUpdateRewatch(_entry.rewatchCount - 1) : null,
+        ),
         if (_entry.platform != null) ...[
           const SizedBox(height: 10),
           _InfoTile(icon: Icons.devices_outlined, label: 'Visto en', value: _entry.platform!),
@@ -564,27 +610,29 @@ class _DetailScreenState extends State<DetailScreen> {
           onChanged: (v) { if (v != null) setState(() => _status = v); },
         ),
         const SizedBox(height: 14),
-        _SectionHeader('Estado de emisión'),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: _emissionStatus,
-          dropdownColor: RpgColors.surface,
-          decoration: const InputDecoration(isDense: true),
-          style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
-          items: _emissionStatuses.entries.map((e) => DropdownMenuItem(
-            value: e.key,
-            child: Row(children: [
-              if (e.key.isNotEmpty) Container(
-                width: 8, height: 8,
-                margin: const EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(color: emissionColor(e.key), shape: BoxShape.circle),
-              ),
-              Text(e.value),
-            ]),
-          )).toList(),
-          onChanged: (v) { if (v != null) setState(() => _emissionStatus = v); },
-        ),
-        const SizedBox(height: 14),
+        if (_entry.media?.type != 'MOVIE') ...[
+          _SectionHeader('Estado de emisión'),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            value: _emissionStatus,
+            dropdownColor: RpgColors.surface,
+            decoration: const InputDecoration(isDense: true),
+            style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+            items: _emissionStatuses.entries.map((e) => DropdownMenuItem(
+              value: e.key,
+              child: Row(children: [
+                if (e.key.isNotEmpty) Container(
+                  width: 8, height: 8,
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(color: emissionColor(e.key), shape: BoxShape.circle),
+                ),
+                Text(e.value),
+              ]),
+            )).toList(),
+            onChanged: (v) { if (v != null) setState(() => _emissionStatus = v); },
+          ),
+          const SizedBox(height: 14),
+        ],
         _SectionHeader('Valoración'),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
@@ -606,21 +654,39 @@ class _DetailScreenState extends State<DetailScreen> {
           onChanged: (v) { if (v != null) setState(() => _ratingLabel = v); },
         ),
         const SizedBox(height: 14),
+        // Episode stepper (not for movies)
+        if (_entry.media?.type != 'MOVIE') ...[
+          _EpisodeStepper(
+            label: (_entry.media?.type == 'MANGA' || _entry.media?.type == 'MANHWA' ||
+                    _entry.media?.type == 'MANHUA' || _entry.media?.type == 'WEBTOON' ||
+                    _entry.media?.type == 'NOVEL')
+                ? 'CAPÍTULO'
+                : 'EPISODIO',
+            current: _epCurrent,
+            total: _epTotal,
+            onChanged: (v) => setState(() => _epCurrent = v),
+            onTotalChanged: (v) => setState(() => _epTotal = v),
+          ),
+          const SizedBox(height: 12),
+        ],
+
+        // Rewatch counter
+        _RewatchStepper(
+          count: _rewatchCount,
+          label: (_entry.media?.type == 'MANGA' || _entry.media?.type == 'MANHWA' ||
+                  _entry.media?.type == 'MANHUA' || _entry.media?.type == 'WEBTOON' ||
+                  _entry.media?.type == 'NOVEL')
+              ? 'RELECTURAS'
+              : _entry.media?.type == 'MOVIE' ? 'REVISIONES' : 'REVISIONADOS',
+          onChanged: (v) => setState(() => _rewatchCount = v),
+        ),
+        const SizedBox(height: 12),
+
         TextField(
           controller: _progressCtrl,
           decoration: const InputDecoration(
-            labelText: 'Progreso (ej: T2 E5, Cap 23)',
+            labelText: 'Notas de progreso (T2 E5, Cap 23…)',
             prefixIcon: Icon(Icons.bookmark_outline, color: RpgColors.gold, size: 18),
-          ),
-          style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _scoreCtrl,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
-            labelText: 'Mi puntuación (0–10)',
-            prefixIcon: Icon(Icons.star_outline, color: RpgColors.statusPlan, size: 18),
           ),
           style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
         ),
@@ -633,33 +699,6 @@ class _DetailScreenState extends State<DetailScreen> {
           ),
           style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
         ),
-        const SizedBox(height: 12),
-        // Ep current + total
-        Row(children: [
-          Expanded(
-            child: TextField(
-              controller: _epCurrentCtrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Ep. actual',
-                prefixIcon: Icon(Icons.play_arrow_outlined, color: RpgColors.gold, size: 18),
-              ),
-              style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: TextField(
-              controller: _epTotalCtrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Ep. total',
-                prefixIcon: Icon(Icons.list_outlined, color: RpgColors.gold, size: 18),
-              ),
-              style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
-            ),
-          ),
-        ]),
         const SizedBox(height: 12),
         // Date pickers
         _SectionHeader('Fechas'),
@@ -761,8 +800,15 @@ class _DatePickerTile extends StatelessWidget {
 class _EpisodeProgressBar extends StatelessWidget {
   final int? epCurrent;
   final int? epTotal;
+  final VoidCallback? onIncrement;
+  final VoidCallback? onDecrement;
 
-  const _EpisodeProgressBar({this.epCurrent, this.epTotal});
+  const _EpisodeProgressBar({
+    this.epCurrent,
+    this.epTotal,
+    this.onIncrement,
+    this.onDecrement,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -781,10 +827,40 @@ class _EpisodeProgressBar extends StatelessWidget {
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           const Text('EPISODIOS', style: TextStyle(
             fontFamily: 'Cinzel', fontSize: 9, color: RpgColors.textMuted, letterSpacing: 1.5)),
-          Text(
-            total > 0 ? '$current / $total' : 'Ep. $current',
-            style: const TextStyle(color: RpgColors.gold, fontFamily: 'Cinzel', fontSize: 12, fontWeight: FontWeight.bold),
-          ),
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            if (onDecrement != null)
+              GestureDetector(
+                onTap: onDecrement,
+                child: Container(
+                  width: 24, height: 24,
+                  margin: const EdgeInsets.only(right: 6),
+                  decoration: BoxDecoration(
+                    color: RpgColors.surface,
+                    borderRadius: BorderRadius.circular(5),
+                    border: Border.all(color: RpgColors.border),
+                  ),
+                  child: const Icon(Icons.remove, size: 12, color: RpgColors.textMuted),
+                ),
+              ),
+            Text(
+              total > 0 ? '$current / $total' : 'Ep. $current',
+              style: const TextStyle(color: RpgColors.gold, fontFamily: 'Cinzel', fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+            if (onIncrement != null)
+              GestureDetector(
+                onTap: onIncrement,
+                child: Container(
+                  width: 24, height: 24,
+                  margin: const EdgeInsets.only(left: 6),
+                  decoration: BoxDecoration(
+                    color: RpgColors.gold.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(5),
+                    border: Border.all(color: RpgColors.gold),
+                  ),
+                  child: const Icon(Icons.add, size: 12, color: RpgColors.gold),
+                ),
+              ),
+          ]),
         ]),
         if (total > 0) ...[
           const SizedBox(height: 6),
@@ -799,6 +875,237 @@ class _EpisodeProgressBar extends StatelessWidget {
             ]),
           ),
         ],
+      ]),
+    );
+  }
+}
+
+class _RewatchTile extends StatelessWidget {
+  final int count;
+  final VoidCallback onIncrement;
+  final VoidCallback? onDecrement;
+
+  const _RewatchTile({
+    required this.count,
+    required this.onIncrement,
+    this.onDecrement,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: RpgColors.charcoal,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: RpgColors.border),
+      ),
+      child: Row(children: [
+        const Icon(Icons.replay_outlined, size: 16, color: RpgColors.textMuted),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('VISTO DE NUEVO', style: TextStyle(
+              fontFamily: 'Cinzel', fontSize: 9, color: RpgColors.textMuted, letterSpacing: 1.5)),
+            Text(
+              count == 0 ? 'Sin revisiones' : 'x$count ${count == 1 ? "vez" : "veces"}',
+              style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13),
+            ),
+          ]),
+        ),
+        if (onDecrement != null)
+          GestureDetector(
+            onTap: onDecrement,
+            child: Container(
+              width: 28, height: 28,
+              decoration: BoxDecoration(
+                color: RpgColors.surface,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: RpgColors.border),
+              ),
+              child: const Icon(Icons.remove, size: 14, color: RpgColors.textMuted),
+            ),
+          ),
+        const SizedBox(width: 6),
+        GestureDetector(
+          onTap: onIncrement,
+          child: Container(
+            width: 28, height: 28,
+            decoration: BoxDecoration(
+              color: RpgColors.gold.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: RpgColors.gold),
+            ),
+            child: const Icon(Icons.add, size: 14, color: RpgColors.gold),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+class _EpisodeStepper extends StatelessWidget {
+  final String label;
+  final int current;
+  final int? total;
+  final ValueChanged<int> onChanged;
+  final ValueChanged<int?> onTotalChanged;
+
+  const _EpisodeStepper({
+    required this.label,
+    required this.current,
+    required this.total,
+    required this.onChanged,
+    required this.onTotalChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = (total != null && total! > 0) ? (current / total!).clamp(0.0, 1.0) : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: RpgColors.charcoal,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: RpgColors.border),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text(label, style: const TextStyle(
+            fontFamily: 'Cinzel', fontSize: 9, color: RpgColors.textMuted, letterSpacing: 1.5)),
+          Row(children: [
+            GestureDetector(
+              onTap: current > 0 ? () => onChanged(current - 1) : null,
+              child: Container(
+                width: 28, height: 28,
+                decoration: BoxDecoration(
+                  color: current > 0 ? RpgColors.surface : RpgColors.obsidian,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: RpgColors.border),
+                ),
+                child: Icon(Icons.remove, size: 14,
+                  color: current > 0 ? RpgColors.textPrimary : RpgColors.textMuted),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Text(
+                total != null ? '$current / $total' : '$current',
+                style: const TextStyle(
+                  color: RpgColors.gold, fontFamily: 'Cinzel', fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+            ),
+            GestureDetector(
+              onTap: (total == null || current < total!) ? () => onChanged(current + 1) : null,
+              child: Container(
+                width: 28, height: 28,
+                decoration: BoxDecoration(
+                  color: (total == null || current < total!) ? RpgColors.gold.withOpacity(0.15) : RpgColors.obsidian,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: (total == null || current < total!) ? RpgColors.gold : RpgColors.border),
+                ),
+                child: Icon(Icons.add, size: 14,
+                  color: (total == null || current < total!) ? RpgColors.gold : RpgColors.textMuted),
+              ),
+            ),
+          ]),
+        ]),
+        if (total != null && total! > 0) ...[
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: Stack(children: [
+              Container(height: 5, color: RpgColors.surface),
+              FractionallySizedBox(
+                widthFactor: pct,
+                child: Container(height: 5, color: RpgColors.gold),
+              ),
+            ]),
+          ),
+        ] else ...[
+          const SizedBox(height: 8),
+          Row(children: [
+            const Text('Total: ', style: TextStyle(
+              color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 12)),
+            Expanded(
+              child: TextField(
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  hintText: 'Desconocido',
+                  isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                ),
+                style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13),
+                onChanged: (v) => onTotalChanged(int.tryParse(v)),
+              ),
+            ),
+          ]),
+        ],
+      ]),
+    );
+  }
+}
+
+class _RewatchStepper extends StatelessWidget {
+  final int count;
+  final String label;
+  final ValueChanged<int> onChanged;
+
+  const _RewatchStepper({
+    required this.count,
+    required this.label,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: RpgColors.charcoal,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: RpgColors.border),
+      ),
+      child: Row(children: [
+        const Icon(Icons.replay_outlined, size: 16, color: RpgColors.textMuted),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(label, style: const TextStyle(
+              fontFamily: 'Cinzel', fontSize: 9, color: RpgColors.textMuted, letterSpacing: 1.5)),
+            Text(
+              count == 0 ? 'Sin revisiones' : 'x$count ${count == 1 ? "vez" : "veces"}',
+              style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13),
+            ),
+          ]),
+        ),
+        if (count > 0)
+          GestureDetector(
+            onTap: () => onChanged(count - 1),
+            child: Container(
+              width: 28, height: 28,
+              decoration: BoxDecoration(
+                color: RpgColors.surface,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: RpgColors.border),
+              ),
+              child: const Icon(Icons.remove, size: 14, color: RpgColors.textMuted),
+            ),
+          ),
+        const SizedBox(width: 6),
+        GestureDetector(
+          onTap: () => onChanged(count + 1),
+          child: Container(
+            width: 28, height: 28,
+            decoration: BoxDecoration(
+              color: RpgColors.gold.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: RpgColors.gold),
+            ),
+            child: const Icon(Icons.add, size: 14, color: RpgColors.gold),
+          ),
+        ),
       ]),
     );
   }

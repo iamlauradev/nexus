@@ -113,6 +113,7 @@ class EntryCreate(BaseModel):
     completed_at: Optional[date] = None
     ep_current: Optional[int] = None
     ep_total: Optional[int] = None
+    rewatch_count: Optional[int] = None
 
 
 class EntryUpdate(BaseModel):
@@ -126,6 +127,7 @@ class EntryUpdate(BaseModel):
     completed_at: Optional[date] = None
     ep_current: Optional[int] = None
     ep_total: Optional[int] = None
+    rewatch_count: Optional[int] = None
 
 
 class EntryOut(BaseModel):
@@ -142,6 +144,7 @@ class EntryOut(BaseModel):
     completed_at: Optional[date]
     ep_current: Optional[int]
     ep_total: Optional[int]
+    rewatch_count: Optional[int]
     created_at: datetime
     updated_at: datetime
     media: Optional[MediaOut] = None
@@ -163,6 +166,7 @@ class SearchResult(BaseModel):
     emission_status: Optional[EmissionStatus] = None
     network: Optional[str] = None
     cast_text: Optional[str] = None
+    episodes: Optional[int] = None
 
 
 class RatingConfigCreate(BaseModel):

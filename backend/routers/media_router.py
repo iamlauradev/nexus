@@ -264,6 +264,8 @@ def _search_anilist(query: str, media_type: str) -> List[SearchResult]:
 
         emission_status = _ANILIST_STATUS_MAP.get(m.get("status", ""))
 
+        ep_count = m.get("episodes") if media_type == "ANIME" else m.get("chapters")
+
         results.append(SearchResult(
             source="anilist",
             external_id=str(m["id"]),
@@ -280,6 +282,7 @@ def _search_anilist(query: str, media_type: str) -> List[SearchResult]:
             emission_status=emission_status,
             network=network,
             cast_text=cast_text,
+            episodes=ep_count,
         ))
     return results
 

@@ -14,6 +14,7 @@ class UserEntry {
   final DateTime? completedAt;
   final int? epCurrent;
   final int? epTotal;
+  final int rewatchCount;
   final DateTime updatedAt;
   final MediaItem? media;
 
@@ -31,26 +32,28 @@ class UserEntry {
     this.completedAt,
     this.epCurrent,
     this.epTotal,
+    this.rewatchCount = 0,
     required this.updatedAt,
     this.media,
   });
 
   factory UserEntry.fromJson(Map<String, dynamic> j) => UserEntry(
-    id:          j['id'],
-    userId:      j['user_id'],
-    mediaId:     j['media_id'],
-    status:      j['status'],
-    progress:    j['progress'],
-    score:       (j['score'] as num?)?.toDouble(),
-    ratingLabel: j['rating_label'],
-    notes:       j['notes'],
-    platform:    j['platform'],
-    startedAt:   j['started_at'] != null ? DateTime.tryParse(j['started_at']) : null,
-    completedAt: j['completed_at'] != null ? DateTime.tryParse(j['completed_at']) : null,
-    epCurrent:   j['ep_current'] as int?,
-    epTotal:     j['ep_total'] as int?,
-    updatedAt:   DateTime.parse(j['updated_at']),
-    media:       j['media'] != null ? MediaItem.fromJson(j['media']) : null,
+    id:           j['id'],
+    userId:       j['user_id'],
+    mediaId:      j['media_id'],
+    status:       j['status'],
+    progress:     j['progress'],
+    score:        (j['score'] as num?)?.toDouble(),
+    ratingLabel:  j['rating_label'],
+    notes:        j['notes'],
+    platform:     j['platform'],
+    startedAt:    j['started_at'] != null ? DateTime.tryParse(j['started_at']) : null,
+    completedAt:  j['completed_at'] != null ? DateTime.tryParse(j['completed_at']) : null,
+    epCurrent:    j['ep_current'] as int?,
+    epTotal:      j['ep_total'] as int?,
+    rewatchCount: (j['rewatch_count'] as int?) ?? 0,
+    updatedAt:    DateTime.parse(j['updated_at']),
+    media:        j['media'] != null ? MediaItem.fromJson(j['media']) : null,
   );
 
   // Helper to get ISO string for API calls

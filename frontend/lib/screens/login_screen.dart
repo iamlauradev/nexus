@@ -49,38 +49,37 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [RpgColors.darkVoid, RpgColors.obsidian, Color(0xFF050814)],
-          ),
-        ),
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 400),
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                color: RpgColors.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: RpgColors.border),
-                boxShadow: [BoxShadow(
-                  color: RpgColors.accent.withOpacity(0.15),
-                  blurRadius: 40, spreadRadius: 0,
-                )],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Image.asset('assets/images/logo.png', width: 96, height: 96),
-                  const SizedBox(height: 12),
-                  const Text('Media Tracker', style: TextStyle(
-                    fontFamily: 'Crimson', fontSize: 14,
-                    color: RpgColors.textSecondary, letterSpacing: 2)),
-                  const SizedBox(height: 32),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Background image with dark overlay
+          Image.asset('assets/images/login.png', fit: BoxFit.cover),
+          Container(color: Colors.black.withOpacity(0.65)),
+          // Content
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 400),
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: RpgColors.surface.withOpacity(0.92),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: RpgColors.border),
+                  boxShadow: [BoxShadow(
+                    color: Colors.black.withOpacity(0.5),
+                    blurRadius: 40, spreadRadius: 0,
+                  )],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Image.asset('assets/images/logo.png', width: 96, height: 96),
+                    const SizedBox(height: 12),
+                    const Text('Media Tracker', style: TextStyle(
+                      fontFamily: 'Crimson', fontSize: 14,
+                      color: RpgColors.textSecondary, letterSpacing: 2)),
+                    const SizedBox(height: 32),
                   if (_register) ...[
                     TextField(
                       controller: _displayCtrl,
@@ -161,10 +160,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
                 ],
+                ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

@@ -74,6 +74,7 @@ class SearchResult {
   final String? emissionStatus;
   final String? network;
   final String? castText;
+  final int? episodes;
 
   const SearchResult({
     required this.source,
@@ -91,6 +92,7 @@ class SearchResult {
     this.emissionStatus,
     this.network,
     this.castText,
+    this.episodes,
   });
 
   factory SearchResult.fromJson(Map<String, dynamic> j) => SearchResult(
@@ -109,6 +111,7 @@ class SearchResult {
     emissionStatus: j['emission_status'],
     network:        j['network'],
     castText:       j['cast_text'],
+    episodes:       j['episodes'] as int?,
   );
 }
 

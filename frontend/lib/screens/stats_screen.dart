@@ -77,7 +77,8 @@ class _StatsScreenState extends State<StatsScreen> {
     final total    = (_stats!['total'] ?? 0) as int;
 
     // New optional fields
-    final timeSpent   = (_stats!['time_spent_hours'] as num?)?.toDouble() ?? 0.0;
+    final timeSpent        = (_stats!['time_spent_hours'] as num?)?.toDouble() ?? 0.0;
+    final timeSpentMinutes = (_stats!['time_spent_minutes'] as num?)?.toInt() ?? (timeSpent * 60).toInt();
 
     final scoreDistList = (_stats!['score_distribution'] as List?) ?? [];
     final scoreDist = Map<String, int>.fromEntries(
@@ -96,6 +97,11 @@ class _StatsScreenState extends State<StatsScreen> {
       genresList.map((item) => MapEntry(
         item['genre'].toString(),
         (item['count'] as num).toInt())));
+
+    final contentTypeStats = Map<String, Map<String, int>>.from(
+      ((_stats!['content_type_stats'] as Map?) ?? {}).map((k, v) =>
+        MapEntry(k.toString(), Map<String, int>.from(
+          (v as Map).map((sk, sv) => MapEntry(sk.toString(), (sv as num).toInt()))))));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,11 +129,11 @@ class _StatsScreenState extends State<StatsScreen> {
         _RatingBars(data: byRating, total: total),
 
         // Tiempo invertido
-        if (timeSpent > 0) ...[
+        if (timeSpentMinutes > 0) ...[
           const SizedBox(height: 20),
           const GoldDivider(label: 'TIEMPO INVERTIDO'),
           const SizedBox(height: 12),
-          _TimeSpentBox(hours: timeSpent),
+          _TimeSpentBox(totalMinutes: timeSpentMinutes),
         ],
 
         // Distribución de puntuaciones
@@ -144,6 +150,14 @@ class _StatsScreenState extends State<StatsScreen> {
           const GoldDivider(label: 'ACTIVIDAD MENSUAL'),
           const SizedBox(height: 12),
           _MonthlyChart(data: monthlyAdded),
+        ],
+
+        // Estadísticas por tipo de contenido
+        if (contentTypeStats.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          const GoldDivider(label: 'POR TIPO DE CONTENIDO'),
+          const SizedBox(height: 12),
+          _ContentTypeBreakdown(data: contentTypeStats),
         ],
 
         // Top géneros
@@ -342,12 +356,35 @@ class _RatingBars extends StatelessWidget {
 // ---- New chart widgets ----
 
 class _TimeSpentBox extends StatelessWidget {
-  final double hours;
-  const _TimeSpentBox({required this.hours});
+  final int totalMinutes;
+  const _TimeSpentBox({required this.totalMinutes});
+
+  String _format() {
+    if (totalMinutes < 60) {
+      return '$totalMinutes min';
+    }
+    final hours = totalMinutes ~/ 60;
+    final mins  = totalMinutes % 60;
+    if (hours < 24) {
+      return mins > 0 ? '${hours}h ${mins}min' : '${hours}h';
+    }
+    final days    = hours ~/ 24;
+    final remHours = hours % 24;
+    if (remHours > 0) return '$days días ${remHours}h';
+    return '$days días';
+  }
+
+  String _subtitle() {
+    if (totalMinutes < 60) return 'minutos';
+    if (totalMinutes < 1440) return 'horas vistas';
+    return 'tiempo invertido';
+  }
 
   @override
   Widget build(BuildContext context) {
-    final days = (hours / 24).toStringAsFixed(1);
+    final hours = totalMinutes / 60.0;
+    final days  = hours / 24.0;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -360,20 +397,22 @@ class _TimeSpentBox extends StatelessWidget {
         Column(children: [
           const Icon(Icons.schedule_outlined, color: RpgColors.gold, size: 28),
           const SizedBox(height: 6),
-          Text('~${hours.toStringAsFixed(0)} h', style: const TextStyle(
+          Text('~${_format()}', style: const TextStyle(
             fontFamily: 'Cinzel', fontSize: 18, color: RpgColors.textPrimary, fontWeight: FontWeight.bold)),
-          const Text('horas vistas', style: TextStyle(
+          Text(_subtitle(), style: const TextStyle(
             fontFamily: 'Crimson', fontSize: 12, color: RpgColors.textMuted)),
         ]),
-        Container(width: 1, height: 50, color: RpgColors.border),
-        Column(children: [
-          const Icon(Icons.calendar_today_outlined, color: RpgColors.amethystLight, size: 28),
-          const SizedBox(height: 6),
-          Text('~$days días', style: const TextStyle(
-            fontFamily: 'Cinzel', fontSize: 18, color: RpgColors.textPrimary, fontWeight: FontWeight.bold)),
-          const Text('tiempo total', style: TextStyle(
-            fontFamily: 'Crimson', fontSize: 12, color: RpgColors.textMuted)),
-        ]),
+        if (hours >= 24) ...[
+          Container(width: 1, height: 50, color: RpgColors.border),
+          Column(children: [
+            const Icon(Icons.calendar_today_outlined, color: RpgColors.amethystLight, size: 28),
+            const SizedBox(height: 6),
+            Text('~${days.toStringAsFixed(1)} días', style: const TextStyle(
+              fontFamily: 'Cinzel', fontSize: 18, color: RpgColors.textPrimary, fontWeight: FontWeight.bold)),
+            const Text('equivalente', style: TextStyle(
+              fontFamily: 'Crimson', fontSize: 12, color: RpgColors.textMuted)),
+          ]),
+        ],
       ]),
     );
   }
@@ -501,6 +540,106 @@ class _MonthlyChart extends StatelessWidget {
         gridData: const FlGridData(show: false),
         barTouchData: BarTouchData(enabled: false),
       )),
+    );
+  }
+}
+
+class _ContentTypeBreakdown extends StatelessWidget {
+  final Map<String, Map<String, int>> data;
+  const _ContentTypeBreakdown({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final groups = [
+      (label: 'Películas', icon: Icons.movie,        types: ['MOVIE']),
+      (label: 'Series',    icon: Icons.tv,            types: ['SERIES']),
+      (label: 'Doramas',   icon: Icons.live_tv,      types: ['DORAMA']),
+      (label: 'Anime',     icon: Icons.animation,     types: ['ANIME']),
+      (label: 'Cómics',    icon: Icons.auto_stories, types: ['MANGA', 'MANHWA', 'MANHUA', 'WEBTOON', 'NOVEL']),
+    ];
+
+    final widgets = <Widget>[];
+    for (final group in groups) {
+      final statusMap = <String, int>{};
+      for (final type in group.types) {
+        (data[type] ?? {}).forEach((status, count) {
+          statusMap[status] = (statusMap[status] ?? 0) + count;
+        });
+      }
+      final total = statusMap.values.fold(0, (a, b) => a + b);
+      if (total == 0) continue;
+      widgets.add(_ContentTypeCard(
+        label: group.label, icon: group.icon,
+        statusMap: statusMap, total: total,
+      ));
+    }
+    return Column(children: widgets);
+  }
+}
+
+class _ContentTypeCard extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Map<String, int> statusMap;
+  final int total;
+  const _ContentTypeCard({required this.label, required this.icon, required this.statusMap, required this.total});
+
+  @override
+  Widget build(BuildContext context) {
+    const order = ['completed', 'watching', 'plan_to_watch', 'on_hold', 'dropped'];
+    final active = order.where((s) => (statusMap[s] ?? 0) > 0).toList();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: RpgColors.charcoal,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: RpgColors.border),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(icon, color: RpgColors.gold.withOpacity(0.8), size: 16),
+          const SizedBox(width: 8),
+          Text(label, style: const TextStyle(
+            fontFamily: 'Cinzel', fontSize: 12, color: RpgColors.textPrimary, fontWeight: FontWeight.bold)),
+          const Spacer(),
+          Text('$total', style: const TextStyle(
+            fontFamily: 'Cinzel', fontSize: 14, color: RpgColors.gold, fontWeight: FontWeight.bold)),
+          const Text('  obras', style: TextStyle(
+            fontFamily: 'Crimson', fontSize: 12, color: RpgColors.textMuted)),
+        ]),
+        if (active.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          ...active.map((status) {
+            final count = statusMap[status] ?? 0;
+            final pct   = total > 0 ? count / total : 0.0;
+            final color = statusColor(status);
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 5),
+              child: Row(children: [
+                SizedBox(width: 80, child: Text(statusLabel(status), style: const TextStyle(
+                  color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 11))),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(3),
+                    child: Stack(children: [
+                      Container(height: 14, color: RpgColors.surface),
+                      FractionallySizedBox(
+                        widthFactor: pct.clamp(0.0, 1.0),
+                        child: Container(height: 14, color: color.withOpacity(0.75)),
+                      ),
+                    ]),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                SizedBox(width: 28, child: Text('$count', textAlign: TextAlign.right, style: TextStyle(
+                  color: color, fontFamily: 'Cinzel', fontSize: 11, fontWeight: FontWeight.bold))),
+              ]),
+            );
+          }),
+        ],
+      ]),
     );
   }
 }

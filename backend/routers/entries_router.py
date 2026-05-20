@@ -47,19 +47,21 @@ def create_entry(data: EntryCreate, current_user = Depends(get_current_user)):
         cur.execute("""
             INSERT INTO user_entries
                 (user_id, media_id, status, progress, score, rating_label, notes, platform,
-                 started_at, completed_at, ep_current, ep_total)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                 started_at, completed_at, ep_current, ep_total, rewatch_count)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             ON CONFLICT (user_id, media_id) DO UPDATE SET
                 status=EXCLUDED.status, progress=EXCLUDED.progress, score=EXCLUDED.score,
                 rating_label=EXCLUDED.rating_label, notes=EXCLUDED.notes, platform=EXCLUDED.platform,
                 started_at=EXCLUDED.started_at, completed_at=EXCLUDED.completed_at,
                 ep_current=EXCLUDED.ep_current, ep_total=EXCLUDED.ep_total,
+                rewatch_count=EXCLUDED.rewatch_count,
                 updated_at=NOW()
             RETURNING *
         """, (
             current_user["id"], data.media_id, data.status, data.progress,
             data.score, data.rating_label, data.notes, data.platform,
             data.started_at, data.completed_at, data.ep_current, data.ep_total,
+            data.rewatch_count or 0,
         ))
         row = dict(cur.fetchone())
     return _build_entry_out(row)
@@ -140,15 +142,44 @@ def get_stats(current_user = Depends(get_current_user)):
     """, (uid,))
     score_distribution = [{"score": r["score"], "count": r["count"]} for r in score_dist_rows]
 
-    # Time spent hours: sum duration of completed entries
-    completed_rows = fetchall("""
-        SELECT m.duration
+    # Time spent: sum duration × episodes watched for all started entries
+    watched_rows = fetchall("""
+        SELECT m.type, m.duration, ue.ep_current, ue.status
         FROM user_entries ue
         JOIN media m ON m.id = ue.media_id
-        WHERE ue.user_id = %s AND ue.status = 'completed' AND m.duration IS NOT NULL
+        WHERE ue.user_id = %s
+          AND ue.status != 'plan_to_watch'
+          AND m.duration IS NOT NULL
     """, (uid,))
-    total_minutes = sum(_parse_duration_minutes(r["duration"]) for r in completed_rows)
+    total_minutes = 0.0
+    for r in watched_rows:
+        dur = _parse_duration_minutes(r["duration"])
+        if not dur:
+            continue
+        mtype = r["type"] or ""
+        if mtype == "MOVIE":
+            total_minutes += dur
+        elif mtype in ("SERIES", "ANIME", "DORAMA"):
+            ep = r["ep_current"] or (1 if r["status"] == "completed" else 0)
+            total_minutes += dur * ep
+        # manga/comics have no watch time
     time_spent_hours = round(total_minutes / 60.0, 2)
+    time_spent_minutes = int(total_minutes)
+
+    # Status breakdown per content type
+    content_type_status_rows = fetchall("""
+        SELECT m.type, ue.status, COUNT(*) AS count
+        FROM user_entries ue
+        JOIN media m ON m.id = ue.media_id
+        WHERE ue.user_id = %s
+        GROUP BY m.type, ue.status
+    """, (uid,))
+    content_type_stats: dict = {}
+    for r in content_type_status_rows:
+        t = r["type"]
+        if t not in content_type_stats:
+            content_type_stats[t] = {}
+        content_type_stats[t][r["status"]] = r["count"]
 
     return {
         "total": total,
@@ -162,6 +193,8 @@ def get_stats(current_user = Depends(get_current_user)):
         "monthly_added": monthly_added,
         "score_distribution": score_distribution,
         "time_spent_hours": time_spent_hours,
+        "time_spent_minutes": time_spent_minutes,
+        "content_type_stats": content_type_stats,
     }
 
 
@@ -229,7 +262,7 @@ def get_entry(entry_id: int, current_user = Depends(get_current_user)):
 
 _HISTORY_FIELDS = (
     "status", "score", "rating_label", "progress",
-    "ep_current", "ep_total", "started_at", "completed_at",
+    "ep_current", "ep_total", "started_at", "completed_at", "rewatch_count",
 )
 
 
