@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../main.dart' show EntryChangeNotifier;
 import '../theme/rpg_theme.dart';
 import '../models/user_entry.dart';
 import '../services/api_service.dart';
@@ -18,6 +19,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic>? _stats;
   List<UserEntry> _recent = [];
   bool _loading = true;
+  bool _fetching = false;
+  EntryChangeNotifier? _entryNotifier;
 
   @override
   void initState() {
@@ -25,13 +28,40 @@ class _HomeScreenState extends State<HomeScreen> {
     _load();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final notifier = context.read<EntryChangeNotifier>();
+    if (_entryNotifier != notifier) {
+      _entryNotifier?.removeListener(_load);
+      _entryNotifier = notifier;
+      _entryNotifier!.addListener(_load);
+    }
+  }
+
+  @override
+  void dispose() {
+    _entryNotifier?.removeListener(_load);
+    super.dispose();
+  }
+
   Future<void> _load() async {
+    if (_fetching) return;
+    _fetching = true;
     try {
-      final stats  = await ApiService.getStats();
-      final recent = await ApiService.getEntries(status: 'watching', limit: 12);
-      if (mounted) setState(() { _stats = stats; _recent = recent; _loading = false; });
+      final results = await Future.wait<dynamic>([
+        ApiService.getStats(),
+        ApiService.getEntries(status: 'watching', limit: 12),
+      ]);
+      if (mounted) setState(() {
+        _stats   = results[0] as Map<String, dynamic>;
+        _recent  = results[1] as List<UserEntry>;
+        _loading = false;
+      });
     } catch (_) {
       if (mounted) setState(() { _loading = false; });
+    } finally {
+      _fetching = false;
     }
   }
 

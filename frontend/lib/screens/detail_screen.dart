@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
+import '../main.dart' show EntryChangeNotifier;
 import '../theme/rpg_theme.dart';
 import '../models/user_entry.dart';
 import '../services/api_service.dart';
@@ -128,6 +130,7 @@ class _DetailScreenState extends State<DetailScreen> {
         _saving = false;
       });
       _initFields();
+      if (mounted) context.read<EntryChangeNotifier>().entryAdded();
     } catch (e) {
       setState(() => _saving = false);
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
@@ -159,6 +162,7 @@ class _DetailScreenState extends State<DetailScreen> {
     if (confirm == true) {
       try {
         await ApiService.deleteEntry(_entry.id);
+        if (mounted) context.read<EntryChangeNotifier>().entryAdded();
         if (mounted) Navigator.pop(context);
       } catch (e) {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(
@@ -682,7 +686,7 @@ class _DetailScreenState extends State<DetailScreen> {
                   _entry.media?.type == 'MANHUA' || _entry.media?.type == 'WEBTOON' ||
                   _entry.media?.type == 'NOVEL')
               ? 'RELECTURAS'
-              : _entry.media?.type == 'MOVIE' ? 'REVISIONES' : 'REVISIONADOS',
+              : 'VUELTO A VER',
           onChanged: (v) => setState(() => _rewatchCount = v),
         ),
         const SizedBox(height: 12),
@@ -910,7 +914,7 @@ class _RewatchTile extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('VISTO DE NUEVO', style: TextStyle(
+            const Text('VUELTO A VER', style: TextStyle(
               fontFamily: 'Cinzel', fontSize: 9, color: RpgColors.textMuted, letterSpacing: 1.5)),
             Text(
               count == 0 ? 'Sin revisiones' : 'x$count ${count == 1 ? "vez" : "veces"}',

@@ -16,6 +16,7 @@ class StatsScreen extends StatefulWidget {
 class _StatsScreenState extends State<StatsScreen> {
   Map<String, dynamic>? _stats;
   bool _loading = true;
+  bool _fetching = false;
   EntryChangeNotifier? _entryNotifier;
 
   @override
@@ -42,11 +43,15 @@ class _StatsScreenState extends State<StatsScreen> {
   }
 
   Future<void> _load() async {
+    if (_fetching) return;
+    _fetching = true;
     try {
       final s = await ApiService.getStats();
       if (mounted) setState(() { _stats = s; _loading = false; });
     } catch (_) {
       if (mounted) setState(() { _loading = false; });
+    } finally {
+      _fetching = false;
     }
   }
 
@@ -102,6 +107,18 @@ class _StatsScreenState extends State<StatsScreen> {
       ((_stats!['content_type_stats'] as Map?) ?? {}).map((k, v) =>
         MapEntry(k.toString(), Map<String, int>.from(
           (v as Map).map((sk, sv) => MapEntry(sk.toString(), (sv as num).toInt()))))));
+
+    final avgScoreByType = Map<String, double>.from(
+      ((_stats!['avg_score_by_type'] as Map?) ?? {}).map((k, v) =>
+        MapEntry(k.toString(), (v as num).toDouble())));
+
+    final topRewatchedList = (_stats!['top_rewatched'] as List?) ?? [];
+
+    final decadeList = (_stats!['decade_distribution'] as List?) ?? [];
+    final decadeDistribution = Map<String, int>.fromEntries(
+      decadeList.map((item) => MapEntry(
+        '${(item['decade'] as num).toInt()}',
+        (item['count'] as num).toInt())));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -166,6 +183,30 @@ class _StatsScreenState extends State<StatsScreen> {
           const GoldDivider(label: 'TOP GÉNEROS'),
           const SizedBox(height: 12),
           _GenreBars(data: topGenres),
+        ],
+
+        // Puntuación media por tipo
+        if (avgScoreByType.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          const GoldDivider(label: 'PUNTUACIÓN MEDIA POR TIPO'),
+          const SizedBox(height: 12),
+          _AvgScoreByType(data: avgScoreByType),
+        ],
+
+        // Más revisionados
+        if (topRewatchedList.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          const GoldDivider(label: 'MÁS REVISIONADOS'),
+          const SizedBox(height: 12),
+          _TopRewatched(list: topRewatchedList),
+        ],
+
+        // Distribución por década
+        if (decadeDistribution.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          const GoldDivider(label: 'POR DÉCADA'),
+          const SizedBox(height: 12),
+          _DecadeChart(data: decadeDistribution),
         ],
 
         const SizedBox(height: 40),
@@ -685,6 +726,159 @@ class _GenreBars extends StatelessWidget {
               child: Text('${e.value}', textAlign: TextAlign.right, style: const TextStyle(
                 color: RpgColors.amethystLight, fontFamily: 'Cinzel', fontSize: 11, fontWeight: FontWeight.bold)),
             ),
+          ]),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _AvgScoreByType extends StatelessWidget {
+  final Map<String, double> data;
+  const _AvgScoreByType({required this.data});
+
+  static const _typeLabels = {
+    'MOVIE': 'Películas', 'SERIES': 'Series', 'ANIME': 'Anime',
+    'DORAMA': 'Doramas', 'MANGA': 'Manga', 'MANHWA': 'Manhwa',
+    'MANHUA': 'Manhua', 'WEBTOON': 'Webtoon', 'NOVEL': 'Novela',
+  };
+
+  Color _scoreColor(double score) {
+    if (score <= 3) return const Color(0xFFF85149);
+    if (score <= 5) return const Color(0xFFD29922);
+    if (score <= 7) return const Color(0xFF58A6FF);
+    return const Color(0xFF3FB950);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sorted = data.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    return Column(
+      children: sorted.map((e) {
+        final label = _typeLabels[e.key] ?? e.key;
+        final pct = e.value / 10.0;
+        final color = _scoreColor(e.value);
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Row(children: [
+            SizedBox(width: 80, child: Text(label, style: const TextStyle(
+              color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 13),
+              maxLines: 1, overflow: TextOverflow.ellipsis)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: Stack(children: [
+                  Container(height: 20, color: RpgColors.charcoal),
+                  FractionallySizedBox(
+                    widthFactor: pct.clamp(0.0, 1.0),
+                    child: Container(height: 20, color: color.withOpacity(0.75)),
+                  ),
+                ]),
+              ),
+            ),
+            const SizedBox(width: 8),
+            SizedBox(width: 36, child: Text(e.value.toStringAsFixed(1), textAlign: TextAlign.right,
+              style: TextStyle(color: color, fontFamily: 'Cinzel', fontSize: 12, fontWeight: FontWeight.bold))),
+          ]),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _TopRewatched extends StatelessWidget {
+  final List<dynamic> list;
+  const _TopRewatched({required this.list});
+
+  static const _typeLabels = {
+    'MOVIE': 'Película', 'SERIES': 'Serie', 'ANIME': 'Anime',
+    'DORAMA': 'Dorama', 'MANGA': 'Manga', 'MANHWA': 'Manhwa',
+    'MANHUA': 'Manhua', 'WEBTOON': 'Webtoon', 'NOVEL': 'Novela',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: list.asMap().entries.map((e) {
+        final i = e.key;
+        final item = e.value as Map;
+        final title = item['title']?.toString() ?? '';
+        final type  = item['type']?.toString() ?? '';
+        final count = (item['count'] as num).toInt();
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: RpgColors.charcoal,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: RpgColors.border),
+          ),
+          child: Row(children: [
+            Container(
+              width: 24, height: 24,
+              decoration: BoxDecoration(
+                color: RpgColors.gold.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: RpgColors.gold.withOpacity(0.4)),
+              ),
+              child: Center(child: Text('${i + 1}', style: const TextStyle(
+                fontFamily: 'Cinzel', fontSize: 11, color: RpgColors.gold, fontWeight: FontWeight.bold))),
+            ),
+            const SizedBox(width: 10),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, style: const TextStyle(
+                color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 14),
+                maxLines: 1, overflow: TextOverflow.ellipsis),
+              Text(_typeLabels[type] ?? type, style: const TextStyle(
+                color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 11)),
+            ])),
+            Row(children: [
+              const Icon(Icons.replay_outlined, size: 14, color: RpgColors.amethystLight),
+              const SizedBox(width: 4),
+              Text('x$count', style: const TextStyle(
+                fontFamily: 'Cinzel', fontSize: 13, color: RpgColors.amethystLight, fontWeight: FontWeight.bold)),
+            ]),
+          ]),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _DecadeChart extends StatelessWidget {
+  final Map<String, int> data;
+  const _DecadeChart({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final sorted = data.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
+    final maxVal = sorted.isNotEmpty ? sorted.map((e) => e.value).reduce((a, b) => a > b ? a : b) : 1;
+
+    return Column(
+      children: sorted.map((e) {
+        final pct = maxVal > 0 ? e.value / maxVal : 0.0;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(children: [
+            SizedBox(width: 52, child: Text('${e.key}s', style: const TextStyle(
+              color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 13))),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: Stack(children: [
+                  Container(height: 20, color: RpgColors.charcoal),
+                  FractionallySizedBox(
+                    widthFactor: pct.clamp(0.0, 1.0),
+                    child: Container(height: 20, color: RpgColors.gold.withOpacity(0.6)),
+                  ),
+                ]),
+              ),
+            ),
+            const SizedBox(width: 8),
+            SizedBox(width: 28, child: Text('${e.value}', textAlign: TextAlign.right,
+              style: const TextStyle(color: RpgColors.gold, fontFamily: 'Cinzel', fontSize: 12, fontWeight: FontWeight.bold))),
           ]),
         );
       }).toList(),
