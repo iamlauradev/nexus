@@ -15,6 +15,7 @@ class UserEntry {
   final int? epCurrent;
   final int? epTotal;
   final int rewatchCount;
+  final int? emissionDay;  // 0=lunes … 6=domingo, null=no configurado
   final DateTime updatedAt;
   final MediaItem? media;
 
@@ -33,6 +34,7 @@ class UserEntry {
     this.epCurrent,
     this.epTotal,
     this.rewatchCount = 0,
+    this.emissionDay,
     required this.updatedAt,
     this.media,
   });
@@ -52,9 +54,16 @@ class UserEntry {
     epCurrent:    j['ep_current'] as int?,
     epTotal:      j['ep_total'] as int?,
     rewatchCount: (j['rewatch_count'] as int?) ?? 0,
+    emissionDay:  j['emission_day'] as int?,
     updatedAt:    DateTime.parse(j['updated_at']),
     media:        j['media'] != null ? MediaItem.fromJson(j['media']) : null,
   );
+
+  bool get isNewEpisodeToday {
+    if (emissionDay == null) return false;
+    // DateTime.weekday: 1=lunes…7=domingo → convertir a 0-6
+    return emissionDay == DateTime.now().weekday - 1;
+  }
 
   // Helper to get ISO string for API calls
   String? get startedAtStr => startedAt?.toIso8601String().split('T').first;

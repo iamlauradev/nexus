@@ -114,6 +114,7 @@ class EntryCreate(BaseModel):
     ep_current: Optional[int] = None
     ep_total: Optional[int] = None
     rewatch_count: Optional[int] = None
+    emission_day: Optional[int] = None  # 0=lunes … 6=domingo
 
 
 class EntryUpdate(BaseModel):
@@ -128,6 +129,7 @@ class EntryUpdate(BaseModel):
     ep_current: Optional[int] = None
     ep_total: Optional[int] = None
     rewatch_count: Optional[int] = None
+    emission_day: Optional[int] = None  # 0=lunes … 6=domingo
 
 
 class EntryOut(BaseModel):
@@ -145,6 +147,7 @@ class EntryOut(BaseModel):
     ep_current: Optional[int]
     ep_total: Optional[int]
     rewatch_count: Optional[int]
+    emission_day: Optional[int] = None
     created_at: datetime
     updated_at: datetime
     media: Optional[MediaOut] = None

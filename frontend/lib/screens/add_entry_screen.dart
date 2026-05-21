@@ -48,6 +48,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
   String _status = 'plan_to_watch';
   String _ratingLabel = 'sin_valorar';
   String _emissionStatus = '';
+  int? _emissionDay;   // 0=lunes … 6=domingo, null=no configurado
   String? _startedAt;
   String? _completedAt;
   int _epCurrent = 0;
@@ -252,6 +253,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
     if (_startedAt != null) 'started_at': _startedAt,
     if (_completedAt != null) 'completed_at': _completedAt,
     'rewatch_count': _rewatchCount,
+    'emission_day':  _emissionDay,
   };
 
   @override
@@ -475,6 +477,13 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                   ]),
                 )).toList(),
                 onChanged: (v) { if (v != null) setState(() => _emissionStatus = v); },
+              ),
+              const SizedBox(height: 12),
+              _Label('Día de emisión (opcional)'),
+              const SizedBox(height: 6),
+              _EmissionDayPicker(
+                value: _emissionDay,
+                onChanged: (v) => setState(() => _emissionDay = v),
               ),
               const SizedBox(height: 12),
             ],
@@ -748,8 +757,54 @@ class _CompactResultTile extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Supporting widgets (unchanged)
 // ---------------------------------------------------------------------------
+// Supporting widgets
+// ---------------------------------------------------------------------------
+
+class _EmissionDayPicker extends StatelessWidget {
+  final int? value;
+  final ValueChanged<int?> onChanged;
+  const _EmissionDayPicker({required this.value, required this.onChanged});
+
+  static const _days = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+  static const _full = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: List.generate(7, (i) {
+        final sel = value == i;
+        return Expanded(
+          child: GestureDetector(
+            onTap: () => onChanged(sel ? null : i),
+            child: Tooltip(
+              message: _full[i],
+              child: Container(
+                margin: EdgeInsets.only(right: i < 6 ? 4 : 0),
+                padding: const EdgeInsets.symmetric(vertical: 7),
+                decoration: BoxDecoration(
+                  color: sel ? RpgColors.gold.withOpacity(0.18) : RpgColors.charcoal,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: sel ? RpgColors.gold : RpgColors.border,
+                    width: sel ? 1.5 : 1,
+                  ),
+                ),
+                child: Center(
+                  child: Text(_days[i], style: TextStyle(
+                    fontFamily: 'Cinzel', fontSize: 11,
+                    color: sel ? RpgColors.gold : RpgColors.textMuted,
+                    fontWeight: sel ? FontWeight.bold : FontWeight.normal,
+                  )),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+}
 
 class _Label extends StatelessWidget {
   final String text;

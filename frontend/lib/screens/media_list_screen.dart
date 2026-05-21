@@ -24,6 +24,7 @@ class MediaListScreen extends StatefulWidget {
 class _MediaListScreenState extends State<MediaListScreen> {
   String _status = 'all';
   String _rating = 'all';
+  String _genre  = 'all';
   String _sort = 'updated';
   String _view = 'grid';
   String _searchQuery = '';
@@ -144,9 +145,28 @@ class _MediaListScreenState extends State<MediaListScreen> {
   }
 
   List<UserEntry> get _filteredEntries {
-    if (_searchQuery.isEmpty) return _entries;
-    return _entries.where((e) =>
-      (e.media?.title ?? '').toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+    var result = _entries;
+    if (_searchQuery.isNotEmpty) {
+      result = result.where((e) =>
+        (e.media?.title ?? '').toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+    }
+    if (_genre != 'all') {
+      result = result.where((e) => (e.media?.genres ?? []).contains(_genre)).toList();
+    }
+    return result;
+  }
+
+  // Genres present in loaded entries, sorted by frequency (min 2 entries)
+  List<String> get _availableGenres {
+    final counts = <String, int>{};
+    for (final e in _entries) {
+      for (final g in (e.media?.genres ?? [])) {
+        counts[g] = (counts[g] ?? 0) + 1;
+      }
+    }
+    final sorted = counts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    return sorted.where((e) => e.value >= 2).map((e) => e.key).toList();
   }
 
   Map<String, String> get _ratingFilterItems {
@@ -165,6 +185,135 @@ class _MediaListScreenState extends State<MediaListScreen> {
         _loadEntries();
       });
     }
+  }
+
+  // +1 episode: optimistic UI update + API call
+  Future<void> _quickEpisodePlus(UserEntry entry) async {
+    final newEp = (entry.epCurrent ?? 0) + 1;
+    // Optimistic update
+    setState(() {
+      final idx = _entries.indexWhere((e) => e.id == entry.id);
+      if (idx >= 0) {
+        final old = _entries[idx];
+        _entries[idx] = UserEntry(
+          id: old.id, userId: old.userId, mediaId: old.mediaId,
+          status: old.status, progress: old.progress, score: old.score,
+          ratingLabel: old.ratingLabel, notes: old.notes, platform: old.platform,
+          startedAt: old.startedAt, completedAt: old.completedAt,
+          epCurrent: newEp, epTotal: old.epTotal,
+          rewatchCount: old.rewatchCount, emissionDay: old.emissionDay,
+          updatedAt: DateTime.now(), media: old.media,
+        );
+      }
+    });
+    try {
+      await ApiService.updateEntry(entry.id, {'ep_current': newEp});
+    } catch (_) {
+      // revert on error
+      _loadEntries();
+    }
+  }
+
+  // Long press → quick status change bottom sheet
+  void _showQuickStatus(BuildContext context, UserEntry entry) {
+    const labels = {
+      'watching':      'Viendo',
+      'completed':     'Completado',
+      'plan_to_watch': 'Pendiente',
+      'on_hold':       'En espera',
+      'dropped':       'Abandonado',
+    };
+    const colors = {
+      'watching':      RpgColors.statusWatching,
+      'completed':     RpgColors.statusComplete,
+      'plan_to_watch': RpgColors.statusPlan,
+      'on_hold':       RpgColors.statusOnHold,
+      'dropped':       RpgColors.statusDropped,
+    };
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: RpgColors.charcoal,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36, height: 4,
+                decoration: BoxDecoration(
+                  color: RpgColors.border,
+                  borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              entry.media?.title ?? '',
+              style: const TextStyle(fontFamily: 'Cinzel', fontSize: 13, color: RpgColors.textPrimary),
+              maxLines: 1, overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            const Text('Cambiar estado:', style: TextStyle(
+              fontFamily: 'Crimson', fontSize: 12, color: RpgColors.textMuted)),
+            const SizedBox(height: 10),
+            ...labels.entries.map((e) => InkWell(
+              onTap: () async {
+                Navigator.pop(context);
+                if (e.key == entry.status) return;
+                // Optimistic update
+                setState(() {
+                  final idx = _entries.indexWhere((en) => en.id == entry.id);
+                  if (idx >= 0) {
+                    final old = _entries[idx];
+                    _entries[idx] = UserEntry(
+                      id: old.id, userId: old.userId, mediaId: old.mediaId,
+                      status: e.key, progress: old.progress, score: old.score,
+                      ratingLabel: old.ratingLabel, notes: old.notes, platform: old.platform,
+                      startedAt: old.startedAt, completedAt: old.completedAt,
+                      epCurrent: old.epCurrent, epTotal: old.epTotal,
+                      rewatchCount: old.rewatchCount, emissionDay: old.emissionDay,
+                      updatedAt: DateTime.now(), media: old.media,
+                    );
+                  }
+                });
+                try {
+                  await ApiService.updateEntry(entry.id, {'status': e.key});
+                } catch (_) {
+                  _loadEntries();
+                }
+              },
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                child: Row(children: [
+                  Container(
+                    width: 10, height: 10,
+                    decoration: BoxDecoration(
+                      color: colors[e.key] ?? RpgColors.border,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(e.value, style: TextStyle(
+                    fontFamily: 'Crimson', fontSize: 15,
+                    color: entry.status == e.key ? RpgColors.gold : RpgColors.textPrimary,
+                    fontWeight: entry.status == e.key ? FontWeight.w600 : FontWeight.normal,
+                  )),
+                  if (entry.status == e.key) ...[
+                    const Spacer(),
+                    const Icon(Icons.check, size: 14, color: RpgColors.gold),
+                  ],
+                ]),
+              ),
+            )),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -254,30 +403,59 @@ class _MediaListScreenState extends State<MediaListScreen> {
       ),
     );
 
+    final genres = _availableGenres;
+    final genreChips = genres.isEmpty ? const SizedBox.shrink() : SizedBox(
+      height: 30,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          _GenreChip(
+            label: 'Todos',
+            selected: _genre == 'all',
+            onTap: () => setState(() => _genre = 'all'),
+          ),
+          ...genres.map((g) => _GenreChip(
+            label: g,
+            selected: _genre == g,
+            onTap: () => setState(() => _genre = _genre == g ? 'all' : g),
+          )),
+        ],
+      ),
+    );
+
     if (isDesktop) {
       return Container(
         color: RpgColors.darkVoid,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(flex: 3, child: searchField),
-            const SizedBox(width: 10),
-            viewToggle,
-            const SizedBox(width: 10),
-            SizedBox(width: 140, child: _DropFilter(
-              value: _status, items: statusItems,
-              onChanged: (v) { setState(() => _status = v); _loadEntries(); },
-            )),
-            const SizedBox(width: 10),
-            SizedBox(width: 140, child: _DropFilter(
-              value: _rating, items: _ratingFilterItems,
-              onChanged: (v) { setState(() => _rating = v); _loadEntries(); },
-            )),
-            const SizedBox(width: 10),
-            SizedBox(width: 140, child: _DropFilter(
-              value: _sort, items: sortItems,
-              onChanged: (v) { setState(() { _sort = v; _entries = _applySorting(_entries); }); },
-            )),
+            Row(
+              children: [
+                Expanded(flex: 3, child: searchField),
+                const SizedBox(width: 10),
+                viewToggle,
+                const SizedBox(width: 10),
+                SizedBox(width: 140, child: _DropFilter(
+                  value: _status, items: statusItems,
+                  onChanged: (v) { setState(() => _status = v); _loadEntries(); },
+                )),
+                const SizedBox(width: 10),
+                SizedBox(width: 140, child: _DropFilter(
+                  value: _rating, items: _ratingFilterItems,
+                  onChanged: (v) { setState(() => _rating = v); _loadEntries(); },
+                )),
+                const SizedBox(width: 10),
+                SizedBox(width: 140, child: _DropFilter(
+                  value: _sort, items: sortItems,
+                  onChanged: (v) { setState(() { _sort = v; _entries = _applySorting(_entries); }); },
+                )),
+              ],
+            ),
+            if (genres.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              genreChips,
+            ],
           ],
         ),
       );
@@ -288,6 +466,7 @@ class _MediaListScreenState extends State<MediaListScreen> {
       color: RpgColors.darkVoid,
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           searchField,
           const SizedBox(height: 6),
@@ -311,6 +490,10 @@ class _MediaListScreenState extends State<MediaListScreen> {
               )),
             ],
           ),
+          if (genres.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            genreChips,
+          ],
         ],
       ),
     );
@@ -332,7 +515,12 @@ class _MediaListScreenState extends State<MediaListScreen> {
           itemCount: entries.length + (_entries.length >= _currentLimit ? 1 : 0),
           itemBuilder: (context, i) {
             if (i == entries.length) return _buildLoadMoreButton();
-            return MediaCard(entry: entries[i], onTap: () => _openDetail(entries[i]));
+            return MediaCard(
+              entry: entries[i],
+              onTap: () => _openDetail(entries[i]),
+              onEpisodePlus: () => _quickEpisodePlus(entries[i]),
+              onLongPress: () => _showQuickStatus(context, entries[i]),
+            );
           },
         );
       },
@@ -345,7 +533,12 @@ class _MediaListScreenState extends State<MediaListScreen> {
       itemCount: entries.length + (_entries.length >= _currentLimit ? 1 : 0),
       itemBuilder: (context, i) {
         if (i == entries.length) return _buildLoadMoreButton();
-        return MediaListTile(entry: entries[i], onTap: () => _openDetail(entries[i]));
+        return MediaListTile(
+          entry: entries[i],
+          onTap: () => _openDetail(entries[i]),
+          onEpisodePlus: () => _quickEpisodePlus(entries[i]),
+          onLongPress: () => _showQuickStatus(context, entries[i]),
+        );
       },
     );
   }
@@ -438,6 +631,37 @@ class _DropFilter extends StatelessWidget {
           )).toList(),
           onChanged: (v) { if (v != null) onChanged(v); },
         ),
+      ),
+    );
+  }
+}
+
+class _GenreChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _GenreChip({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(right: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected ? RpgColors.gold.withOpacity(0.18) : RpgColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? RpgColors.gold : RpgColors.border,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Text(label, style: TextStyle(
+          fontFamily: 'Crimson', fontSize: 12,
+          color: selected ? RpgColors.goldLight : RpgColors.textSecondary,
+          fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+        )),
       ),
     );
   }

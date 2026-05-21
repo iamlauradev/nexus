@@ -47,6 +47,7 @@ class _DetailScreenState extends State<DetailScreen> {
   late String _status;
   late String _ratingLabel;
   late String _emissionStatus;
+  int? _emissionDay;
   DateTime? _startedAt;
   DateTime? _completedAt;
   String? _coverUrl;
@@ -72,6 +73,7 @@ class _DetailScreenState extends State<DetailScreen> {
     _status          = _entry.status;
     _ratingLabel     = _entry.ratingLabel ?? 'sin_valorar';
     _emissionStatus  = _entry.media?.emissionStatus ?? '';
+    _emissionDay     = _entry.emissionDay;
     _startedAt       = _entry.startedAt;
     _completedAt     = _entry.completedAt;
     _coverUrl        = _entry.media?.coverUrl;
@@ -116,6 +118,7 @@ class _DetailScreenState extends State<DetailScreen> {
         'ep_current':    _entry.media?.type != 'MOVIE' ? _epCurrent : null,
         'ep_total':      _entry.media?.type != 'MOVIE' ? _epTotal : null,
         'rewatch_count': _rewatchCount,
+        'emission_day':  _emissionDay,
       });
       setState(() {
         _entry = UserEntry(
@@ -124,7 +127,7 @@ class _DetailScreenState extends State<DetailScreen> {
           ratingLabel: updated.ratingLabel, notes: updated.notes, platform: updated.platform,
           startedAt: updated.startedAt, completedAt: updated.completedAt,
           epCurrent: updated.epCurrent, epTotal: updated.epTotal,
-          rewatchCount: updated.rewatchCount,
+          rewatchCount: updated.rewatchCount, emissionDay: updated.emissionDay,
           updatedAt: updated.updatedAt, media: _entry.media,
         );
         _editing = false;
@@ -204,7 +207,7 @@ class _DetailScreenState extends State<DetailScreen> {
           ratingLabel: updated.ratingLabel, notes: updated.notes, platform: updated.platform,
           startedAt: updated.startedAt, completedAt: updated.completedAt,
           epCurrent: updated.epCurrent, epTotal: updated.epTotal,
-          rewatchCount: updated.rewatchCount,
+          rewatchCount: updated.rewatchCount, emissionDay: updated.emissionDay,
           updatedAt: updated.updatedAt, media: _entry.media,
         );
         _epCurrent = updated.epCurrent ?? 0;
@@ -224,7 +227,7 @@ class _DetailScreenState extends State<DetailScreen> {
           ratingLabel: updated.ratingLabel, notes: updated.notes, platform: updated.platform,
           startedAt: updated.startedAt, completedAt: updated.completedAt,
           epCurrent: updated.epCurrent, epTotal: updated.epTotal,
-          rewatchCount: updated.rewatchCount,
+          rewatchCount: updated.rewatchCount, emissionDay: updated.emissionDay,
           updatedAt: updated.updatedAt, media: _entry.media,
         );
         _rewatchCount = updated.rewatchCount;
@@ -785,6 +788,13 @@ class _DetailScreenState extends State<DetailScreen> {
             )).toList(),
             onChanged: (v) { if (v != null) setState(() => _emissionStatus = v); },
           ),
+          const SizedBox(height: 10),
+          _SectionHeader('Día de emisión (opcional)'),
+          const SizedBox(height: 8),
+          _EmissionDayPickerDetail(
+            value: _emissionDay,
+            onChanged: (v) => setState(() => _emissionDay = v),
+          ),
           const SizedBox(height: 14),
         ],
         _SectionHeader('Valoración'),
@@ -1261,6 +1271,51 @@ class _RewatchStepper extends StatelessWidget {
           ),
         ),
       ]),
+    );
+  }
+}
+
+class _EmissionDayPickerDetail extends StatelessWidget {
+  final int? value;
+  final ValueChanged<int?> onChanged;
+  const _EmissionDayPickerDetail({required this.value, required this.onChanged});
+
+  static const _days = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+  static const _full = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: List.generate(7, (i) {
+        final sel = value == i;
+        return Expanded(
+          child: GestureDetector(
+            onTap: () => onChanged(sel ? null : i),
+            child: Tooltip(
+              message: _full[i],
+              child: Container(
+                margin: EdgeInsets.only(right: i < 6 ? 4 : 0),
+                padding: const EdgeInsets.symmetric(vertical: 7),
+                decoration: BoxDecoration(
+                  color: sel ? RpgColors.gold.withOpacity(0.18) : RpgColors.charcoal,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: sel ? RpgColors.gold : RpgColors.border,
+                    width: sel ? 1.5 : 1,
+                  ),
+                ),
+                child: Center(
+                  child: Text(_days[i], style: TextStyle(
+                    fontFamily: 'Cinzel', fontSize: 11,
+                    color: sel ? RpgColors.gold : RpgColors.textMuted,
+                    fontWeight: sel ? FontWeight.bold : FontWeight.normal,
+                  )),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
     );
   }
 }

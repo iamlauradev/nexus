@@ -66,21 +66,21 @@ def create_entry(data: EntryCreate, current_user = Depends(get_current_user)):
         cur.execute("""
             INSERT INTO user_entries
                 (user_id, media_id, status, progress, score, rating_label, notes, platform,
-                 started_at, completed_at, ep_current, ep_total, rewatch_count)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                 started_at, completed_at, ep_current, ep_total, rewatch_count, emission_day)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             ON CONFLICT (user_id, media_id) DO UPDATE SET
                 status=EXCLUDED.status, progress=EXCLUDED.progress, score=EXCLUDED.score,
                 rating_label=EXCLUDED.rating_label, notes=EXCLUDED.notes, platform=EXCLUDED.platform,
                 started_at=EXCLUDED.started_at, completed_at=EXCLUDED.completed_at,
                 ep_current=EXCLUDED.ep_current, ep_total=EXCLUDED.ep_total,
-                rewatch_count=EXCLUDED.rewatch_count,
+                rewatch_count=EXCLUDED.rewatch_count, emission_day=EXCLUDED.emission_day,
                 updated_at=NOW()
             RETURNING *
         """, (
             current_user["id"], data.media_id, data.status, data.progress,
             data.score, data.rating_label, data.notes, data.platform,
             data.started_at, data.completed_at, data.ep_current, data.ep_total,
-            data.rewatch_count or 0,
+            data.rewatch_count or 0, data.emission_day,
         ))
         row = dict(cur.fetchone())
     return _build_entry_out(row)

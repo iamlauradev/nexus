@@ -60,6 +60,7 @@ CREATE TABLE user_entries (
     platform        TEXT,
     started_at      DATE,
     completed_at    DATE,
+    emission_day    SMALLINT,
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(user_id, media_id)

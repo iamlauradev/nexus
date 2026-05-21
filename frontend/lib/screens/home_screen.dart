@@ -54,8 +54,15 @@ class _HomeScreenState extends State<HomeScreen> {
         ApiService.getEntries(status: 'watching', limit: 24),
       ]);
       if (mounted) setState(() {
-        _stats   = results[0] as Map<String, dynamic>;
-        _recent  = results[1] as List<UserEntry>;
+        _stats  = results[0] as Map<String, dynamic>;
+        // Sort: entries with new episode today go first
+        final watching = List<UserEntry>.from(results[1] as List<UserEntry>);
+        watching.sort((a, b) {
+          final aNew = a.isNewEpisodeToday ? 0 : 1;
+          final bNew = b.isNewEpisodeToday ? 0 : 1;
+          return aNew.compareTo(bNew);
+        });
+        _recent  = watching;
         _loading = false;
       });
     } catch (_) {
