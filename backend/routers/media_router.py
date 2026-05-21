@@ -16,6 +16,9 @@ TMDB_IMG  = "https://image.tmdb.org/t/p/w500"
 TMDB_HEADERS = {"Accept": "application/json", "Content-Type": "application/json"}
 
 JIKAN_BASE = "https://api.jikan.moe/v4"
+MANGADEX_BASE = "https://api.mangadex.org"
+MANGADEX_IMG = "https://uploads.mangadex.org/covers"
+MU_BASE = "https://api.mangaupdates.com/v1"
 
 # Países considerados dorama
 DORAMA_COUNTRIES = {"KR", "JP", "TH", "CN", "TW", "HK", "SG", "PH", "ID", "VN"}
@@ -70,6 +73,16 @@ def _tmdb_get(path: str, params: dict = None) -> dict:
 def _jikan_get(path: str, params: dict = None) -> dict:
     try:
         r = requests.get(f"{JIKAN_BASE}{path}", params=params or {}, timeout=10)
+        if r.status_code != 200:
+            return {}
+        return r.json()
+    except Exception:
+        return {}
+
+
+def _mangadex_get(path: str, params: dict = None) -> dict:
+    try:
+        r = requests.get(f"{MANGADEX_BASE}{path}", params=params or {}, timeout=10)
         if r.status_code != 200:
             return {}
         return r.json()
@@ -332,14 +345,193 @@ def _search_jikan_anime(query: str) -> List[SearchResult]:
 
 
 # ---------------------------------------------------------------------------
-# MANGA / MANHWA / MANHUA / WEBTOON  (AniList)
+# MANGA / MANHWA / MANHUA / WEBTOON  (AniList + MangaDex)
 # ---------------------------------------------------------------------------
 
+_MANGADEX_STATUS_MAP = {
+    "ongoing":   EmissionStatus.AIRING,
+    "completed": EmissionStatus.FINISHED,
+    "hiatus":    EmissionStatus.HIATUS,
+    "cancelled": EmissionStatus.CANCELLED,
+}
+
+_MU_TYPE_MAP = {
+    "Manga":            MediaType.MANGA,
+    "Manhwa":           MediaType.MANHWA,
+    "Manhua":           MediaType.MANHUA,
+    "Webtoon":          MediaType.WEBTOON,
+    "Webtoon (Manhwa)": MediaType.MANHWA,
+    "Webtoon (Manhua)": MediaType.MANHUA,
+}
+
+
+def _search_mangadex(query: str, requested_type: MediaType) -> List[SearchResult]:
+    """MangaDex — soporta búsqueda por títulos traducidos (español y otros idiomas)."""
+    data = _mangadex_get("/manga", {
+        "title": query,
+        "limit": 15,
+        "includes[]": ["cover_art"],
+        "order[relevance]": "desc",
+        "contentRating[]": ["safe", "suggestive", "erotica"],
+    })
+
+    results = []
+    for m in data.get("data", []):
+        attrs = m.get("attributes", {})
+        manga_id = m.get("id", "")
+
+        # Título: preferir español, luego inglés, luego romaji, luego cualquiera
+        titles = attrs.get("title", {})
+        alt_titles_list = attrs.get("altTitles", [])
+        all_titles: dict = {**titles}
+        for alt in alt_titles_list:
+            all_titles.update(alt)
+
+        title = (
+            all_titles.get("es")
+            or all_titles.get("es-la")
+            or all_titles.get("en")
+            or all_titles.get("ja-ro")
+            or next(iter(all_titles.values()), "")
+        )
+        if not title:
+            continue
+
+        title_original = (
+            all_titles.get("ja")
+            or all_titles.get("ko")
+            or all_titles.get("zh")
+            or all_titles.get("zh-hk")
+        )
+
+        # Portada desde las relaciones
+        cover_url = None
+        for rel in m.get("relationships", []):
+            if rel.get("type") == "cover_art":
+                fn = (rel.get("attributes") or {}).get("fileName")
+                if fn:
+                    cover_url = f"{MANGADEX_IMG}/{manga_id}/{fn}"
+                break
+
+        # Tipo según idioma original
+        orig_lang = attrs.get("originalLanguage", "")
+        if orig_lang == "ko":
+            t = MediaType.MANHWA
+        elif orig_lang in ("zh", "zh-hk"):
+            t = MediaType.MANHUA
+        else:
+            t = requested_type
+
+        genres = [
+            tag["attributes"]["name"].get("en", "")
+            for tag in attrs.get("tags", [])
+            if (tag.get("attributes") or {}).get("group") == "genre"
+        ]
+
+        desc_dict = attrs.get("description", {})
+        synopsis = (
+            desc_dict.get("es")
+            or desc_dict.get("es-la")
+            or desc_dict.get("en")
+            or next(iter(desc_dict.values()), None)
+        )
+
+        results.append(SearchResult(
+            source="mangadex",
+            external_id=f"mdx_{manga_id}",
+            title=title,
+            title_original=title_original,
+            year=attrs.get("year"),
+            cover_url=cover_url,
+            genres=genres or None,
+            synopsis=_strip_html(synopsis) or None,
+            score=None,
+            type=t,
+            emission_status=_MANGADEX_STATUS_MAP.get(attrs.get("status", "")),
+            country=orig_lang.upper() if orig_lang else None,
+        ))
+    return results
+
+
+def _search_mangaupdates(query: str, requested_type: MediaType) -> List[SearchResult]:
+    """MangaUpdates — catálogo extenso con títulos alternativos en múltiples idiomas."""
+    try:
+        r = requests.post(
+            f"{MU_BASE}/series/search",
+            json={"search": query, "perpage": 10},
+            timeout=10,
+        )
+        if r.status_code != 200:
+            return []
+        data = r.json()
+    except Exception:
+        return []
+
+    results = []
+    for res in data.get("results", []):
+        rec = res.get("record", {})
+        series_id = str(rec.get("series_id", ""))
+        title = rec.get("title", "")
+        if not series_id or not title:
+            continue
+
+        t = _MU_TYPE_MAP.get(rec.get("type", ""), requested_type)
+        cover_url = ((rec.get("image") or {}).get("url") or {}).get("original")
+
+        genres = [g["genre"] for g in (rec.get("genres") or []) if g.get("genre")]
+
+        year = None
+        try:
+            year = int(str(rec.get("year", ""))[:4])
+        except (ValueError, TypeError):
+            pass
+
+        synopsis = _strip_html(rec.get("description") or "") or None
+
+        results.append(SearchResult(
+            source="mangaupdates",
+            external_id=f"mu_{series_id}",
+            title=title,
+            title_original=None,
+            year=year,
+            cover_url=cover_url,
+            genres=genres or None,
+            synopsis=synopsis,
+            score=None,
+            type=t,
+        ))
+    return results
+
+
+def _title_key(title: str) -> str:
+    """Normaliza un título para deduplicación (solo alfanumérico ASCII en minúsculas)."""
+    import re
+    return re.sub(r"[^a-z0-9]", "", title.lower())
+
+
 def _search_manga(query: str, requested_type: MediaType) -> List[SearchResult]:
-    results = _search_anilist(query, "MANGA")
-    # Si se pidió un tipo específico, filtra primero por ese tipo; si no hay, devuelve todo
-    typed = [r for r in results if r.type == requested_type]
-    return typed if typed else results
+    anilist = _search_anilist(query, "MANGA")
+    mangaupdates = _search_mangaupdates(query, requested_type)
+    mangadex = _search_mangadex(query, requested_type)
+
+    # AniList primero, filtrado por tipo si hay resultados del tipo pedido
+    anilist_typed = [r for r in anilist if r.type == requested_type]
+    anilist_final = anilist_typed if anilist_typed else anilist
+
+    # Merge MangaUpdates + MangaDex sin duplicar (por título normalizado o external_id)
+    seen_keys = {_title_key(r.title) for r in anilist_final if _title_key(r.title)}
+    seen_ids: set = set()
+    extras = []
+    for r in mangaupdates + mangadex:
+        key = _title_key(r.title)
+        if (key and key in seen_keys) or r.external_id in seen_ids:
+            continue
+        extras.append(r)
+        seen_ids.add(r.external_id)
+        if key:
+            seen_keys.add(key)
+
+    return (anilist_final + extras)[:12]
 
 
 # ---------------------------------------------------------------------------

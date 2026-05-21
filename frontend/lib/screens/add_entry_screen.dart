@@ -61,7 +61,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
   final _titleCtrl    = TextEditingController();
 
   List<SearchResult> _results = [];
-  SearchResult? _selected;
+  final List<SearchResult> _selectedItems = [];
   bool _searching = false;
   bool _saving = false;
   bool _manualMode = false;
@@ -79,7 +79,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
   @override
   void initState() {
     super.initState();
-    // Asegurar que _ratingLabel existe en los configs actuales
     final configs = RatingConfigCache.configs;
     final keys = configs.map((c) => c['key'] as String).toList();
     if (!keys.contains(_ratingLabel)) {
@@ -133,16 +132,27 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
 
   bool get _hasEpisodes => _type != 'MOVIE';
 
-  void _applySearchResult(SearchResult r) {
+  void _toggleSelection(SearchResult r) {
     setState(() {
-      _selected = r;
-      _emissionStatus = r.emissionStatus ?? '';
-      if (r.episodes != null && r.episodes! > 0) {
-        _epTotal = r.episodes;
-        _epCurrent = 0;
+      final idx = _selectedItems.indexWhere((s) => s.externalId == r.externalId);
+      if (idx >= 0) {
+        _selectedItems.removeAt(idx);
+      } else {
+        _selectedItems.add(r);
+        // Auto-fill emission status and ep total from the first selected item
+        if (_selectedItems.length == 1) {
+          _emissionStatus = r.emissionStatus ?? '';
+          if (r.episodes != null && r.episodes! > 0) {
+            _epTotal = r.episodes;
+            _epCurrent = 0;
+          }
+        }
       }
     });
   }
+
+  bool _isSelected(SearchResult r) =>
+      _selectedItems.any((s) => s.externalId == r.externalId);
 
   Future<void> _search() async {
     if (_searchCtrl.text.length < 2) return;
@@ -156,76 +166,103 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
   }
 
   Future<void> _save() async {
-    if (_selected == null && !_manualMode) {
+    if (_selectedItems.isEmpty && !_manualMode) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecciona una obra primero'), backgroundColor: RpgColors.statusDropped));
+        const SnackBar(content: Text('Selecciona al menos una obra'), backgroundColor: RpgColors.statusDropped));
       return;
     }
     setState(() => _saving = true);
-    try {
-      late int mediaId;
-      if (_selected != null) {
-        final media = await ApiService.createMedia({
-          'type':             _type,
-          'title':            _selected!.title,
-          'title_original':   _selected!.titleOriginal,
-          'year':             _selected!.year,
-          'genres':           _selected!.genres,
-          'synopsis':         _selected!.synopsis,
-          'cover_url':        _selected!.coverUrl,
-          'country':          _selected!.country,
-          'duration':         _selected!.duration,
-          'network':          _selected!.network,
-          'cast_text':        _selected!.castText,
-          'external_score':   _selected!.score,
-          'emission_status':  _emissionStatus.isEmpty ? null : _emissionStatus,
-          if (_selected!.source == 'tmdb')    'tmdb_id':    int.tryParse(_selected!.externalId),
-          if (_selected!.source == 'anilist') 'anilist_id': int.tryParse(_selected!.externalId),
-        });
-        mediaId = media.id;
-      } else {
+
+    // Manual mode: single item
+    if (_manualMode) {
+      try {
         final media = await ApiService.createMedia({
           'type':  _type,
           'title': _titleCtrl.text.trim(),
           'emission_status': _emissionStatus.isEmpty ? null : _emissionStatus,
         });
-        mediaId = media.id;
+        await ApiService.createEntry(_buildEntryPayload(media.id));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Añadido correctamente ✓'), backgroundColor: RpgColors.statusComplete));
+          Navigator.pop(context);
+        }
+      } catch (e) {
+        setState(() => _saving = false);
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: RpgColors.statusDropped));
       }
+      return;
+    }
 
-      await ApiService.createEntry({
-        'media_id':      mediaId,
-        'status':        _status,
-        'rating_label':  _ratingLabel,
-        'progress':      _progressCtrl.text.isEmpty ? null : _progressCtrl.text,
-        'notes':         _notesCtrl.text.isEmpty ? null : _notesCtrl.text,
-        'platform':      _platformCtrl.text.isEmpty ? null : _platformCtrl.text,
-        if (_startedAt != null) 'started_at': _startedAt,
-        if (_completedAt != null) 'completed_at': _completedAt,
-        if (_hasEpisodes) 'ep_current': _epCurrent,
-        if (_hasEpisodes && _epTotal != null) 'ep_total': _epTotal,
-        'rewatch_count': _rewatchCount,
-      });
+    // Multi-select: save each item
+    int saved = 0;
+    for (final r in _selectedItems) {
+      try {
+        final media = await ApiService.createMedia({
+          'type':             _type,
+          'title':            r.title,
+          'title_original':   r.titleOriginal,
+          'year':             r.year,
+          'genres':           r.genres,
+          'synopsis':         r.synopsis,
+          'cover_url':        r.coverUrl,
+          'country':          r.country,
+          'duration':         r.duration,
+          'network':          r.network,
+          'cast_text':        r.castText,
+          'external_score':   r.score,
+          'emission_status':  r.emissionStatus?.isEmpty == false ? r.emissionStatus : (_emissionStatus.isEmpty ? null : _emissionStatus),
+          if (r.source == 'tmdb')    'tmdb_id':    int.tryParse(r.externalId),
+          if (r.source == 'anilist') 'anilist_id': int.tryParse(r.externalId),
+        });
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Añadido correctamente ✓'), backgroundColor: RpgColors.statusComplete));
-        Navigator.pop(context);
-      }
-    } catch (e) {
+        // For multi-select ep_total comes from each result individually
+        final epTotal = (r.episodes != null && r.episodes! > 0) ? r.episodes
+            : (_selectedItems.length == 1 ? _epTotal : null);
+        final epCurrent = _selectedItems.length == 1 ? _epCurrent : 0;
+
+        await ApiService.createEntry({
+          ...(_buildEntryPayload(media.id)),
+          if (_hasEpisodes) 'ep_current': epCurrent,
+          if (_hasEpisodes && epTotal != null) 'ep_total': epTotal,
+        });
+        saved++;
+      } catch (_) {}
+    }
+
+    if (mounted) {
       setState(() => _saving = false);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: RpgColors.statusDropped));
+      final msg = saved == _selectedItems.length
+          ? (saved == 1 ? 'Añadido correctamente ✓' : '$saved obras añadidas ✓')
+          : '$saved de ${_selectedItems.length} añadidas (algunos errores)';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg), backgroundColor: saved > 0 ? RpgColors.statusComplete : RpgColors.statusDropped));
+      if (saved > 0) Navigator.pop(context);
     }
   }
+
+  Map<String, dynamic> _buildEntryPayload(int mediaId) => {
+    'media_id':      mediaId,
+    'status':        _status,
+    'rating_label':  _ratingLabel,
+    'progress':      _progressCtrl.text.isEmpty ? null : _progressCtrl.text,
+    'notes':         _notesCtrl.text.isEmpty ? null : _notesCtrl.text,
+    'platform':      _platformCtrl.text.isEmpty ? null : _platformCtrl.text,
+    if (_startedAt != null) 'started_at': _startedAt,
+    if (_completedAt != null) 'completed_at': _completedAt,
+    'rewatch_count': _rewatchCount,
+  };
 
   @override
   Widget build(BuildContext context) {
     final ratings = RatingConfigCache.configs;
-    // Guard: ensure _ratingLabel is valid at build time (cache may update between initState and build)
     final ratingKeys = ratings.map((r) => r['key'] as String).toList();
     final effectiveRating = ratingKeys.contains(_ratingLabel)
         ? _ratingLabel
         : (ratingKeys.isNotEmpty ? ratingKeys.last : null);
+
+    final singleSelected = _selectedItems.length == 1 && !_manualMode;
 
     return Scaffold(
       backgroundColor: RpgColors.surface,
@@ -235,7 +272,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Type selector (only if multiple types available)
+            // Type selector
             if (_showTypeSelector) ...[
               _Label('Tipo'),
               const SizedBox(height: 6),
@@ -246,7 +283,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                   children: _visibleTypes.entries.map((e) {
                     final sel = _type == e.key;
                     return GestureDetector(
-                      onTap: () => setState(() { _type = e.key; _results = []; _selected = null; }),
+                      onTap: () => setState(() { _type = e.key; _results = []; _selectedItems.clear(); }),
                       child: Container(
                         margin: const EdgeInsets.only(right: 6),
                         padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -290,33 +327,99 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
               ]),
               const SizedBox(height: 4),
               TextButton(
-                onPressed: () => setState(() { _manualMode = true; _selected = null; }),
+                onPressed: () => setState(() { _manualMode = true; _selectedItems.clear(); }),
                 child: const Text('→ Añadir manualmente', style: TextStyle(color: RpgColors.textMuted, fontSize: 12)),
               ),
+
+              // Results dropdown (compact, fixed-height container)
               if (_searching)
                 const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator(color: RpgColors.gold))),
               if (_results.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                ..._results.map((r) => _SearchResultTile(
-                  result: r, selected: _selected == r,
-                  onTap: () => _applySearchResult(r),
-                )),
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 300),
+                  decoration: BoxDecoration(
+                    color: RpgColors.charcoal,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: RpgColors.border),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('${_results.length} resultado${_results.length != 1 ? "s" : ""}',
+                              style: const TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 12)),
+                            if (_results.length > 1)
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    if (_selectedItems.length == _results.length) {
+                                      _selectedItems.removeWhere((s) => _results.any((r) => r.externalId == s.externalId));
+                                    } else {
+                                      for (final r in _results) {
+                                        if (!_isSelected(r)) _selectedItems.add(r);
+                                      }
+                                    }
+                                  });
+                                },
+                                child: Text(
+                                  _selectedItems.length == _results.length ? 'Deseleccionar todo' : 'Seleccionar todo',
+                                  style: const TextStyle(color: RpgColors.gold, fontFamily: 'Crimson', fontSize: 12),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const Divider(height: 1, color: RpgColors.border),
+                      Flexible(
+                        child: ListView.separated(
+                          shrinkWrap: true,
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          itemCount: _results.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1, color: RpgColors.border, indent: 10, endIndent: 10),
+                          itemBuilder: (_, i) => _CompactResultTile(
+                            result: _results[i],
+                            selected: _isSelected(_results[i]),
+                            onTap: () => _toggleSelection(_results[i]),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 8),
               ],
-              if (_selected != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: RpgColors.gold.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: RpgColors.gold.withOpacity(0.4)),
-                  ),
-                  child: Row(children: [
-                    const Icon(Icons.check_circle, color: RpgColors.statusComplete, size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text('Seleccionado: ${_selected!.title}',
-                      style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'))),
-                  ]),
+
+              // Selected chips
+              if (_selectedItems.isNotEmpty) ...[
+                _Label('Seleccionados (${_selectedItems.length})'),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: _selectedItems.map((r) => Container(
+                    padding: const EdgeInsets.only(left: 10, right: 4, top: 4, bottom: 4),
+                    decoration: BoxDecoration(
+                      color: RpgColors.gold.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: RpgColors.gold.withOpacity(0.4)),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 160),
+                        child: Text(r.title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13)),
+                      ),
+                      const SizedBox(width: 4),
+                      GestureDetector(
+                        onTap: () => setState(() => _selectedItems.removeWhere((s) => s.externalId == r.externalId)),
+                        child: const Icon(Icons.close, size: 14, color: RpgColors.textMuted),
+                      ),
+                    ]),
+                  )).toList(),
                 ),
                 const SizedBox(height: 12),
               ],
@@ -351,8 +454,8 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Emission status (not applicable for movies)
-            if (_type != 'MOVIE') ...[
+            // Emission status (not for movies, not for multi-select — each item brings its own)
+            if (_type != 'MOVIE' && _selectedItems.length <= 1) ...[
               _Label('Estado de emisión'),
               const SizedBox(height: 6),
               DropdownButtonFormField<String>(
@@ -399,8 +502,8 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Episode stepper (series, anime, manga, etc.)
-            if (_hasEpisodes) ...[
+            // Episode stepper: only when 0 or 1 items selected (not batch)
+            if (_hasEpisodes && (singleSelected || _manualMode)) ...[
               _EpisodeStepper(
                 label: _type == 'MANGA' || _type == 'MANHWA' || _type == 'MANHUA' || _type == 'WEBTOON' || _type == 'NOVEL'
                     ? 'CAPÍTULO'
@@ -413,15 +516,17 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
               const SizedBox(height: 12),
             ],
 
-            // Rewatch / re-read counter
-            _RewatchCounter(
-              count: _rewatchCount,
-              label: _type == 'MANGA' || _type == 'MANHWA' || _type == 'MANHUA' || _type == 'WEBTOON' || _type == 'NOVEL'
-                  ? 'RELECTURAS'
-                  : _type == 'MOVIE' ? 'REVISIONES' : 'REVISIONADOS',
-              onChanged: (v) => setState(() => _rewatchCount = v),
-            ),
-            const SizedBox(height: 12),
+            // Rewatch counter: only single or manual
+            if (singleSelected || _manualMode) ...[
+              _RewatchCounter(
+                count: _rewatchCount,
+                label: _type == 'MANGA' || _type == 'MANHWA' || _type == 'MANHUA' || _type == 'WEBTOON' || _type == 'NOVEL'
+                    ? 'RELECTURAS'
+                    : _type == 'MOVIE' ? 'REVISIONES' : 'REVISIONADOS',
+                onChanged: (v) => setState(() => _rewatchCount = v),
+              ),
+              const SizedBox(height: 12),
+            ],
 
             TextField(
               controller: _progressCtrl,
@@ -525,8 +630,15 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 onPressed: _saving ? null : _save,
                 child: _saving
                     ? const CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
-                    : const Text('AÑADIR', style: TextStyle(
-                        fontFamily: 'Cinzel', letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 14)),
+                    : Text(
+                        _selectedItems.isEmpty
+                            ? 'AÑADIR'
+                            : _selectedItems.length == 1
+                                ? 'AÑADIR (1)'
+                                : 'AÑADIR ${_selectedItems.length} OBRAS',
+                        style: const TextStyle(
+                          fontFamily: 'Cinzel', letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
               ),
             ),
             const SizedBox(height: 40),
@@ -536,6 +648,108 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Compact result tile (dropdown style)
+// ---------------------------------------------------------------------------
+
+class _CompactResultTile extends StatelessWidget {
+  final SearchResult result;
+  final bool selected;
+  final VoidCallback onTap;
+  const _CompactResultTile({required this.result, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Row(
+          children: [
+            // Checkbox
+            Container(
+              width: 18, height: 18,
+              decoration: BoxDecoration(
+                color: selected ? RpgColors.gold.withOpacity(0.2) : Colors.transparent,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: selected ? RpgColors.gold : RpgColors.border,
+                  width: selected ? 1.5 : 1,
+                ),
+              ),
+              child: selected
+                  ? const Icon(Icons.check, size: 12, color: RpgColors.gold)
+                  : null,
+            ),
+            const SizedBox(width: 8),
+
+            // Small cover
+            ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: result.coverUrl != null
+                  ? CachedNetworkImage(
+                      imageUrl: result.coverUrl!,
+                      width: 28, height: 40, fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => _nocover(),
+                    )
+                  : _nocover(),
+            ),
+            const SizedBox(width: 8),
+
+            // Title + meta
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(result.title,
+                    maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: selected ? RpgColors.goldLight : RpgColors.textPrimary,
+                      fontFamily: 'Crimson', fontSize: 13,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                    )),
+                  Row(children: [
+                    if (result.year != null)
+                      Text('${result.year}', style: const TextStyle(
+                        color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 11)),
+                    if (result.year != null && result.score != null)
+                      const Text('  ·  ', style: TextStyle(color: RpgColors.textMuted, fontSize: 11)),
+                    if (result.score != null)
+                      Text('★ ${result.score!.toStringAsFixed(1)}',
+                        style: const TextStyle(color: RpgColors.statusPlan, fontFamily: 'Crimson', fontSize: 11)),
+                  ]),
+                ],
+              ),
+            ),
+
+            // Source badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              decoration: BoxDecoration(
+                color: RpgColors.surface,
+                borderRadius: BorderRadius.circular(3),
+                border: Border.all(color: RpgColors.border),
+              ),
+              child: Text(result.source.toUpperCase(),
+                style: const TextStyle(color: RpgColors.textMuted, fontSize: 8, fontFamily: 'Cinzel')),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _nocover() => Container(
+    width: 28, height: 40, color: RpgColors.surface,
+    child: const Icon(Icons.image_outlined, color: RpgColors.border, size: 12),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Supporting widgets (unchanged)
+// ---------------------------------------------------------------------------
 
 class _Label extends StatelessWidget {
   final String text;
@@ -714,86 +928,4 @@ class _RewatchCounter extends StatelessWidget {
       ]),
     );
   }
-}
-
-
-class _SearchResultTile extends StatelessWidget {
-  final SearchResult result;
-  final bool selected;
-  final VoidCallback onTap;
-  const _SearchResultTile({required this.result, required this.selected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 6),
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: selected ? RpgColors.gold.withOpacity(0.1) : RpgColors.surface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: selected ? RpgColors.gold : RpgColors.border,
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: result.coverUrl != null
-                  ? CachedNetworkImage(
-                      imageUrl: result.coverUrl!,
-                      width: 38, height: 54, fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) => _nocover(),
-                    )
-                  : _nocover(),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(result.title, style: const TextStyle(
-                  color: RpgColors.textPrimary, fontFamily: 'Crimson',
-                  fontSize: 14, fontWeight: FontWeight.w600)),
-                if (result.titleOriginal != null)
-                  Text(result.titleOriginal!, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 11)),
-                Row(children: [
-                  if (result.year != null)
-                    Text('${result.year}  ', style: const TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 12)),
-                  if (result.score != null)
-                    Text('★ ${result.score!.toStringAsFixed(1)}',
-                      style: const TextStyle(color: RpgColors.statusPlan, fontFamily: 'Crimson', fontSize: 12)),
-                ]),
-                if (result.emissionStatus != null && result.emissionStatus!.isNotEmpty)
-                  Container(
-                    margin: const EdgeInsets.only(top: 3),
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: emissionColor(result.emissionStatus).withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                    child: Text(emissionLabel(result.emissionStatus), style: TextStyle(
-                      color: emissionColor(result.emissionStatus), fontSize: 10, fontFamily: 'Crimson')),
-                  ),
-              ]),
-            ),
-            const SizedBox(width: 6),
-            Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Text(result.source.toUpperCase(),
-                style: const TextStyle(color: RpgColors.textMuted, fontSize: 9, fontFamily: 'Cinzel')),
-              if (result.country != null)
-                Text(result.country!, style: const TextStyle(color: RpgColors.textMuted, fontSize: 9)),
-            ]),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _nocover() => Container(
-    width: 38, height: 54, color: RpgColors.charcoal,
-    child: const Icon(Icons.image_outlined, color: RpgColors.border, size: 16),
-  );
 }
