@@ -298,6 +298,16 @@ class ApiService {
     return _handleResponse(r, retry: () => http.get(uri, headers: _headers));
   }
 
+  static Future<UserEntry> getRandomPick({String? mediaType, String? genre}) async {
+    final params = <String, String>{
+      if (mediaType != null) 'media_type': mediaType,
+      if (genre != null) 'genre': genre,
+    };
+    final uri = Uri.parse('$_baseUrl/entries/random-pick').replace(queryParameters: params.isEmpty ? null : params);
+    final r = await http.get(uri, headers: _headers);
+    return UserEntry.fromJson(await _handleResponse(r, retry: () => http.get(uri, headers: _headers)));
+  }
+
   static Future<Map<String, dynamic>> exportData() async {
     final uri = Uri.parse('$_baseUrl/entries/export');
     final r = await http.get(uri, headers: _headers);

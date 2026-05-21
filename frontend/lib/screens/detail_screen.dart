@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../main.dart' show EntryChangeNotifier;
 import '../theme/rpg_theme.dart';
 import '../models/user_entry.dart';
@@ -275,6 +276,30 @@ class _DetailScreenState extends State<DetailScreen> {
     );
   }
 
+  Future<void> _openExternal(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  String? _tmdbUrl() {
+    final id = _entry.media?.tmdbId;
+    if (id == null) return null;
+    final type = _entry.media?.type ?? '';
+    return type == 'MOVIE'
+        ? 'https://www.themoviedb.org/movie/$id'
+        : 'https://www.themoviedb.org/tv/$id';
+  }
+
+  String? _anilistUrl() {
+    final id = _entry.media?.anilistId;
+    if (id == null) return null;
+    final type = _entry.media?.type ?? '';
+    final section = (type == 'ANIME') ? 'anime' : 'manga';
+    return 'https://anilist.co/$section/$id';
+  }
+
   List<Widget> _buildDetailActions() {
     if (_editing) {
       return [
@@ -284,7 +309,21 @@ class _DetailScreenState extends State<DetailScreen> {
         ),
       ];
     }
+    final tmdb = _tmdbUrl();
+    final anilist = _anilistUrl();
     return [
+      if (tmdb != null)
+        IconButton(
+          icon: const Icon(Icons.movie_outlined, color: RpgColors.textSecondary),
+          onPressed: () => _openExternal(tmdb),
+          tooltip: 'Ver en TMDB',
+        ),
+      if (anilist != null)
+        IconButton(
+          icon: const Icon(Icons.open_in_new_rounded, color: RpgColors.textSecondary),
+          onPressed: () => _openExternal(anilist),
+          tooltip: 'Ver en AniList',
+        ),
       IconButton(
         icon: const Icon(Icons.share_outlined, color: RpgColors.gold),
         onPressed: _share,

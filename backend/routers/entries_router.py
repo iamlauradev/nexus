@@ -1,5 +1,6 @@
 import re
-from datetime import datetime, timezone
+from collections import defaultdict
+from datetime import datetime, timezone, date as dt_date
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import Optional, List
 from models import EntryCreate, EntryUpdate, EntryOut, MediaOut, TrackingStatus, MediaType
@@ -7,6 +8,20 @@ from database import get_conn, fetchone, fetchall
 from routers.auth_router import get_current_user
 
 router = APIRouter(prefix="/entries", tags=["entries"])
+
+_GENRE_ES: dict = {
+    "action": "Acción", "adventure": "Aventura", "animation": "Animación",
+    "comedy": "Comedia", "crime": "Crimen", "documentary": "Documental",
+    "drama": "Drama", "family": "Familia", "fantasy": "Fantasía",
+    "history": "Historia", "horror": "Terror", "music": "Música",
+    "mystery": "Misterio", "romance": "Romance", "science fiction": "Ciencia ficción",
+    "sci-fi": "Ciencia ficción", "thriller": "Suspense", "war": "Guerra",
+    "western": "Western", "supernatural": "Sobrenatural", "sports": "Deportes",
+    "psychological": "Psicológico",
+}
+
+def _normalize_genre(g: str) -> str:
+    return _GENRE_ES.get(g.strip().lower(), g.strip())
 
 
 def _build_entry_out(row: dict) -> EntryOut:
@@ -61,6 +76,18 @@ def _parse_duration_minutes(duration: str) -> float:
 
 @router.post("/", response_model=EntryOut)
 def create_entry(data: EntryCreate, current_user = Depends(get_current_user)):
+    # Auto-fill dates based on status
+    started_at = data.started_at
+    completed_at = data.completed_at
+    today = dt_date.today()
+    if data.status == "watching" and started_at is None:
+        started_at = today
+    elif data.status == "completed":
+        if started_at is None:
+            started_at = today
+        if completed_at is None:
+            completed_at = today
+
     with get_conn() as conn:
         cur = conn.cursor()
         cur.execute("""
@@ -79,7 +106,7 @@ def create_entry(data: EntryCreate, current_user = Depends(get_current_user)):
         """, (
             current_user["id"], data.media_id, data.status, data.progress,
             data.score, data.rating_label, data.notes, data.platform,
-            data.started_at, data.completed_at, data.ep_current, data.ep_total,
+            started_at, completed_at, data.ep_current, data.ep_total,
             data.rewatch_count or 0, data.emission_day,
         ))
         row = dict(cur.fetchone())
@@ -134,12 +161,58 @@ def get_stats(current_user = Depends(get_current_user)):
         by_rating = {r["rating_label"]: r["n"] for r in cur.fetchall()}
 
         cur.execute("""
-            SELECT unnest(m.genres) AS genre, COUNT(*) AS count
+            SELECT m.type, unnest(m.genres) AS genre, COUNT(*) AS count
             FROM user_entries ue JOIN media m ON m.id = ue.media_id
-            WHERE ue.user_id = %s AND m.genres IS NOT NULL
-            GROUP BY genre ORDER BY count DESC LIMIT 10
+            WHERE ue.user_id = %s AND m.genres IS NOT NULL AND array_length(m.genres, 1) > 0
+            GROUP BY m.type, genre ORDER BY count DESC
         """, (uid,))
-        top_genres = [{"genre": r["genre"], "count": r["count"]} for r in cur.fetchall()]
+        raw_genres: dict = defaultdict(int)
+        _COMICS = {"MANGA", "MANHWA", "MANHUA", "WEBTOON"}
+        _CAT_LABEL = {"MOVIE": "Películas", "SERIES": "Series", "DORAMA": "Doramas", "ANIME": "Anime"}
+        cats_raw: dict = defaultdict(lambda: defaultdict(int))
+        for r in cur.fetchall():
+            norm = _normalize_genre(r["genre"])
+            raw_genres[norm] += r["count"]
+            cat = "Cómics" if r["type"] in _COMICS else _CAT_LABEL.get(r["type"], r["type"])
+            cats_raw[cat][norm] += r["count"]
+        top_genres = sorted(
+            [{"genre": k, "count": v} for k, v in raw_genres.items()],
+            key=lambda x: -x["count"]
+        )[:15]
+        top_genres_by_category = {
+            cat: sorted([{"genre": g, "count": c} for g, c in genres.items()], key=lambda x: -x["count"])[:5]
+            for cat, genres in cats_raw.items()
+        }
+
+        cur.execute("""
+            SELECT eh.changed_at, eh.old_value, eh.new_value, m.title, m.type, m.cover_url
+            FROM entry_history eh
+            JOIN user_entries ue ON ue.id = eh.entry_id
+            JOIN media m ON m.id = ue.media_id
+            WHERE eh.user_id = %s AND eh.field_name = 'status'
+            ORDER BY eh.changed_at DESC LIMIT 15
+        """, (uid,))
+        recent_activity = [
+            {
+                "title": r["title"], "type": r["type"], "cover_url": r["cover_url"],
+                "from": r["old_value"], "to": r["new_value"],
+                "when": r["changed_at"].isoformat(),
+            }
+            for r in cur.fetchall()
+        ]
+
+        cur.execute("""
+            SELECT COUNT(*) AS n FROM user_entries ue JOIN media m ON m.id = ue.media_id
+            WHERE ue.user_id = %s AND (m.genres IS NULL OR m.genres = '{}')
+        """, (uid,))
+        no_genre_count = cur.fetchone()["n"]
+
+        cur.execute("""
+            SELECT COUNT(*) AS n FROM user_entries ue
+            WHERE ue.user_id = %s AND ue.status = 'completed'
+              AND date_part('year', ue.completed_at) = date_part('year', CURRENT_DATE)
+        """, (uid,))
+        completed_this_year = cur.fetchone()["n"]
 
         cur.execute("""
             SELECT to_char(date_trunc('month', created_at), 'YYYY-MM') AS month, COUNT(*) AS count
@@ -159,7 +232,7 @@ def get_stats(current_user = Depends(get_current_user)):
         cur.execute("""
             SELECT m.type, m.duration, ue.ep_current, ue.status
             FROM user_entries ue JOIN media m ON m.id = ue.media_id
-            WHERE ue.user_id = %s AND ue.status != 'plan_to_watch' AND m.duration IS NOT NULL
+            WHERE ue.user_id = %s AND ue.status != 'plan_to_watch'
         """, (uid,))
         watched_rows = cur.fetchall()
 
@@ -199,15 +272,19 @@ def get_stats(current_user = Depends(get_current_user)):
 
     total_minutes = 0.0
     for r in watched_rows:
-        dur = _parse_duration_minutes(r["duration"])
-        if not dur:
-            continue
         mtype = r["type"] or ""
+        dur = _parse_duration_minutes(r["duration"]) if r["duration"] else None
         if mtype == "MOVIE":
-            total_minutes += dur
+            if dur:
+                total_minutes += dur
         elif mtype in ("SERIES", "ANIME", "DORAMA"):
-            ep = r["ep_current"] or (1 if r["status"] == "completed" else 0)
-            total_minutes += dur * ep
+            if dur:
+                ep = r["ep_current"] or (1 if r["status"] == "completed" else 0)
+                total_minutes += dur * ep
+        elif mtype in ("MANGA", "MANHWA", "MANHUA", "WEBTOON"):
+            ep = r["ep_current"] or 0
+            chapter_min = dur if dur else 5
+            total_minutes += chapter_min * ep
     time_spent_hours = round(total_minutes / 60.0, 2)
     time_spent_minutes = int(total_minutes)
 
@@ -220,6 +297,9 @@ def get_stats(current_user = Depends(get_current_user)):
         "watching": by_status.get("watching", 0),
         "plan": by_status.get("plan_to_watch", 0),
         "top_genres": top_genres,
+        "top_genres_by_category": top_genres_by_category,
+        "no_genre_count": no_genre_count,
+        "recent_activity": recent_activity,
         "monthly_added": monthly_added,
         "score_distribution": score_distribution,
         "time_spent_hours": time_spent_hours,
@@ -228,7 +308,33 @@ def get_stats(current_user = Depends(get_current_user)):
         "avg_score_by_type": avg_score_by_type,
         "top_rewatched": top_rewatched,
         "decade_distribution": decade_distribution,
+        "completed_this_year": completed_this_year,
     }
+
+
+@router.get("/random-pick", response_model=EntryOut)
+def random_pick(
+    media_type: Optional[MediaType] = None,
+    genre: Optional[str] = None,
+    current_user = Depends(get_current_user),
+):
+    uid = current_user["id"]
+    conditions = ["ue.user_id = %s", "ue.status = 'plan_to_watch'"]
+    params: list = [uid]
+    if media_type:
+        conditions.append("m.type = %s")
+        params.append(media_type)
+    if genre:
+        conditions.append("%s = ANY(m.genres)")
+        params.append(genre)
+    where = " AND ".join(conditions)
+    row = fetchone(f"""
+        SELECT ue.* FROM user_entries ue JOIN media m ON m.id = ue.media_id
+        WHERE {where} ORDER BY RANDOM() LIMIT 1
+    """, params)
+    if not row:
+        raise HTTPException(404, "No hay entradas pendientes")
+    return _build_entry_out(dict(row))
 
 
 @router.get("/", response_model=List[EntryOut])
@@ -310,6 +416,19 @@ def update_entry(entry_id: int, data: EntryUpdate, current_user = Depends(get_cu
     fields = data.model_dump(exclude_unset=True)
     if not fields:
         return _build_entry_out(existing_dict)
+
+    # Auto-fill dates on status change
+    if "status" in fields:
+        today = dt_date.today()
+        new_status = fields["status"]
+        if new_status == "watching":
+            if "started_at" not in fields and not existing_dict.get("started_at"):
+                fields["started_at"] = today
+        elif new_status == "completed":
+            if "started_at" not in fields and not existing_dict.get("started_at"):
+                fields["started_at"] = today
+            if "completed_at" not in fields and not existing_dict.get("completed_at"):
+                fields["completed_at"] = today
 
     set_clause = ", ".join(f"{k} = %s" for k in fields)
     with get_conn() as conn:

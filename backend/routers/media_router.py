@@ -90,9 +90,18 @@ def _mangadex_get(path: str, params: dict = None) -> dict:
         return {}
 
 
-def _tmdb_genres_map() -> dict:
-    """Returns {id: name} for TV and movie genres (cached in module scope on first call)."""
-    return _tmdb_genres_map._cache if hasattr(_tmdb_genres_map, "_cache") else {}
+_TMDB_GENRES: dict = {}
+
+def _ensure_tmdb_genres() -> dict:
+    global _TMDB_GENRES
+    if _TMDB_GENRES:
+        return _TMDB_GENRES
+    result: dict = {}
+    for endpoint in ("/genre/tv/list", "/genre/movie/list"):
+        for g in _tmdb_get(endpoint).get("genres", []):
+            result[g["id"]] = g["name"]
+    _TMDB_GENRES = result
+    return result
 
 
 def _strip_html(text: str) -> str:
@@ -108,8 +117,10 @@ def _strip_html(text: str) -> str:
 
 def _search_tmdb_movies(query: str) -> List[SearchResult]:
     data = _tmdb_get("/search/movie", {"query": query, "include_adult": False})
+    gmap = _ensure_tmdb_genres()
     results = []
     for m in data.get("results", [])[:8]:
+        genre_names = [gmap[gid] for gid in m.get("genre_ids", []) if gid in gmap]
         results.append(SearchResult(
             source="tmdb",
             external_id=str(m["id"]),
@@ -117,7 +128,7 @@ def _search_tmdb_movies(query: str) -> List[SearchResult]:
             title_original=m.get("original_title"),
             year=int(m["release_date"][:4]) if m.get("release_date") else None,
             cover_url=f"{TMDB_IMG}{m['poster_path']}" if m.get("poster_path") else None,
-            genres=None,
+            genres=genre_names or None,
             synopsis=m.get("overview") or None,
             score=round(m["vote_average"], 1) if m.get("vote_average") else None,
             type=MediaType.MOVIE,
@@ -137,6 +148,8 @@ def _build_tmdb_tv_result(m: dict, forced_type: Optional[MediaType] = None) -> S
     else:
         t = MediaType.DORAMA if any(c in DORAMA_COUNTRIES for c in origin) else MediaType.SERIES
 
+    gmap = _ensure_tmdb_genres()
+    genre_names = [gmap[gid] for gid in m.get("genre_ids", []) if gid in gmap]
     return SearchResult(
         source="tmdb",
         external_id=str(m["id"]),
@@ -144,7 +157,7 @@ def _build_tmdb_tv_result(m: dict, forced_type: Optional[MediaType] = None) -> S
         title_original=m.get("original_name"),
         year=int(m["first_air_date"][:4]) if m.get("first_air_date") else None,
         cover_url=f"{TMDB_IMG}{m['poster_path']}" if m.get("poster_path") else None,
-        genres=None,
+        genres=genre_names or None,
         synopsis=m.get("overview") or None,
         score=round(m["vote_average"], 1) if m.get("vote_average") else None,
         type=t,
@@ -592,7 +605,52 @@ def create_media(data: MediaCreate, _user = Depends(get_current_user)):
         if not row:
             cur.execute("SELECT * FROM media WHERE title=%s AND type=%s", (data.title, data.type))
             row = cur.fetchone()
+            # Update genres if the existing record had none
+            if row and not row["genres"] and data.genres:
+                cur.execute(
+                    "UPDATE media SET genres=%s, updated_at=NOW() WHERE id=%s RETURNING *",
+                    (data.genres, row["id"])
+                )
+                row = cur.fetchone()
     return MediaOut(**dict(row))
+
+
+@router.post("/admin/backfill-genres")
+def backfill_genres(_user = Depends(get_current_user)):
+    """Fetches genres from TMDB for existing media records that are missing them."""
+    gmap = _ensure_tmdb_genres()
+    if not gmap:
+        return {"updated": 0, "error": "TMDB unavailable"}
+
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT id, tmdb_id, type FROM media
+            WHERE tmdb_id IS NOT NULL AND (genres IS NULL OR genres = '{}')
+        """)
+        rows = cur.fetchall()
+
+    updated = 0
+    for row in rows:
+        tmdb_id = row["tmdb_id"]
+        mtype = row["type"]
+        endpoint = f"/movie/{tmdb_id}" if mtype == "MOVIE" else f"/tv/{tmdb_id}"
+        detail = _tmdb_get(endpoint)
+        raw_genres = detail.get("genres", [])
+        if not raw_genres:
+            continue
+        genre_names = [g["name"] for g in raw_genres if g.get("name")]
+        if not genre_names:
+            continue
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE media SET genres=%s, updated_at=NOW() WHERE id=%s",
+                (genre_names, row["id"])
+            )
+        updated += 1
+
+    return {"updated": updated, "total_checked": len(rows)}
 
 
 @router.get("/", response_model=List[MediaOut])
