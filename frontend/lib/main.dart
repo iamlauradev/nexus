@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'theme/rpg_theme.dart';
 import 'services/auth_provider.dart';
 import 'services/theme_provider.dart';
+import 'utils/responsive.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/media_list_screen.dart';
@@ -13,7 +14,6 @@ import 'screens/search_screen.dart';
 import 'screens/import_export_screen.dart';
 import 'screens/profile_screen.dart';
 
-// Notifier that catalog and stats screens listen to for auto-refresh
 class EntryChangeNotifier extends ChangeNotifier {
   void entryAdded() => notifyListeners();
 }
@@ -21,7 +21,6 @@ class EntryChangeNotifier extends ChangeNotifier {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Show real errors instead of silent gray screens in release builds
   ErrorWidget.builder = (FlutterErrorDetails details) {
     return Material(
       color: const Color(0xFF7F1D1D),
@@ -73,19 +72,19 @@ class NexusApp extends StatelessWidget {
                         colors: [Color(0xFF0F1629), Color(0xFF0A0E1A)],
                       ),
                     ),
-                    child: Center(
+                    child: const Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.play_circle_outline, color: Color(0xFF8B5CF6), size: 72),
-                          const SizedBox(height: 16),
-                          const Text('NEXUS', style: TextStyle(
+                          Icon(Icons.play_circle_outline, color: Color(0xFF8B5CF6), size: 72),
+                          SizedBox(height: 16),
+                          Text('NEXUS', style: TextStyle(
                             fontFamily: 'Cinzel', fontSize: 32, color: Colors.white, letterSpacing: 4)),
-                          const SizedBox(height: 8),
-                          const Text('NEXUS', style: TextStyle(
+                          SizedBox(height: 8),
+                          Text('Tu catálogo multimedia', style: TextStyle(
                             color: Color(0xFF94A3B8), fontFamily: 'Crimson', fontSize: 16)),
-                          const SizedBox(height: 40),
-                          const CircularProgressIndicator(color: Color(0xFF8B5CF6), strokeWidth: 2),
+                          SizedBox(height: 40),
+                          CircularProgressIndicator(color: Color(0xFF8B5CF6), strokeWidth: 2),
                         ],
                       ),
                     ),
@@ -102,7 +101,6 @@ class NexusApp extends StatelessWidget {
   }
 }
 
-// Definición de secciones del catálogo
 class _Section {
   final String label;
   final List<String> types;
@@ -131,7 +129,6 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _idx = 0;
 
-  // idx 0 = Home, idx 1-5 = catalog sections, idx 6 = Stats
   late final List<Widget> _pages = [
     const HomeScreen(),
     ..._catalogSections.map((s) => MediaListScreen(types: s.types, sectionLabel: s.label)),
@@ -145,8 +142,11 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = context.isDesktop;
+
     return Scaffold(
       appBar: AppBar(
+        centerTitle: !isDesktop,
         title: const Text('NEXUS'),
         actions: [
           Consumer<ThemeProvider>(
@@ -187,7 +187,15 @@ class _MainShellState extends State<MainShell> {
           ),
         ],
       ),
-      body: IndexedStack(index: _idx, children: _pages),
+      body: isDesktop
+          ? Row(
+              children: [
+                _buildNavRail(),
+                const VerticalDivider(thickness: 1, width: 1),
+                Expanded(child: IndexedStack(index: _idx, children: _pages)),
+              ],
+            )
+          : IndexedStack(index: _idx, children: _pages),
       floatingActionButton: _isCatalog
           ? FloatingActionButton(
               onPressed: () async {
@@ -209,7 +217,7 @@ class _MainShellState extends State<MainShell> {
               child: const Icon(Icons.add, color: RpgColors.goldLight),
             )
           : null,
-      bottomNavigationBar: Container(
+      bottomNavigationBar: isDesktop ? null : Container(
         decoration: const BoxDecoration(
           border: Border(top: BorderSide(color: RpgColors.border, width: 1)),
         ),
@@ -238,6 +246,39 @@ class _MainShellState extends State<MainShell> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildNavRail() {
+    return NavigationRail(
+      backgroundColor: RpgColors.darkVoid,
+      selectedIndex: _idx,
+      onDestinationSelected: (i) => setState(() => _idx = i),
+      labelType: NavigationRailLabelType.all,
+      minWidth: 90,
+      selectedIconTheme: const IconThemeData(color: RpgColors.accent, size: 22),
+      unselectedIconTheme: const IconThemeData(color: RpgColors.textMuted, size: 22),
+      selectedLabelTextStyle: const TextStyle(
+        color: RpgColors.accent, fontFamily: 'Crimson', fontSize: 11, fontWeight: FontWeight.w600),
+      unselectedLabelTextStyle: const TextStyle(
+        color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 11),
+      destinations: [
+        const NavigationRailDestination(
+          icon: Icon(Icons.home_outlined),
+          selectedIcon: Icon(Icons.home),
+          label: Text('Inicio'),
+        ),
+        ..._catalogSections.map((s) => NavigationRailDestination(
+          icon: Icon(s.icon),
+          selectedIcon: Icon(s.iconActive),
+          label: Text(s.label),
+        )),
+        const NavigationRailDestination(
+          icon: Icon(Icons.bar_chart_outlined),
+          selectedIcon: Icon(Icons.bar_chart),
+          label: Text('Stats'),
+        ),
+      ],
     );
   }
 }

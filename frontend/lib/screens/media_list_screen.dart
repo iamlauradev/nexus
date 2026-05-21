@@ -5,6 +5,7 @@ import '../main.dart' show EntryChangeNotifier;
 import '../theme/rpg_theme.dart';
 import '../models/user_entry.dart';
 import '../services/api_service.dart';
+import '../utils/responsive.dart';
 import '../widgets/ornamental_border.dart';
 import '../widgets/media_card.dart';
 import 'detail_screen.dart';
@@ -71,7 +72,6 @@ class _MediaListScreenState extends State<MediaListScreen> {
     }
   }
 
-  // Keep legacy _load alias for RefreshIndicator
   Future<void> _load() => _loadEntries();
 
   List<UserEntry> _applySorting(List<UserEntry> entries) {
@@ -120,7 +120,6 @@ class _MediaListScreenState extends State<MediaListScreen> {
   Future<List<UserEntry>> _fetchEntries() async {
     final String? status = _status != 'all' ? _status : null;
     final String? rating = _rating != 'all' ? _rating : null;
-    // Only pass server-side q if search query > 2 chars
     final String? q = _searchQuery.length > 2 ? _searchQuery : null;
 
     if (widget.types.length == 1) {
@@ -133,7 +132,6 @@ class _MediaListScreenState extends State<MediaListScreen> {
       );
     }
 
-    // Sección multi-tipo (Cómics): carga en paralelo y fusiona
     final futures = widget.types.map((t) => ApiService.getEntries(
       mediaType: t,
       status: status,
@@ -142,11 +140,9 @@ class _MediaListScreenState extends State<MediaListScreen> {
       limit: _currentLimit,
     ));
     final results = await Future.wait(futures);
-    final all = results.expand((e) => e).toList();
-    return all;
+    return results.expand((e) => e).toList();
   }
 
-  // Filter entries locally by search query
   List<UserEntry> get _filteredEntries {
     if (_searchQuery.isEmpty) return _entries;
     return _entries.where((e) =>
@@ -176,7 +172,7 @@ class _MediaListScreenState extends State<MediaListScreen> {
     final displayed = _filteredEntries;
     return Column(
       children: [
-        _buildFilters(),
+        _buildFilters(context),
         Expanded(
           child: _loading
               ? const Center(child: CircularProgressIndicator(color: RpgColors.gold))
@@ -195,98 +191,124 @@ class _MediaListScreenState extends State<MediaListScreen> {
     );
   }
 
-  Widget _buildFilters() {
+  Widget _buildFilters(BuildContext context) {
+    final isDesktop = context.isDesktop;
+    final statusItems = const {
+      'all':           'Estado',
+      'watching':      'Viendo',
+      'completed':     'Completado',
+      'plan_to_watch': 'Pendiente',
+      'on_hold':       'En espera',
+      'dropped':       'Abandonado',
+    };
+    final sortItems = const {
+      'updated':   'Recientes',
+      'title':     'A-Z',
+      'score':     'Puntuación',
+      'year':      'Año',
+      'started':   'Fecha inicio',
+      'completed': 'Fecha fin',
+    };
+
+    final searchField = TextField(
+      controller: _searchCtrl,
+      decoration: InputDecoration(
+        hintText: 'Buscar en ${widget.sectionLabel}...',
+        prefixIcon: const Icon(Icons.search, color: RpgColors.textMuted, size: 18),
+        suffixIcon: _searchCtrl.text.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear, size: 16),
+                onPressed: () {
+                  _searchCtrl.clear();
+                  setState(() => _searchQuery = '');
+                },
+              )
+            : null,
+        filled: true,
+        fillColor: RpgColors.charcoal,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: RpgColors.border),
+        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      ),
+      style: const TextStyle(color: RpgColors.textPrimary, fontSize: 14),
+      onChanged: _onSearchChanged,
+    );
+
+    final viewToggle = GestureDetector(
+      onTap: () => setState(() => _view = _view == 'grid' ? 'list' : 'grid'),
+      child: Container(
+        width: isDesktop ? 38 : 32,
+        height: isDesktop ? 38 : 32,
+        decoration: BoxDecoration(
+          color: RpgColors.charcoal,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: RpgColors.border),
+        ),
+        child: Icon(
+          _view == 'grid' ? Icons.view_list : Icons.grid_view,
+          color: RpgColors.gold,
+          size: isDesktop ? 20 : 18,
+        ),
+      ),
+    );
+
+    if (isDesktop) {
+      return Container(
+        color: RpgColors.darkVoid,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          children: [
+            Expanded(flex: 3, child: searchField),
+            const SizedBox(width: 10),
+            viewToggle,
+            const SizedBox(width: 10),
+            SizedBox(width: 140, child: _DropFilter(
+              value: _status, items: statusItems,
+              onChanged: (v) { setState(() => _status = v); _loadEntries(); },
+            )),
+            const SizedBox(width: 10),
+            SizedBox(width: 140, child: _DropFilter(
+              value: _rating, items: _ratingFilterItems,
+              onChanged: (v) { setState(() => _rating = v); _loadEntries(); },
+            )),
+            const SizedBox(width: 10),
+            SizedBox(width: 140, child: _DropFilter(
+              value: _sort, items: sortItems,
+              onChanged: (v) { setState(() { _sort = v; _entries = _applySorting(_entries); }); },
+            )),
+          ],
+        ),
+      );
+    }
+
+    // Mobile layout
     return Container(
       color: RpgColors.darkVoid,
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
       child: Column(
         children: [
-          // Inline search field
-          TextField(
-            controller: _searchCtrl,
-            decoration: InputDecoration(
-              hintText: 'Buscar en ${widget.sectionLabel}...',
-              prefixIcon: const Icon(Icons.search, color: RpgColors.textMuted, size: 18),
-              suffixIcon: _searchCtrl.text.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear, size: 16),
-                      onPressed: () {
-                        _searchCtrl.clear();
-                        setState(() => _searchQuery = '');
-                      },
-                    )
-                  : null,
-              filled: true,
-              fillColor: RpgColors.charcoal,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: RpgColors.border),
-              ),
-              contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-            ),
-            style: const TextStyle(color: RpgColors.textPrimary, fontSize: 14),
-            onChanged: _onSearchChanged,
-          ),
+          searchField,
           const SizedBox(height: 6),
           Row(
             children: [
-              // Toggle vista grid/lista
-              GestureDetector(
-                onTap: () => setState(() => _view = _view == 'grid' ? 'list' : 'grid'),
-                child: Container(
-                  width: 32, height: 32,
-                  decoration: BoxDecoration(
-                    color: RpgColors.charcoal,
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: RpgColors.border),
-                  ),
-                  child: Icon(
-                    _view == 'grid' ? Icons.view_list : Icons.grid_view,
-                    color: RpgColors.gold, size: 18,
-                  ),
-                ),
-              ),
+              viewToggle,
               const SizedBox(width: 6),
-              // Filtro de estado
-              Expanded(
-                child: _DropFilter(
-                  value: _status,
-                  items: const {
-                    'all':           'Estado',
-                    'watching':      'Viendo',
-                    'completed':     'Completado',
-                    'plan_to_watch': 'Pendiente',
-                    'on_hold':       'En espera',
-                    'dropped':       'Abandonado',
-                  },
-                  onChanged: (v) { setState(() => _status = v); _loadEntries(); },
-                ),
-              ),
+              Expanded(child: _DropFilter(
+                value: _status, items: statusItems,
+                onChanged: (v) { setState(() => _status = v); _loadEntries(); },
+              )),
               const SizedBox(width: 6),
-              // Filtro de valoración
-              Expanded(
-                child: _DropFilter(
-                  value: _rating,
-                  items: _ratingFilterItems,
-                  onChanged: (v) { setState(() => _rating = v); _loadEntries(); },
-                ),
-              ),
+              Expanded(child: _DropFilter(
+                value: _rating, items: _ratingFilterItems,
+                onChanged: (v) { setState(() => _rating = v); _loadEntries(); },
+              )),
               const SizedBox(width: 6),
-              // Sort dropdown
-              Expanded(
-                child: _DropFilter(
-                  value: _sort,
-                  items: const {
-                    'updated':   'Recientes',
-                    'title':     'A-Z',
-                    'score':     'Puntuación',
-                    'year':      'Año',
-                    'started':   'Fecha inicio',
-                    'completed': 'Fecha fin',
-                  },
-                  onChanged: (v) { setState(() { _sort = v; _entries = _applySorting(_entries); }); },
-                ),
-              ),
+              Expanded(child: _DropFilter(
+                value: _sort, items: sortItems,
+                onChanged: (v) { setState(() { _sort = v; _entries = _applySorting(_entries); }); },
+              )),
             ],
           ),
         ],
@@ -295,22 +317,23 @@ class _MediaListScreenState extends State<MediaListScreen> {
   }
 
   Widget _buildGrid(List<UserEntry> entries) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(12),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        childAspectRatio: 0.52,
-      ),
-      itemCount: entries.length + (_entries.length >= _currentLimit ? 1 : 0),
-      itemBuilder: (context, i) {
-        if (i == entries.length) {
-          return _buildLoadMoreButton();
-        }
-        return MediaCard(
-          entry: entries[i],
-          onTap: () => _openDetail(entries[i]),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final w = constraints.maxWidth;
+        final cols = w < 480 ? 3 : w < 720 ? 4 : w < 1000 ? 5 : 6;
+        return GridView.builder(
+          padding: const EdgeInsets.all(12),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: cols,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 0.52,
+          ),
+          itemCount: entries.length + (_entries.length >= _currentLimit ? 1 : 0),
+          itemBuilder: (context, i) {
+            if (i == entries.length) return _buildLoadMoreButton();
+            return MediaCard(entry: entries[i], onTap: () => _openDetail(entries[i]));
+          },
         );
       },
     );
@@ -321,13 +344,8 @@ class _MediaListScreenState extends State<MediaListScreen> {
       padding: const EdgeInsets.all(12),
       itemCount: entries.length + (_entries.length >= _currentLimit ? 1 : 0),
       itemBuilder: (context, i) {
-        if (i == entries.length) {
-          return _buildLoadMoreButton();
-        }
-        return MediaListTile(
-          entry: entries[i],
-          onTap: () => _openDetail(entries[i]),
-        );
+        if (i == entries.length) return _buildLoadMoreButton();
+        return MediaListTile(entry: entries[i], onTap: () => _openDetail(entries[i]));
       },
     );
   }
@@ -341,8 +359,7 @@ class _MediaListScreenState extends State<MediaListScreen> {
             setState(() => _currentLimit += 50);
             await _loadEntries();
           },
-          child: const Text('Cargar más',
-              style: TextStyle(color: RpgColors.accent)),
+          child: const Text('Cargar más', style: TextStyle(color: RpgColors.accent)),
         ),
       ),
     );
@@ -398,22 +415,21 @@ class _DropFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Ensure value is valid
     final safeValue = items.containsKey(value) ? value : items.keys.first;
     return Container(
-      height: 32,
-      padding: const EdgeInsets.symmetric(horizontal: 6),
+      height: 36,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
         color: RpgColors.charcoal,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: RpgColors.border),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: safeValue,
           dropdownColor: RpgColors.surface,
-          style: const TextStyle(color: RpgColors.textSecondary, fontSize: 11, fontFamily: 'Crimson'),
-          icon: const Icon(Icons.arrow_drop_down, color: RpgColors.textMuted, size: 14),
+          style: const TextStyle(color: RpgColors.textSecondary, fontSize: 12, fontFamily: 'Crimson'),
+          icon: const Icon(Icons.arrow_drop_down, color: RpgColors.textMuted, size: 16),
           isDense: true,
           isExpanded: true,
           items: items.entries.map((e) => DropdownMenuItem(

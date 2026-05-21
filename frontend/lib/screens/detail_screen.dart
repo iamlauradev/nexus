@@ -8,6 +8,7 @@ import '../main.dart' show EntryChangeNotifier;
 import '../theme/rpg_theme.dart';
 import '../models/user_entry.dart';
 import '../services/api_service.dart';
+import '../utils/responsive.dart';
 import '../widgets/ornamental_border.dart';
 import 'dart:io';
 import 'dart:typed_data';
@@ -258,9 +259,99 @@ class _DetailScreenState extends State<DetailScreen> {
     }
   }
 
+  Widget _buildSaveFab() {
+    return FloatingActionButton.extended(
+      onPressed: _saving ? null : _save,
+      backgroundColor: RpgColors.gold,
+      label: _saving
+          ? const SizedBox(width: 20, height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+          : const Text('Guardar', style: TextStyle(
+              fontFamily: 'Cinzel', color: RpgColors.obsidian, fontWeight: FontWeight.bold)),
+      icon: const Icon(Icons.save_outlined, color: RpgColors.obsidian),
+    );
+  }
+
+  List<Widget> _buildDetailActions() {
+    if (_editing) {
+      return [
+        IconButton(
+          icon: const Icon(Icons.close, color: RpgColors.textMuted),
+          onPressed: () { setState(() { _editing = false; _initFields(); }); },
+        ),
+      ];
+    }
+    return [
+      IconButton(
+        icon: const Icon(Icons.share_outlined, color: RpgColors.gold),
+        onPressed: _share,
+        tooltip: 'Compartir',
+      ),
+      IconButton(
+        icon: const Icon(Icons.edit_outlined, color: RpgColors.gold),
+        onPressed: () => setState(() => _editing = true),
+      ),
+      IconButton(
+        icon: const Icon(Icons.delete_outline, color: RpgColors.statusDropped),
+        onPressed: _delete,
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final media = _entry.media;
+    final isDesktop = context.isDesktop;
+
+    if (isDesktop) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: RpgColors.darkVoid,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: RpgColors.textPrimary),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            media?.title ?? '',
+            style: const TextStyle(fontFamily: 'Cinzel', fontSize: 15, color: RpgColors.textPrimary),
+            overflow: TextOverflow.ellipsis,
+          ),
+          actions: _buildDetailActions(),
+        ),
+        floatingActionButton: _editing ? _buildSaveFab() : null,
+        body: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Left panel: cover + tracking
+            Container(
+              width: 340,
+              color: RpgColors.charcoal,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildDesktopCoverPanel(media),
+                    const SizedBox(height: 20),
+                    if (_editing) _buildEditForm() else _buildTrackingSection(),
+                  ],
+                ),
+              ),
+            ),
+            const VerticalDivider(thickness: 1, width: 1, color: RpgColors.border),
+            // Right panel: media info + history
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: _buildInfoSection(media),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Mobile layout
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -273,18 +364,60 @@ class _DetailScreenState extends State<DetailScreen> {
           ),
         ],
       ),
-      floatingActionButton: _editing
-          ? FloatingActionButton.extended(
-              onPressed: _saving ? null : _save,
-              backgroundColor: RpgColors.gold,
-              label: _saving
-                  ? const SizedBox(width: 20, height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text('Guardar', style: TextStyle(
-                      fontFamily: 'Cinzel', color: RpgColors.obsidian, fontWeight: FontWeight.bold)),
-              icon: const Icon(Icons.save_outlined, color: RpgColors.obsidian),
-            )
-          : null,
+      floatingActionButton: _editing ? _buildSaveFab() : null,
+    );
+  }
+
+  Widget _buildDesktopCoverPanel(dynamic media) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: media?.coverUrl != null
+              ? CachedNetworkImage(
+                  imageUrl: media!.coverUrl!,
+                  width: double.infinity,
+                  height: 440,
+                  fit: BoxFit.cover,
+                )
+              : Container(
+                  height: 440,
+                  color: RpgColors.surface,
+                  child: const Center(
+                    child: Icon(Icons.image_outlined, color: RpgColors.border, size: 72)),
+                ),
+        ),
+        const SizedBox(height: 16),
+        if (media?.titleOriginal != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text(media!.titleOriginal!,
+              style: const TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 13)),
+          ),
+        Text(media?.title ?? '',
+          style: const TextStyle(
+            color: RpgColors.textPrimary, fontFamily: 'Cinzel', fontSize: 17,
+            fontWeight: FontWeight.bold, height: 1.25)),
+        const SizedBox(height: 8),
+        Row(children: [
+          _TypePill(media?.type),
+          const SizedBox(width: 8),
+          if (media?.year != null)
+            Text('${media!.year}', style: const TextStyle(
+              color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 14)),
+        ]),
+        const SizedBox(height: 6),
+        Row(children: [
+          EmissionBadge(status: media?.emissionStatus),
+          if (media?.externalScore != null) ...[
+            const SizedBox(width: 8),
+            const Icon(Icons.star_rounded, color: RpgColors.statusPlan, size: 14),
+            Text(' ${media!.externalScore!.toStringAsFixed(1)}',
+              style: const TextStyle(color: RpgColors.statusPlan, fontFamily: 'Crimson', fontSize: 13)),
+          ],
+        ]),
+      ],
     );
   }
 
@@ -414,6 +547,17 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 
   Widget _buildView(dynamic media) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildTrackingSection(),
+        const SizedBox(height: 20),
+        _buildInfoSection(media),
+      ],
+    );
+  }
+
+  Widget _buildTrackingSection() {
     final ratingColor = RatingConfigCache.colorFor(_ratingLabel);
     final ratingText  = RatingConfigCache.labelFor(_ratingLabel);
     final df = DateFormat('dd/MM/yyyy');
@@ -421,7 +565,6 @@ class _DetailScreenState extends State<DetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // My tracking section
         _SectionHeader('Mi seguimiento'),
         const SizedBox(height: 10),
         Row(children: [
@@ -459,7 +602,6 @@ class _DetailScreenState extends State<DetailScreen> {
             ]),
           ]),
         ),
-        // Dates
         if (_entry.startedAt != null || _entry.completedAt != null) ...[
           const SizedBox(height: 10),
           Row(children: [
@@ -481,7 +623,6 @@ class _DetailScreenState extends State<DetailScreen> {
               )),
           ]),
         ],
-        // Episode progress bar (interactive)
         if (_entry.media?.type != 'MOVIE' && (_entry.epCurrent != null || _entry.epTotal != null)) ...[
           const SizedBox(height: 10),
           _EpisodeProgressBar(
@@ -495,7 +636,6 @@ class _DetailScreenState extends State<DetailScreen> {
                 : null,
           ),
         ],
-        // Rewatch counter
         const SizedBox(height: 10),
         _RewatchTile(
           count: _entry.rewatchCount,
@@ -523,10 +663,15 @@ class _DetailScreenState extends State<DetailScreen> {
               fontSize: 14, height: 1.6, fontStyle: FontStyle.italic)),
           ),
         ],
+      ],
+    );
+  }
 
-        // Media info
+  Widget _buildInfoSection(dynamic media) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         if (media != null) ...[
-          const SizedBox(height: 20),
           _SectionHeader('Información'),
           const SizedBox(height: 10),
           Wrap(spacing: 8, runSpacing: 8, children: [
@@ -561,7 +706,7 @@ class _DetailScreenState extends State<DetailScreen> {
                 children: [
                   Text(
                     media.synopsis!,
-                    maxLines: _synopsisExpanded ? null : 4,
+                    maxLines: _synopsisExpanded ? null : 6,
                     overflow: _synopsisExpanded ? null : TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: RpgColors.textSecondary, fontFamily: 'Crimson',
@@ -583,8 +728,8 @@ class _DetailScreenState extends State<DetailScreen> {
             Text(media.castText!, style: const TextStyle(
               color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 13, height: 1.5)),
           ],
+          const SizedBox(height: 16),
         ],
-        const SizedBox(height: 16),
         _HistorySection(entryId: _entry.id),
         const SizedBox(height: 80),
       ],

@@ -51,7 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final results = await Future.wait<dynamic>([
         ApiService.getStats(),
-        ApiService.getEntries(status: 'watching', limit: 12),
+        ApiService.getEntries(status: 'watching', limit: 24),
       ]);
       if (mounted) setState(() {
         _stats   = results[0] as Map<String, dynamic>;
@@ -76,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
         slivers: [
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -93,22 +93,22 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          if (!_loading && _stats != null)
+          if (!_loading && _stats != null) ...[
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: _StatsRow(stats: _stats!),
               ),
             ),
-          const SliverToBoxAdapter(child: SizedBox(height: 16)),
-          if (!_loading && _stats != null)
+            const SliverToBoxAdapter(child: SizedBox(height: 12)),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: _TypeStats(byType: (_stats!['by_type'] as Map<String, dynamic>?) ?? {}),
               ),
             ),
-          const SliverToBoxAdapter(child: SizedBox(height: 16)),
+          ],
+          const SliverToBoxAdapter(child: SizedBox(height: 20)),
           if (_loading)
             const SliverFillRemaining(
               child: Center(child: CircularProgressIndicator(color: RpgColors.gold)),
@@ -116,7 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
           else ...[
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                 child: Row(children: [
                   Container(width: 3, height: 14, decoration: BoxDecoration(
                     color: RpgColors.statusWatching, borderRadius: BorderRadius.circular(2))),
@@ -139,18 +139,27 @@ class _HomeScreenState extends State<HomeScreen> {
             else
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverGrid(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, i) => MediaCard(
-                      entry: _recent[i],
-                      onTap: () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => DetailScreen(entry: _recent[i]))).then((_) => _load()),
-                    ),
-                    childCount: _recent.length,
-                  ),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3, crossAxisSpacing: 8, mainAxisSpacing: 8, childAspectRatio: 0.55,
-                  ),
+                sliver: SliverLayoutBuilder(
+                  builder: (context, constraints) {
+                    final w = constraints.crossAxisExtent;
+                    final cols = w < 480 ? 3 : w < 720 ? 4 : w < 1000 ? 5 : 6;
+                    return SliverGrid(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, i) => MediaCard(
+                          entry: _recent[i],
+                          onTap: () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => DetailScreen(entry: _recent[i]))).then((_) => _load()),
+                        ),
+                        childCount: _recent.length,
+                      ),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: cols,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        childAspectRatio: 0.55,
+                      ),
+                    );
+                  },
                 ),
               ),
             const SliverToBoxAdapter(child: SizedBox(height: 80)),
@@ -169,11 +178,11 @@ class _StatsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(children: [
       _StatBox(value: '${stats['total'] ?? 0}',     label: 'Total',     color: RpgColors.textPrimary),
-      const SizedBox(width: 8),
+      const SizedBox(width: 10),
       _StatBox(value: '${stats['watching'] ?? 0}',  label: 'Viendo',    color: RpgColors.statusWatching),
-      const SizedBox(width: 8),
+      const SizedBox(width: 10),
       _StatBox(value: '${stats['completed'] ?? 0}', label: 'Completos', color: RpgColors.statusComplete),
-      const SizedBox(width: 8),
+      const SizedBox(width: 10),
       _StatBox(value: '${stats['plan'] ?? 0}',      label: 'Pendiente', color: RpgColors.statusPlan),
     ]);
   }
@@ -189,16 +198,16 @@ class _StatBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           color: RpgColors.charcoal,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(color: RpgColors.border),
         ),
         child: Column(children: [
-          Text(value, style: TextStyle(fontFamily: 'Cinzel', fontSize: 20, color: color, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 2),
-          Text(label, style: const TextStyle(fontFamily: 'Crimson', fontSize: 11, color: RpgColors.textMuted)),
+          Text(value, style: TextStyle(fontFamily: 'Cinzel', fontSize: 22, color: color, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 3),
+          Text(label, style: const TextStyle(fontFamily: 'Crimson', fontSize: 12, color: RpgColors.textMuted)),
         ]),
       ),
     );
@@ -226,19 +235,19 @@ class _TypeStats extends StatelessWidget {
       children: sections.map((s) => Expanded(
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 3),
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
             color: RpgColors.charcoal,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(color: RpgColors.border),
           ),
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(s.icon, color: RpgColors.gold.withOpacity(0.7), size: 18),
-            const SizedBox(height: 4),
+            Icon(s.icon, color: RpgColors.gold.withOpacity(0.7), size: 20),
+            const SizedBox(height: 5),
             Text('${s.count}', style: const TextStyle(
-              fontFamily: 'Cinzel', fontSize: 14, color: RpgColors.textPrimary, fontWeight: FontWeight.bold)),
+              fontFamily: 'Cinzel', fontSize: 15, color: RpgColors.textPrimary, fontWeight: FontWeight.bold)),
             Text(s.label, style: const TextStyle(
-              fontFamily: 'Crimson', fontSize: 9, color: RpgColors.textMuted)),
+              fontFamily: 'Crimson', fontSize: 10, color: RpgColors.textMuted)),
           ]),
         ),
       )).toList(),
