@@ -82,7 +82,7 @@ class NexusApp extends StatelessWidget {
                           const Text('NEXUS', style: TextStyle(
                             fontFamily: 'Cinzel', fontSize: 32, color: Colors.white, letterSpacing: 4)),
                           const SizedBox(height: 8),
-                          const Text('Media Tracker', style: TextStyle(
+                          const Text('NEXUS', style: TextStyle(
                             color: Color(0xFF94A3B8), fontFamily: 'Crimson', fontSize: 16)),
                           const SizedBox(height: 40),
                           const CircularProgressIndicator(color: Color(0xFF8B5CF6), strokeWidth: 2),

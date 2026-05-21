@@ -76,7 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     Image.asset('assets/images/logo.png', width: 96, height: 96),
                     const SizedBox(height: 12),
-                    const Text('Media Tracker', style: TextStyle(
+                    const Text('NEXUS', style: TextStyle(
                       fontFamily: 'Crimson', fontSize: 14,
                       color: RpgColors.textSecondary, letterSpacing: 2)),
                     const SizedBox(height: 32),
