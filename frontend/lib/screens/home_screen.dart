@@ -259,7 +259,6 @@ class _EmissionCalendar extends StatelessWidget {
   const _EmissionCalendar({required this.entries, required this.onTap});
 
   static const _dayLabels = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-  static const _dayFull   = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
   @override
   Widget build(BuildContext context) {
@@ -270,6 +269,8 @@ class _EmissionCalendar extends StatelessWidget {
         byDay.putIfAbsent(e.emissionDay!, () => []).add(e);
       }
     }
+    // First day with entries in calendar order (0=Mon), not insertion order
+    final firstFilledDay = byDay.isEmpty ? -1 : byDay.keys.reduce((a, b) => a < b ? a : b);
 
     return Container(
       decoration: BoxDecoration(
@@ -284,8 +285,8 @@ class _EmissionCalendar extends StatelessWidget {
           if (dayEntries.isEmpty) return const SizedBox.shrink();
           return Column(
             children: [
-              if (day != byDay.keys.first || byDay.keys.first != 0)
-                Divider(height: 1, color: RpgColors.border),
+              if (day != firstFilledDay)
+                const Divider(height: 1, color: RpgColors.border),
               InkWell(
                 onTap: dayEntries.length == 1 ? () => onTap(dayEntries.first) : null,
                 child: Padding(

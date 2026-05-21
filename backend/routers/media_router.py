@@ -611,13 +611,18 @@ def create_media(data: MediaCreate, _user = Depends(get_current_user)):
                     "UPDATE media SET genres=%s, updated_at=NOW() WHERE id=%s RETURNING *",
                     (data.genres, row["id"])
                 )
-                row = cur.fetchone()
+                updated = cur.fetchone()
+                if updated:
+                    row = updated
+    if row is None:
+        raise HTTPException(500, "No se pudo crear el media")
     return MediaOut(**dict(row))
 
 
 @router.post("/admin/backfill-genres")
 def backfill_genres(_user = Depends(get_current_user)):
-    """Fetches genres from TMDB for existing media records that are missing them."""
+    if not _user.get("is_admin"):
+        raise HTTPException(403, "Solo administradores")
     gmap = _ensure_tmdb_genres()
     if not gmap:
         return {"updated": 0, "error": "TMDB unavailable"}
