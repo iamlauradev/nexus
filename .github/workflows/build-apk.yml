@@ -15,6 +15,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      KEYSTORE_B64: ${{ secrets.KEYSTORE_BASE64 }}
 
     steps:
       - uses: actions/checkout@v4
@@ -46,12 +48,12 @@ jobs:
       # If the secret is not set, builds proceed unsigned (debug-like release)
       # -----------------------------------------------------------------------
       - name: Decode keystore
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        if: ${{ env.KEYSTORE_B64 != '' }}
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > frontend/android/app/nexus-release.jks
+          echo "$KEYSTORE_B64" | base64 --decode > frontend/android/app/nexus-release.jks
 
       - name: Create key.properties
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        if: ${{ env.KEYSTORE_B64 != '' }}
         run: |
           cat > frontend/android/key.properties <<EOF
           storePassword=${{ secrets.KEYSTORE_PASSWORD }}
@@ -108,4 +110,8 @@ jobs:
             echo "- \`$(basename $f)\` — $size" >> $GITHUB_STEP_SUMMARY
           done
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Signed: ${{ secrets.KEYSTORE_BASE64 != '' && 'Yes ✅' || 'No ⚠️ (set KEYSTORE_BASE64 secret to enable signing)' }}" >> $GITHUB_STEP_SUMMARY
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "Signed: Yes ✅" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Signed: No ⚠️ (set KEYSTORE_BASE64 secret to enable signing)" >> $GITHUB_STEP_SUMMARY
+          fi
