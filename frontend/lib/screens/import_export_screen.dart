@@ -20,7 +20,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
 
   // Manual paste fallback
   final _pasteCtrl = TextEditingController();
-  String _pasteFormat = 'json';
+  String _pasteFormat = 'own_json';
 
   @override
   void dispose() {
@@ -232,7 +232,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
 
   String _formatLabel(String format) {
     switch (format) {
-      case 'json': return 'JSON (Backup)';
+      case 'own_json': return 'JSON (Backup)';
       case 'mal_xml': return 'MAL (XML)';
       case 'letterboxd_csv': return 'Letterboxd (CSV)';
       default: return format;
@@ -287,7 +287,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
               label: 'Importar backup propio (JSON)',
               subtitle: 'Archivo exportado desde Nexus',
               color: RpgColors.gold,
-              onTap: _importing ? null : () => _importFile('json'),
+              onTap: _importing ? null : () => _importFile('own_json'),
             ),
             const SizedBox(height: 10),
             _ImportButton(

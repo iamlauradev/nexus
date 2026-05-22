@@ -111,6 +111,12 @@ class _DetailScreenState extends State<DetailScreen>
         }
       }
 
+      // Update emission status if changed
+      final prevEmission = _entry.media?.emissionStatus ?? '';
+      if (_emissionStatus != prevEmission && _entry.media != null) {
+        await ApiService.updateEmissionStatus(_entry.media!.id, _emissionStatus.isEmpty ? null : _emissionStatus);
+      }
+
       final updated = await ApiService.updateEntry(_entry.id, {
         'status':        _status,
         'rating_label':  _ratingLabel,
@@ -631,17 +637,6 @@ class _DetailScreenState extends State<DetailScreen>
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildView(dynamic media) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildTrackingSection(),
-        const SizedBox(height: 20),
-        _buildInfoSection(media),
-      ],
     );
   }
 

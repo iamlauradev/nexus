@@ -860,6 +860,28 @@ def _validate_cover_url(url: str) -> bool:
         return False
 
 
+class EmissionStatusUpdate(BaseModel):
+    emission_status: str
+
+
+@router.patch("/{media_id}/emission-status", response_model=MediaOut)
+def update_emission_status(media_id: int, data: EmissionStatusUpdate, _user = Depends(get_current_user)):
+    valid = {"AIRING", "FINISHED", "UPCOMING", "CANCELLED", "HIATUS", "UNKNOWN", ""}
+    if data.emission_status not in valid:
+        raise HTTPException(400, f"Estado de emisión no válido: {data.emission_status!r}")
+    val = data.emission_status if data.emission_status else None
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE media SET emission_status = %s, updated_at = NOW() WHERE id = %s RETURNING *",
+            (val, media_id),
+        )
+        row = cur.fetchone()
+    if not row:
+        raise HTTPException(404, "Media no encontrada")
+    return MediaOut(**dict(row))
+
+
 @router.patch("/{media_id}/cover", response_model=MediaOut)
 def update_cover(media_id: int, data: CoverUpdate, _user = Depends(get_current_user)):
     if not _validate_cover_url(data.cover_url):

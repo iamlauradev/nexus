@@ -332,6 +332,15 @@ class ApiService {
     return MediaItem.fromJson(await _handleResponse(r));
   }
 
+  static Future<MediaItem> updateEmissionStatus(int mediaId, String? emissionStatus) async {
+    final r = await http.patch(
+      Uri.parse('$_baseUrl/media/$mediaId/emission-status'),
+      headers: _headers,
+      body: jsonEncode({'emission_status': emissionStatus ?? ''}),
+    );
+    return MediaItem.fromJson(await _handleResponse(r));
+  }
+
   static Future<List<dynamic>> getEntryHistory(int entryId) async {
     final uri = Uri.parse('$_baseUrl/entries/$entryId/history');
     final r = await http.get(uri, headers: _headers);

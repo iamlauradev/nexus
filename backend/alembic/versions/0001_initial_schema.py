@@ -126,7 +126,7 @@ def upgrade() -> None:
     )
 
     op.create_table(
-        "rating_configs",
+        "user_rating_configs",
         sa.Column("id", sa.Integer, primary_key=True),
         sa.Column("user_id", sa.Integer, sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
         sa.Column("key", sa.Text, nullable=False),
@@ -139,7 +139,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_table("rating_configs")
+    op.drop_table("user_rating_configs")
     op.drop_table("entry_history")
     op.drop_table("token_blacklist")
     op.drop_table("refresh_tokens")
