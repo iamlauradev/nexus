@@ -626,8 +626,7 @@ def _augment_with_library(results: List[SearchResult], user_id: int) -> List[Sea
                    if r.source == "tmdb" and r.external_id.isdigit()]
     anilist_ids = [int(r.external_id) for r in results
                    if r.source == "anilist" and r.external_id.isdigit()]
-    other_titles = [r.title.lower() for r in results
-                    if r.source not in ("tmdb", "anilist")]
+    all_titles  = [r.title.lower() for r in results]
 
     conditions: List[str] = []
     params: list = [user_id]
@@ -638,9 +637,9 @@ def _augment_with_library(results: List[SearchResult], user_id: int) -> List[Sea
     if anilist_ids:
         conditions.append("m.anilist_id = ANY(%s)")
         params.append(anilist_ids)
-    if other_titles:
+    if all_titles:
         conditions.append("LOWER(m.title) = ANY(%s)")
-        params.append(other_titles)
+        params.append(all_titles)
 
     if not conditions:
         return results
@@ -684,7 +683,7 @@ def _augment_with_library(results: List[SearchResult], user_id: int) -> List[Sea
             match = tmdb_map.get(int(r.external_id))
         elif r.source == "anilist" and r.external_id.isdigit():
             match = anilist_map.get(int(r.external_id))
-        else:
+        if match is None:
             match = title_map.get(r.title.lower())
         augmented.append(r.model_copy(update=match) if match else r)
 
