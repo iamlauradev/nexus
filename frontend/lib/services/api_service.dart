@@ -204,7 +204,9 @@ class ApiService {
   }
 
   static Future<void> deleteRatingConfig(int id) async {
-    await http.delete(Uri.parse('$_baseUrl/rating-configs/$id'), headers: _headers);
+    final uri = Uri.parse('$_baseUrl/rating-configs/$id');
+    final r = await http.delete(uri, headers: _headers);
+    await _handleResponse(r, retry: () => http.delete(uri, headers: _headers));
   }
 
   /// Carga configs y actualiza el caché de la app

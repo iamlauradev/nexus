@@ -75,7 +75,9 @@ class _DetailScreenState extends State<DetailScreen>
 
   void _initFields() {
     _status          = _entry.status;
-    _ratingLabel     = _entry.ratingLabel ?? 'sin_valorar';
+    // Guard against a rating key that no longer exists in configs
+    final rl = _entry.ratingLabel ?? 'sin_valorar';
+    _ratingLabel = RatingConfigCache.configs.any((c) => c['key'] == rl) ? rl : 'sin_valorar';
     _emissionStatus  = _entry.media?.emissionStatus ?? '';
     _emissionDay     = _entry.emissionDay;
     _startedAt       = _entry.startedAt;
@@ -140,7 +142,9 @@ class _DetailScreenState extends State<DetailScreen>
           startedAt: updated.startedAt, completedAt: updated.completedAt,
           epCurrent: updated.epCurrent, epTotal: updated.epTotal,
           rewatchCount: updated.rewatchCount, emissionDay: updated.emissionDay,
-          updatedAt: updated.updatedAt, media: _entry.media,
+          updatedAt: updated.updatedAt,
+          // prefer fresh media from server (picks up cover/emission changes)
+          media: updated.media ?? _entry.media,
         );
         _editing = false;
         _saving = false;

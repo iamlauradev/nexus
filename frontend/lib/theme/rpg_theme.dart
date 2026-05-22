@@ -111,6 +111,10 @@ class RatingConfigCache {
       c['color']?.toString() ?? '#4A4570',
       (c['sort_order'] as num?)?.toInt() ?? 99,
     )).toList();
+    // sin_valorar must always exist so the "no rating" dropdown option is valid
+    if (!_entries.any((e) => e.key == 'sin_valorar')) {
+      _entries.add(const _RatingEntry('sin_valorar', '· Sin valorar', '#4A4570', 999));
+    }
   }
 
   static List<Map<String, dynamic>> get configs => _entries.map((e) =>

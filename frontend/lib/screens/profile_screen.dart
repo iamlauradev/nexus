@@ -15,8 +15,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _currPwCtrl  = TextEditingController();
   final _newPwCtrl   = TextEditingController();
   final _confPwCtrl  = TextEditingController();
+
   bool _savingProfile = false;
   bool _savingPw      = false;
+
+  // password visibility
+  bool _showCurrPw  = false;
+  bool _showNewPw   = false;
+  bool _showConfPw  = false;
+
+  // live avatar preview
+  String _avatarPreview = '';
 
   @override
   void initState() {
@@ -24,6 +33,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = context.read<AuthProvider>().user;
     _nameCtrl.text   = user?.displayName ?? '';
     _avatarCtrl.text = user?.avatarUrl ?? '';
+    _avatarPreview   = user?.avatarUrl ?? '';
+    _avatarCtrl.addListener(() {
+      final url = _avatarCtrl.text.trim();
+      if (url != _avatarPreview) setState(() => _avatarPreview = url);
+    });
   }
 
   @override
@@ -57,6 +71,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SnackBar(content: Text('Las contraseñas no coinciden'), backgroundColor: RpgColors.statusDropped));
       return;
     }
+    if (_newPwCtrl.text.length < 8) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('La contraseña debe tener al menos 8 caracteres'), backgroundColor: RpgColors.statusDropped));
+      return;
+    }
     setState(() => _savingPw = true);
     try {
       await ApiService.changePassword(_currPwCtrl.text, _newPwCtrl.text);
@@ -80,20 +99,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           // Avatar
-          Center(child: CircleAvatar(
-            radius: 48,
-            backgroundColor: RpgColors.charcoal,
-            backgroundImage: (user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty)
-                ? NetworkImage(user.avatarUrl!)
-                : null,
-            child: (user?.avatarUrl == null || user!.avatarUrl!.isEmpty)
-                ? const Icon(Icons.person_outline, size: 48, color: RpgColors.textMuted)
-                : null,
-          )),
+          Center(
+            child: Stack(
+              alignment: Alignment.bottomRight,
+              children: [
+                _AvatarPreview(url: _avatarPreview, radius: 52),
+                Container(
+                  width: 28, height: 28,
+                  decoration: BoxDecoration(
+                    color: RpgColors.accent,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: RpgColors.obsidian, width: 2),
+                  ),
+                  child: const Icon(Icons.edit_outlined, size: 14, color: Colors.white),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 8),
+          Center(child: Text(
+            user?.displayName != null && user!.displayName!.isNotEmpty
+                ? user.displayName!
+                : '@${user?.username ?? ''}',
+            style: const TextStyle(
+              color: RpgColors.textPrimary, fontFamily: 'Cinzel', fontSize: 16, fontWeight: FontWeight.w600),
+          )),
           Center(child: Text('@${user?.username ?? ''}',
-            style: const TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 14))),
-          const SizedBox(height: 24),
+            style: const TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 13))),
+          const SizedBox(height: 28),
 
           const _SectionTitle('INFORMACIÓN'),
           const SizedBox(height: 12),
@@ -114,44 +147,75 @@ class _ProfileScreenState extends State<ProfileScreen> {
             style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
             keyboardType: TextInputType.url,
           ),
+          // Live avatar preview when URL is set
+          if (_avatarPreview.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Row(children: [
+              const Icon(Icons.preview_outlined, size: 13, color: RpgColors.textMuted),
+              const SizedBox(width: 6),
+              const Text('Vista previa', style: TextStyle(
+                fontSize: 11, color: RpgColors.textMuted, fontFamily: 'DMSans')),
+              const SizedBox(width: 10),
+              _AvatarPreview(url: _avatarPreview, radius: 20),
+            ]),
+          ],
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: _savingProfile ? null : _saveProfile,
               child: _savingProfile
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  ? const SizedBox(width: 18, height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : const Text('Guardar cambios'),
             ),
           ),
 
-          const SizedBox(height: 28),
+          const SizedBox(height: 32),
           const _SectionTitle('CAMBIAR CONTRASEÑA'),
           const SizedBox(height: 12),
           TextField(
             controller: _currPwCtrl,
-            obscureText: true,
-            decoration: const InputDecoration(
+            obscureText: !_showCurrPw,
+            decoration: InputDecoration(
               labelText: 'Contraseña actual',
-              prefixIcon: Icon(Icons.lock_outline, color: RpgColors.accent, size: 18)),
+              prefixIcon: const Icon(Icons.lock_outline, color: RpgColors.accent, size: 18),
+              suffixIcon: IconButton(
+                icon: Icon(_showCurrPw ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  color: RpgColors.textMuted, size: 18),
+                onPressed: () => setState(() => _showCurrPw = !_showCurrPw),
+              ),
+            ),
             style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
           ),
           const SizedBox(height: 10),
           TextField(
             controller: _newPwCtrl,
-            obscureText: true,
-            decoration: const InputDecoration(
-              labelText: 'Nueva contraseña (mín. 8, letra + número)',
-              prefixIcon: Icon(Icons.lock_reset_outlined, color: RpgColors.accent, size: 18)),
+            obscureText: !_showNewPw,
+            decoration: InputDecoration(
+              labelText: 'Nueva contraseña (mín. 8 caracteres)',
+              prefixIcon: const Icon(Icons.lock_reset_outlined, color: RpgColors.accent, size: 18),
+              suffixIcon: IconButton(
+                icon: Icon(_showNewPw ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  color: RpgColors.textMuted, size: 18),
+                onPressed: () => setState(() => _showNewPw = !_showNewPw),
+              ),
+            ),
             style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
           ),
           const SizedBox(height: 10),
           TextField(
             controller: _confPwCtrl,
-            obscureText: true,
-            decoration: const InputDecoration(
+            obscureText: !_showConfPw,
+            decoration: InputDecoration(
               labelText: 'Confirmar nueva contraseña',
-              prefixIcon: Icon(Icons.lock_reset_outlined, color: RpgColors.accent, size: 18)),
+              prefixIcon: const Icon(Icons.lock_reset_outlined, color: RpgColors.accent, size: 18),
+              suffixIcon: IconButton(
+                icon: Icon(_showConfPw ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  color: RpgColors.textMuted, size: 18),
+                onPressed: () => setState(() => _showConfPw = !_showConfPw),
+              ),
+            ),
             style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
           ),
           const SizedBox(height: 16),
@@ -161,7 +225,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onPressed: _savingPw ? null : _changePassword,
               style: ElevatedButton.styleFrom(backgroundColor: RpgColors.goldDark),
               child: _savingPw
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  ? const SizedBox(width: 18, height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : const Text('Cambiar contraseña'),
             ),
           ),
@@ -172,11 +237,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
+class _AvatarPreview extends StatelessWidget {
+  final String url;
+  final double radius;
+  const _AvatarPreview({required this.url, required this.radius});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasUrl = url.isNotEmpty;
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: RpgColors.charcoal,
+      child: hasUrl
+          ? ClipOval(
+              child: Image.network(
+                url,
+                width: radius * 2,
+                height: radius * 2,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Icon(
+                  Icons.broken_image_outlined,
+                  size: radius * 0.8,
+                  color: RpgColors.textMuted,
+                ),
+                loadingBuilder: (_, child, progress) => progress == null
+                    ? child
+                    : SizedBox(
+                        width: radius,
+                        height: radius,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 1.5, color: RpgColors.accent),
+                      ),
+              ),
+            )
+          : Icon(Icons.person_outline, size: radius * 0.8, color: RpgColors.textMuted),
+    );
+  }
+}
+
 class _SectionTitle extends StatelessWidget {
   final String text;
   const _SectionTitle(this.text);
   @override
   Widget build(BuildContext context) => Text(text, style: const TextStyle(
-    fontFamily: 'DMSans', fontSize: 12, color: RpgColors.accent,
-    letterSpacing: 0.5, fontWeight: FontWeight.w700));
+    fontFamily: 'DMSans', fontSize: 11, color: RpgColors.accent,
+    letterSpacing: 0.8, fontWeight: FontWeight.w700));
 }

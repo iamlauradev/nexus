@@ -57,20 +57,39 @@ class _StatsScreenState extends State<StatsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
-      color: RpgColors.gold,
-      backgroundColor: RpgColors.surface,
-      onRefresh: _load,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
-        child: _loading
-            ? const Center(child: Padding(
-                padding: EdgeInsets.all(40),
-                child: CircularProgressIndicator(color: RpgColors.gold)))
-            : _stats == null
-                ? const Center(child: Text('Sin datos', style: TextStyle(color: RpgColors.textMuted)))
-                : _buildContent(),
+    return Scaffold(
+      backgroundColor: RpgColors.obsidian,
+      appBar: AppBar(
+        backgroundColor: RpgColors.darkVoid,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: RpgColors.textPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text('ESTADÍSTICAS', style: TextStyle(
+          fontFamily: 'Cinzel', fontSize: 15, color: RpgColors.textPrimary, letterSpacing: 1)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_outlined, color: RpgColors.textMuted),
+            onPressed: _load,
+            tooltip: 'Actualizar',
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        color: RpgColors.gold,
+        backgroundColor: RpgColors.surface,
+        onRefresh: _load,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          child: _loading
+              ? const Center(child: Padding(
+                  padding: EdgeInsets.all(40),
+                  child: CircularProgressIndicator(color: RpgColors.gold)))
+              : _stats == null
+                  ? const Center(child: Text('Sin datos', style: TextStyle(color: RpgColors.textMuted)))
+                  : _buildContent(),
+        ),
       ),
     );
   }
@@ -547,11 +566,15 @@ class _ScoreDistributionChart extends StatelessWidget {
           rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           bottomTitles: AxisTitles(
+            drawBelowEverything: false,
             sideTitles: SideTitles(
               showTitles: true,
-              getTitlesWidget: (val, meta) => Text(
-                '${val.toInt()}',
-                style: const TextStyle(color: RpgColors.textMuted, fontSize: 10, fontFamily: 'Crimson'),
+              getTitlesWidget: (val, meta) => Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  '${val.toInt()}',
+                  style: const TextStyle(color: RpgColors.textMuted, fontSize: 10, fontFamily: 'Crimson'),
+                ),
               ),
               reservedSize: 20,
             ),
@@ -606,6 +629,7 @@ class _MonthlyChart extends StatelessWidget {
           rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           bottomTitles: AxisTitles(
+            drawBelowEverything: false,
             sideTitles: SideTitles(
               showTitles: true,
               getTitlesWidget: (val, meta) {
@@ -615,9 +639,12 @@ class _MonthlyChart extends StatelessWidget {
                 final parts = key.split('-');
                 if (parts.length >= 2) {
                   final month = int.tryParse(parts[1]) ?? 1;
-                  return Text(
-                    _monthNames[(month - 1).clamp(0, 11)],
-                    style: const TextStyle(color: RpgColors.textMuted, fontSize: 10, fontFamily: 'Crimson'),
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      _monthNames[(month - 1).clamp(0, 11)],
+                      style: const TextStyle(color: RpgColors.textMuted, fontSize: 10, fontFamily: 'Crimson'),
+                    ),
                   );
                 }
                 return Text(key, style: const TextStyle(color: RpgColors.textMuted, fontSize: 9));
