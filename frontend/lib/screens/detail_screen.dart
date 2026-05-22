@@ -162,7 +162,7 @@ class _DetailScreenState extends State<DetailScreen>
   Future<void> _delete() async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         backgroundColor: RpgColors.surface,
         title: const Text('Eliminar', style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'DMSans', fontSize: 16, fontWeight: FontWeight.w600)),
         content: Text(
@@ -170,10 +170,10 @@ class _DetailScreenState extends State<DetailScreen>
           style: const TextStyle(color: RpgColors.textSecondary, fontFamily: 'Crimson'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false),
+          TextButton(onPressed: () => Navigator.pop(dialogCtx, false),
             child: const Text('Cancelar', style: TextStyle(color: RpgColors.textMuted))),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogCtx, true),
             style: ElevatedButton.styleFrom(backgroundColor: RpgColors.statusDropped),
             child: const Text('Eliminar', style: TextStyle(color: Colors.white)),
           ),
