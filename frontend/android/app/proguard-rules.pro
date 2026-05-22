@@ -11,3 +11,6 @@
 # OkHttp / Retrofit (if used internally)
 -dontwarn okhttp3.**
 -dontwarn retrofit2.**
+
+# Google Play Core — referenced by Flutter's deferred components but not used in this app
+-dontwarn com.google.android.play.core.**
