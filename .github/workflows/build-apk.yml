@@ -7,6 +7,10 @@ on:
         description: 'URL de la API (ej: https://nexus-api.iamlaura.dev)'
         required: false
         default: 'https://nexus-api.iamlaura.dev'
+      version_name:
+        description: 'Versión de la app (ej: 1.2.0). Si se deja vacío se usa 1.0.<run_number>'
+        required: false
+        default: ''
 
 jobs:
   build:
@@ -14,6 +18,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set version
+        id: version
+        run: |
+          VERSION_NAME="${{ github.event.inputs.version_name }}"
+          if [ -z "$VERSION_NAME" ]; then
+            VERSION_NAME="1.0.${{ github.run_number }}"
+          fi
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "version_code=${{ github.run_number }}" >> $GITHUB_OUTPUT
 
       - uses: subosito/flutter-action@v2
         with:
@@ -27,15 +41,71 @@ jobs:
         working-directory: frontend
         run: flutter clean
 
-      - name: Build APK
+      # -----------------------------------------------------------------------
+      # Decode keystore from base64 secret (set KEYSTORE_BASE64 in repo secrets)
+      # If the secret is not set, builds proceed unsigned (debug-like release)
+      # -----------------------------------------------------------------------
+      - name: Decode keystore
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > frontend/android/app/nexus-release.jks
+
+      - name: Create key.properties
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        run: |
+          cat > frontend/android/key.properties <<EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=nexus-release.jks
+          EOF
+
+      # -----------------------------------------------------------------------
+      # Build split APKs (arm64-v8a ~15 MB, armeabi-v7a ~13 MB, x86_64 ~15 MB)
+      # -----------------------------------------------------------------------
+      - name: Build split APKs
+        working-directory: frontend
+        run: |
+          flutter build apk --release --split-per-abi \
+            --build-name=${{ steps.version.outputs.version_name }} \
+            --build-number=${{ steps.version.outputs.version_code }} \
+            --dart-define=API_URL=${{ github.event.inputs.api_url || 'https://nexus-api.iamlaura.dev' }}
+
+      # Fallback: also build universal APK for convenience
+      - name: Build universal APK
         working-directory: frontend
         run: |
           flutter build apk --release \
+            --build-name=${{ steps.version.outputs.version_name }} \
+            --build-number=${{ steps.version.outputs.version_code }} \
             --dart-define=API_URL=${{ github.event.inputs.api_url || 'https://nexus-api.iamlaura.dev' }}
 
-      - name: Upload APK
+      - name: Rename APKs
+        run: |
+          V="${{ steps.version.outputs.version_name }}"
+          cd frontend/build/app/outputs/flutter-apk
+          for f in app-*-release.apk; do
+            mv "$f" "${f/app-/nexus-v${V}-}"
+          done
+          mv app-release.apk "nexus-v${V}-universal.apk" || true
+
+      - name: Upload split APKs
         uses: actions/upload-artifact@v4
         with:
-          name: nexus-release
-          path: frontend/build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 7
+          name: nexus-v${{ steps.version.outputs.version_name }}-apks
+          path: frontend/build/app/outputs/flutter-apk/nexus-*.apk
+          retention-days: 30
+
+      - name: Summary
+        run: |
+          echo "### Build summary" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ steps.version.outputs.version_name }}+${{ steps.version.outputs.version_code }}" >> $GITHUB_STEP_SUMMARY
+          echo "**API URL:** ${{ github.event.inputs.api_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**APK sizes:**" >> $GITHUB_STEP_SUMMARY
+          for f in frontend/build/app/outputs/flutter-apk/nexus-*.apk; do
+            size=$(du -sh "$f" | cut -f1)
+            echo "- \`$(basename $f)\` — $size" >> $GITHUB_STEP_SUMMARY
+          done
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Signed: ${{ secrets.KEYSTORE_BASE64 != '' && 'Yes ✅' || 'No ⚠️ (set KEYSTORE_BASE64 secret to enable signing)' }}" >> $GITHUB_STEP_SUMMARY

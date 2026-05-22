@@ -177,6 +177,6 @@ class _SectionTitle extends StatelessWidget {
   const _SectionTitle(this.text);
   @override
   Widget build(BuildContext context) => Text(text, style: const TextStyle(
-    fontFamily: 'Cinzel', fontSize: 12, color: RpgColors.accent,
-    letterSpacing: 2, fontWeight: FontWeight.bold));
+    fontFamily: 'DMSans', fontSize: 12, color: RpgColors.accent,
+    letterSpacing: 0.5, fontWeight: FontWeight.w700));
 }

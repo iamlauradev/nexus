@@ -12,19 +12,38 @@ import 'detail_screen.dart';
 import 'add_entry_screen.dart';
 
 class MediaListScreen extends StatefulWidget {
-  final List<String> types;
-  final String sectionLabel;
+  /// Optional type filter preset. When null, all types are shown and a
+  /// type-selector dropdown is shown in the filter bar.
+  final List<String>? types;
+  final String? sectionLabel;
 
-  const MediaListScreen({super.key, required this.types, required this.sectionLabel});
+  const MediaListScreen({super.key, this.types, this.sectionLabel});
 
   @override
   State<MediaListScreen> createState() => _MediaListScreenState();
 }
 
+const _allTypes = [
+  'MOVIE', 'DORAMA', 'SERIES', 'MANGA', 'MANHWA', 'MANHUA', 'WEBTOON', 'ANIME'
+];
+
+const _typeLabels = {
+  'all':     'Tipo',
+  'MOVIE':   'Películas',
+  'DORAMA':  'Doramas',
+  'SERIES':  'Series',
+  'MANGA':   'Manga',
+  'MANHWA':  'Manhwa',
+  'MANHUA':  'Manhua',
+  'WEBTOON': 'Webtoon',
+  'ANIME':   'Anime',
+};
+
 class _MediaListScreenState extends State<MediaListScreen> {
   String _status = 'all';
   String _rating = 'all';
   String _genre  = 'all';
+  String _typeFilter = 'all'; // only active when widget.types is null
   String _sort = 'updated';
   String _view = 'grid';
   String _searchQuery = '';
@@ -64,6 +83,7 @@ class _MediaListScreenState extends State<MediaListScreen> {
   }
 
   Future<void> _loadEntries() async {
+    if (!mounted) return;
     setState(() => _loading = true);
     try {
       final entries = await _fetchEntries();
@@ -118,14 +138,21 @@ class _MediaListScreenState extends State<MediaListScreen> {
     return sorted;
   }
 
+  List<String> get _activeTypes {
+    if (widget.types != null) return widget.types!;
+    if (_typeFilter != 'all') return [_typeFilter];
+    return _allTypes;
+  }
+
   Future<List<UserEntry>> _fetchEntries() async {
     final String? status = _status != 'all' ? _status : null;
     final String? rating = _rating != 'all' ? _rating : null;
     final String? q = _searchQuery.length > 2 ? _searchQuery : null;
+    final types = _activeTypes;
 
-    if (widget.types.length == 1) {
+    if (types.length == 1) {
       return ApiService.getEntries(
-        mediaType: widget.types.first,
+        mediaType: types.first,
         status: status,
         rating: rating,
         q: q,
@@ -133,7 +160,7 @@ class _MediaListScreenState extends State<MediaListScreen> {
       );
     }
 
-    final futures = widget.types.map((t) => ApiService.getEntries(
+    final futures = types.map((t) => ApiService.getEntries(
       mediaType: t,
       status: status,
       rating: rating,
@@ -209,8 +236,7 @@ class _MediaListScreenState extends State<MediaListScreen> {
     try {
       await ApiService.updateEntry(entry.id, {'ep_current': newEp});
     } catch (_) {
-      // revert on error
-      _loadEntries();
+      if (mounted) _loadEntries();
     }
   }
 
@@ -253,7 +279,7 @@ class _MediaListScreenState extends State<MediaListScreen> {
             const SizedBox(height: 12),
             Text(
               entry.media?.title ?? '',
-              style: const TextStyle(fontFamily: 'Cinzel', fontSize: 13, color: RpgColors.textPrimary),
+              style: const TextStyle(fontSize: 13, color: RpgColors.textPrimary, fontWeight: FontWeight.w500),
               maxLines: 1, overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 4),
@@ -283,7 +309,7 @@ class _MediaListScreenState extends State<MediaListScreen> {
                 try {
                   await ApiService.updateEntry(entry.id, {'status': e.key});
                 } catch (_) {
-                  _loadEntries();
+                  if (mounted) _loadEntries();
                 }
               },
               borderRadius: BorderRadius.circular(8),
@@ -359,10 +385,13 @@ class _MediaListScreenState extends State<MediaListScreen> {
       'completed': 'Fecha fin',
     };
 
+    final sectionLabel = widget.sectionLabel ?? 'Catálogo';
+    final showTypeFilter = widget.types == null;
+
     final searchField = TextField(
       controller: _searchCtrl,
       decoration: InputDecoration(
-        hintText: 'Buscar en ${widget.sectionLabel}...',
+        hintText: 'Buscar en $sectionLabel...',
         prefixIcon: const Icon(Icons.search, color: RpgColors.textMuted, size: 18),
         suffixIcon: _searchCtrl.text.isNotEmpty
             ? IconButton(
@@ -393,7 +422,6 @@ class _MediaListScreenState extends State<MediaListScreen> {
         decoration: BoxDecoration(
           color: RpgColors.charcoal,
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: RpgColors.border),
         ),
         child: Icon(
           _view == 'grid' ? Icons.view_list : Icons.grid_view,
@@ -435,6 +463,13 @@ class _MediaListScreenState extends State<MediaListScreen> {
                 Expanded(flex: 3, child: searchField),
                 const SizedBox(width: 10),
                 viewToggle,
+                if (showTypeFilter) ...[
+                  const SizedBox(width: 10),
+                  SizedBox(width: 130, child: _DropFilter(
+                    value: _typeFilter, items: _typeLabels,
+                    onChanged: (v) { setState(() { _typeFilter = v; _currentLimit = 50; }); _loadEntries(); },
+                  )),
+                ],
                 const SizedBox(width: 10),
                 SizedBox(width: 140, child: _DropFilter(
                   value: _status, items: statusItems,
@@ -474,6 +509,13 @@ class _MediaListScreenState extends State<MediaListScreen> {
             children: [
               viewToggle,
               const SizedBox(width: 6),
+              if (showTypeFilter) ...[
+                Expanded(child: _DropFilter(
+                  value: _typeFilter, items: _typeLabels,
+                  onChanged: (v) { setState(() { _typeFilter = v; _currentLimit = 50; }); _loadEntries(); },
+                )),
+                const SizedBox(width: 6),
+              ],
               Expanded(child: _DropFilter(
                 value: _status, items: statusItems,
                 onChanged: (v) { setState(() => _status = v); _loadEntries(); },
@@ -566,17 +608,17 @@ class _MediaListScreenState extends State<MediaListScreen> {
           const Icon(Icons.auto_stories, color: RpgColors.border, size: 56),
           const SizedBox(height: 16),
           const Text('El grimorio está vacío', style: TextStyle(
-              fontFamily: 'Cinzel', color: RpgColors.textSecondary, fontSize: 16)),
+              color: RpgColors.textSecondary, fontSize: 16)),
           const SizedBox(height: 8),
-          Text(
-            'Añade tu primer${widget.sectionLabel == 'Cómics' ? ' cómic' : widget.sectionLabel == 'Películas' ? 'a película' : widget.sectionLabel == 'Series' ? 'a serie' : ' ${widget.sectionLabel.toLowerCase()}'}',
-            style: const TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson'),
+          const Text(
+            'Añade tu primera entrada al catálogo',
+            style: TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson'),
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
-            onPressed: () => _addNew(),
+            onPressed: _addNew,
             icon: const Icon(Icons.add, color: RpgColors.goldLight),
-            label: const Text('Añadir', style: TextStyle(color: RpgColors.goldLight, fontFamily: 'Cinzel')),
+            label: const Text('Añadir', style: TextStyle(color: RpgColors.goldLight)),
           ),
         ],
       ),
@@ -589,10 +631,11 @@ class _MediaListScreenState extends State<MediaListScreen> {
   }
 
   Future<void> _addNew() async {
+    final types = _activeTypes;
     await Navigator.push(context, MaterialPageRoute(
       builder: (_) => AddEntryScreen(
-        initialType: widget.types.first,
-        availableTypes: widget.types,
+        initialType: types.first,
+        availableTypes: types,
       ),
     ));
     _loadEntries();
@@ -615,7 +658,6 @@ class _DropFilter extends StatelessWidget {
       decoration: BoxDecoration(
         color: RpgColors.charcoal,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: RpgColors.border),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
@@ -650,12 +692,9 @@ class _GenreChip extends StatelessWidget {
         margin: const EdgeInsets.only(right: 6),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: selected ? RpgColors.gold.withOpacity(0.18) : RpgColors.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: selected ? RpgColors.gold : RpgColors.border,
-            width: selected ? 1.5 : 1,
-          ),
+          color: selected ? RpgColors.gold.withOpacity(0.18) : RpgColors.surfaceHigh,
+          borderRadius: BorderRadius.circular(20),
+          border: selected ? Border.all(color: RpgColors.gold, width: 1.5) : null,
         ),
         child: Text(label, style: TextStyle(
           fontFamily: 'Crimson', fontSize: 12,

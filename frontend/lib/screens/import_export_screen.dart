@@ -48,7 +48,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
       builder: (_) => AlertDialog(
         backgroundColor: RpgColors.surface,
         title: const Text('Exportar colección', style: TextStyle(
-          color: RpgColors.textPrimary, fontFamily: 'Cinzel', fontSize: 15)),
+          color: RpgColors.textPrimary, fontSize: 15, fontWeight: FontWeight.w600)),
         content: SizedBox(
           width: double.maxFinite,
           child: Column(
@@ -60,7 +60,6 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                 decoration: BoxDecoration(
                   color: RpgColors.charcoal,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: RpgColors.border),
                 ),
                 child: SingleChildScrollView(
                   child: Text(
@@ -79,7 +78,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                         const SnackBar(content: Text('Copiado al portapapeles'), backgroundColor: RpgColors.statusComplete));
                     },
                     icon: const Icon(Icons.copy, size: 16, color: RpgColors.gold),
-                    label: const Text('Copiar', style: TextStyle(color: RpgColors.gold, fontFamily: 'Cinzel', fontSize: 12)),
+                    label: const Text('Copiar', style: TextStyle(color: RpgColors.gold, fontSize: 12)),
                     style: OutlinedButton.styleFrom(side: const BorderSide(color: RpgColors.border)),
                   ),
                 ),
@@ -98,7 +97,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                       }
                     },
                     icon: const Icon(Icons.share_outlined, size: 16, color: RpgColors.obsidian),
-                    label: const Text('Compartir', style: TextStyle(color: RpgColors.obsidian, fontFamily: 'Cinzel', fontSize: 12)),
+                    label: const Text('Compartir', style: TextStyle(color: RpgColors.obsidian, fontSize: 12)),
                   ),
                 ),
               ]),
@@ -135,9 +134,9 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
       final content = utf8.decode(bytes);
       await _doImport(format, content);
     } catch (e) {
+      if (!mounted) return;
       setState(() => _importing = false);
-      // Fallback: show paste dialog
-      if (mounted) _showPasteDialog(format);
+      _showPasteDialog(format);
     }
   }
 
@@ -145,11 +144,13 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     setState(() => _importing = true);
     try {
       final result = await ApiService.importData(format, content);
+      if (!mounted) return;
       setState(() => _importing = false);
-      if (mounted) _showImportResult(result);
+      _showImportResult(result);
     } catch (e) {
+      if (!mounted) return;
       setState(() => _importing = false);
-      if (mounted) _showError('Error al importar: $e');
+      _showError('Error al importar: $e');
     }
   }
 
@@ -162,7 +163,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
       builder: (_) => AlertDialog(
         backgroundColor: RpgColors.surface,
         title: const Text('Importación completada', style: TextStyle(
-          color: RpgColors.textPrimary, fontFamily: 'Cinzel', fontSize: 15)),
+          color: RpgColors.textPrimary, fontSize: 15, fontWeight: FontWeight.w600)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -176,7 +177,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK', style: TextStyle(fontFamily: 'Cinzel')),
+            child: const Text('OK'),
           ),
         ],
       ),
@@ -190,7 +191,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
         builder: (ctx, setStateDlg) => AlertDialog(
           backgroundColor: RpgColors.surface,
           title: Text('Importar ${_formatLabel(format)}', style: const TextStyle(
-            color: RpgColors.textPrimary, fontFamily: 'Cinzel', fontSize: 14)),
+            color: RpgColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -221,7 +222,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                 _pasteCtrl.clear();
                 await _doImport(format, content);
               },
-              child: const Text('Importar', style: TextStyle(fontFamily: 'Cinzel')),
+              child: const Text('Importar'),
             ),
           ],
         ),
@@ -266,7 +267,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                     ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : const Icon(Icons.download_outlined),
                 label: Text(_exporting ? 'Exportando...' : 'Exportar mi colección (JSON)',
-                  style: const TextStyle(fontFamily: 'Cinzel', fontSize: 13)),
+                  style: const TextStyle(fontSize: 13)),
               ),
             ),
 
@@ -326,7 +327,7 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(text, style: const TextStyle(
-    fontFamily: 'Cinzel', fontSize: 13, color: RpgColors.textPrimary, letterSpacing: 2, fontWeight: FontWeight.bold));
+    fontSize: 13, color: RpgColors.textPrimary, letterSpacing: 0.5, fontWeight: FontWeight.w700));
 }
 
 class _ImportButton extends StatelessWidget {
@@ -370,7 +371,7 @@ class _ImportButton extends StatelessWidget {
             children: [
               Text(label, style: TextStyle(
                 color: onTap != null ? RpgColors.textPrimary : RpgColors.textMuted,
-                fontFamily: 'Cinzel', fontSize: 12, fontWeight: FontWeight.w600)),
+                fontSize: 12, fontWeight: FontWeight.w600)),
               const SizedBox(height: 2),
               Text(subtitle, style: const TextStyle(
                 color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 12)),
@@ -398,7 +399,7 @@ class _ResultRow extends StatelessWidget {
       const SizedBox(width: 10),
       Text(label, style: const TextStyle(color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 14)),
       const Spacer(),
-      Text(value, style: TextStyle(color: color, fontFamily: 'Cinzel', fontSize: 16, fontWeight: FontWeight.bold)),
+      Text(value, style: TextStyle(color: color, fontFamily: 'DMSans', fontSize: 16, fontWeight: FontWeight.bold)),
     ]);
   }
 }

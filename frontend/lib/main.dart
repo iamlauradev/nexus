@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import 'theme/rpg_theme.dart';
 import 'services/auth_provider.dart';
 import 'services/theme_provider.dart';
@@ -18,6 +20,73 @@ class EntryChangeNotifier extends ChangeNotifier {
   void entryAdded() => notifyListeners();
 }
 
+// ---------------------------------------------------------------------------
+// Router — declared once, refreshes on auth change
+// ---------------------------------------------------------------------------
+
+GoRouter _makeRouter(AuthProvider auth) {
+  return GoRouter(
+    initialLocation: '/home',
+    redirect: (ctx, state) {
+      if (auth.loading) return null;
+      final onLogin = state.matchedLocation == '/login';
+      if (!auth.isLogged && !onLogin) return '/login';
+      if (auth.isLogged && onLogin) return '/home';
+      return null;
+    },
+    refreshListenable: auth,
+    routes: [
+      GoRoute(
+        path: '/login',
+        pageBuilder: (_, state) => _fadePage(state, const LoginScreen()),
+      ),
+      StatefulShellRoute.indexedStack(
+        pageBuilder: (_, state, shell) => NoTransitionPage(child: _ShellScaffold(shell: shell)),
+        branches: [
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/home',
+              pageBuilder: (_, state) => _fadePage(state, const HomeScreen()),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/catalog',
+              pageBuilder: (_, state) => _fadePage(state, const MediaListScreen()),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/search',
+              pageBuilder: (_, state) => _fadePage(state, const SearchScreen()),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/profile',
+              pageBuilder: (_, state) => _fadePage(state, const ProfileScreen()),
+            ),
+          ]),
+        ],
+      ),
+    ],
+  );
+}
+
+CustomTransitionPage<void> _fadePage(GoRouterState state, Widget child) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 180),
+    transitionsBuilder: (_, animation, __, child) =>
+        FadeTransition(opacity: animation, child: child),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// App entry
+// ---------------------------------------------------------------------------
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -29,7 +98,8 @@ void main() async {
           padding: const EdgeInsets.all(16),
           child: Text(
             'ERROR: ${details.exceptionAsString()}\n\n${details.stack}',
-            style: const TextStyle(color: Colors.white, fontSize: 11, fontFamily: 'monospace'),
+            style: const TextStyle(
+                color: Colors.white, fontSize: 11, fontFamily: 'monospace'),
           ),
         ),
       ),
@@ -48,101 +118,105 @@ void main() async {
   );
 }
 
-class NexusApp extends StatelessWidget {
+class NexusApp extends StatefulWidget {
   const NexusApp({super.key});
+  @override
+  State<NexusApp> createState() => _NexusAppState();
+}
+
+class _NexusAppState extends State<NexusApp> {
+  late GoRouter _router;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final auth = context.read<AuthProvider>();
+    _router = _makeRouter(auth);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ThemeProvider>(
-      builder: (context, themeProvider, _) {
-        return MaterialApp(
-          title: 'Nexus',
-          debugShowCheckedModeBanner: false,
-          theme: themeProvider.isDark ? AppTheme.dark() : AppTheme.light(),
-          home: Consumer<AuthProvider>(
-            builder: (context, auth, _) {
-              if (auth.loading) {
-                return Scaffold(
-                  backgroundColor: const Color(0xFF0A0E1A),
-                  body: Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Color(0xFF0F1629), Color(0xFF0A0E1A)],
-                      ),
-                    ),
-                    child: const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.play_circle_outline, color: Color(0xFF8B5CF6), size: 72),
-                          SizedBox(height: 16),
-                          Text('NEXUS', style: TextStyle(
-                            fontFamily: 'Cinzel', fontSize: 32, color: Colors.white, letterSpacing: 4)),
-                          SizedBox(height: 8),
-                          Text('Tu catálogo multimedia', style: TextStyle(
-                            color: Color(0xFF94A3B8), fontFamily: 'Crimson', fontSize: 16)),
-                          SizedBox(height: 40),
-                          CircularProgressIndicator(color: Color(0xFF8B5CF6), strokeWidth: 2),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }
-              if (!auth.isLogged) return const LoginScreen();
-              return const MainShell();
-            },
-          ),
-        );
+    final isDark = context.watch<ThemeProvider>().isDark;
+    return MaterialApp.router(
+      title: 'Nexus',
+      debugShowCheckedModeBanner: false,
+      theme: isDark ? AppTheme.dark() : AppTheme.light(),
+      routerConfig: _router,
+      builder: (ctx, child) {
+        if (context.watch<AuthProvider>().loading) {
+          return const _SplashScreen();
+        }
+        return child ?? const SizedBox.shrink();
       },
     );
   }
 }
 
-class _Section {
-  final String label;
-  final List<String> types;
-  final IconData icon;
-  final IconData iconActive;
-
-  const _Section(this.label, this.types, this.icon, this.iconActive);
-}
-
-const _catalogSections = [
-  _Section('Películas', ['MOVIE'],   Icons.movie_outlined,       Icons.movie),
-  _Section('Doramas',   ['DORAMA'],  Icons.live_tv_outlined,     Icons.live_tv),
-  _Section('Series',    ['SERIES'],  Icons.tv_outlined,          Icons.tv),
-  _Section('Cómics',    ['MANGA', 'MANHWA', 'MANHUA', 'WEBTOON', 'NOVEL'],
-                                     Icons.auto_stories_outlined, Icons.auto_stories),
-  _Section('Anime',     ['ANIME'],   Icons.animation_outlined,   Icons.animation),
-];
-
-class MainShell extends StatefulWidget {
-  const MainShell({super.key});
+class _SplashScreen extends StatelessWidget {
+  const _SplashScreen();
 
   @override
-  State<MainShell> createState() => _MainShellState();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0A0E1A),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF09080F), Color(0xFF0F0D1A)],
+          ),
+        ),
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.play_circle_outline, color: Color(0xFF7C6FEB), size: 64),
+              SizedBox(height: 20),
+              Text('NEXUS', style: TextStyle(
+                fontFamily: 'Cinzel', fontSize: 32,
+                color: Color(0xFFF4F1FF), letterSpacing: 5,
+                fontWeight: FontWeight.w700)),
+              SizedBox(height: 6),
+              Text('Tu colección multimedia', style: TextStyle(
+                color: Color(0xFF8B84B0), fontFamily: 'DMSans', fontSize: 13,
+                letterSpacing: 0.3)),
+              SizedBox(height: 44),
+              CircularProgressIndicator(color: Color(0xFF7C6FEB), strokeWidth: 2),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _MainShellState extends State<MainShell> {
-  int _idx = 0;
+// ---------------------------------------------------------------------------
+// 4-tab navigation shell
+// ---------------------------------------------------------------------------
 
-  late final List<Widget> _pages = [
-    const HomeScreen(),
-    ..._catalogSections.map((s) => MediaListScreen(types: s.types, sectionLabel: s.label)),
-    const StatsScreen(),
-  ];
+class _NavTab {
+  final String label;
+  final IconData icon;
+  final IconData iconActive;
+  const _NavTab(this.label, this.icon, this.iconActive);
+}
 
-  bool get _isCatalog => _idx >= 1 && _idx <= _catalogSections.length;
+const _tabs = [
+  _NavTab('Inicio',   Icons.home_outlined,           Icons.home),
+  _NavTab('Catálogo', Icons.grid_view_outlined,       Icons.grid_view),
+  _NavTab('Buscar',   Icons.search_outlined,          Icons.search),
+  _NavTab('Perfil',   Icons.account_circle_outlined,  Icons.account_circle),
+];
 
-  _Section? get _currentSection =>
-      _isCatalog ? _catalogSections[_idx - 1] : null;
+class _ShellScaffold extends StatelessWidget {
+  final StatefulNavigationShell shell;
+  const _ShellScaffold({required this.shell});
 
   @override
   Widget build(BuildContext context) {
     final isDesktop = context.isDesktop;
+    final idx = shell.currentIndex;
 
     return Scaffold(
       appBar: AppBar(
@@ -151,65 +225,70 @@ class _MainShellState extends State<MainShell> {
         actions: [
           Consumer<ThemeProvider>(
             builder: (ctx, tp, _) => IconButton(
-              icon: Icon(tp.isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+              icon: Icon(tp.isDark
+                  ? Icons.light_mode_outlined
+                  : Icons.dark_mode_outlined),
               onPressed: tp.toggle,
               tooltip: 'Cambiar tema',
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.search, color: RpgColors.textMuted, size: 20),
+            icon: const Icon(Icons.bar_chart_outlined,
+                color: RpgColors.textMuted, size: 20),
             onPressed: () => Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const SearchScreen())),
-            tooltip: 'Buscar',
+                _slideRoute(const StatsScreen())),
+            tooltip: 'Estadísticas',
           ),
           IconButton(
-            icon: const Icon(Icons.download_outlined, color: RpgColors.textMuted, size: 20),
+            icon: const Icon(Icons.download_outlined,
+                color: RpgColors.textMuted, size: 20),
             onPressed: () => Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const ImportExportScreen())),
+                _slideRoute(const ImportExportScreen())),
             tooltip: 'Importar / Exportar',
           ),
           IconButton(
-            icon: const Icon(Icons.tune_outlined, color: RpgColors.textMuted, size: 20),
+            icon: const Icon(Icons.tune_outlined,
+                color: RpgColors.textMuted, size: 20),
             onPressed: () => Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const RatingConfigScreen())),
+                _slideRoute(const RatingConfigScreen())),
             tooltip: 'Configurar valoraciones',
           ),
           IconButton(
-            icon: const Icon(Icons.account_circle_outlined, color: RpgColors.textMuted, size: 20),
-            onPressed: () => Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const ProfileScreen())),
-            tooltip: 'Mi perfil',
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout_outlined, color: RpgColors.textMuted, size: 20),
-            onPressed: () => context.read<AuthProvider>().logout(),
+            icon: const Icon(Icons.logout_outlined,
+                color: RpgColors.textMuted, size: 20),
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              context.read<AuthProvider>().logout();
+            },
             tooltip: 'Cerrar sesión',
           ),
         ],
       ),
       body: isDesktop
-          ? Row(
-              children: [
-                _buildNavRail(),
-                const VerticalDivider(thickness: 1, width: 1),
-                Expanded(child: IndexedStack(index: _idx, children: _pages)),
-              ],
-            )
-          : IndexedStack(index: _idx, children: _pages),
-      floatingActionButton: _isCatalog
+          ? Row(children: [
+              _DesktopSidebar(
+                selectedIndex: idx,
+                onTabSelected: (i) => shell.goBranch(i),
+              ),
+              const VerticalDivider(thickness: 1, width: 1),
+              Expanded(child: shell),
+            ])
+          : shell,
+      floatingActionButton: idx == 1
           ? FloatingActionButton(
               onPressed: () async {
-                final section = _currentSection!;
+                HapticFeedback.lightImpact();
                 await Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => AddEntryScreen(
-                      initialType: section.types.first,
-                      availableTypes: section.types,
-                    ),
-                  ),
+                  _slideRoute(const AddEntryScreen(
+                    initialType: 'MOVIE',
+                    availableTypes: [
+                      'MOVIE', 'DORAMA', 'SERIES',
+                      'MANGA', 'MANHWA', 'MANHUA', 'WEBTOON', 'ANIME',
+                    ],
+                  )),
                 );
-                if (mounted) {
+                if (context.mounted) {
                   context.read<EntryChangeNotifier>().entryAdded();
                 }
               },
@@ -217,68 +296,205 @@ class _MainShellState extends State<MainShell> {
               child: const Icon(Icons.add, color: RpgColors.goldLight),
             )
           : null,
-      bottomNavigationBar: isDesktop ? null : Container(
-        decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: RpgColors.border, width: 1)),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _idx,
-          onTap: (i) => setState(() => _idx = i),
-          selectedFontSize: 9,
-          unselectedFontSize: 9,
-          iconSize: 22,
-          items: [
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Inicio',
+      bottomNavigationBar: isDesktop
+          ? null
+          : _MobileNav(
+              selectedIndex: idx,
+              onTap: (i) {
+                HapticFeedback.selectionClick();
+                shell.goBranch(i,
+                    initialLocation: i == shell.currentIndex);
+              },
             ),
-            ..._catalogSections.map((s) => BottomNavigationBarItem(
-              icon: Icon(s.icon),
-              activeIcon: Icon(s.iconActive),
-              label: s.label,
-            )),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.bar_chart_outlined),
-              activeIcon: Icon(Icons.bar_chart),
-              label: 'Stats',
-            ),
-          ],
+    );
+  }
+}
+
+PageRoute<T> _slideRoute<T>(Widget page) {
+  return PageRouteBuilder<T>(
+    pageBuilder: (_, __, ___) => page,
+    transitionDuration: const Duration(milliseconds: 260),
+    transitionsBuilder: (_, anim, __, child) {
+      return FadeTransition(
+        opacity: anim,
+        child: SlideTransition(
+          position: Tween(
+            begin: const Offset(0.0, 0.04),
+            end: Offset.zero,
+          ).chain(CurveTween(curve: Curves.easeOutCubic)).animate(anim),
+          child: child,
         ),
+      );
+    },
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Bottom navigation bar
+// ---------------------------------------------------------------------------
+
+class _MobileNav extends StatelessWidget {
+  final int selectedIndex;
+  final void Function(int) onTap;
+  const _MobileNav({required this.selectedIndex, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: RpgColors.border, width: 1)),
+      ),
+      child: BottomNavigationBar(
+        currentIndex: selectedIndex,
+        onTap: onTap,
+        selectedFontSize: 9,
+        unselectedFontSize: 9,
+        iconSize: 22,
+        items: _tabs
+            .map((t) => BottomNavigationBarItem(
+                  icon: Icon(t.icon),
+                  activeIcon: Icon(t.iconActive),
+                  label: t.label,
+                ))
+            .toList(),
       ),
     );
   }
+}
 
-  Widget _buildNavRail() {
-    return NavigationRail(
-      backgroundColor: RpgColors.darkVoid,
-      selectedIndex: _idx,
-      onDestinationSelected: (i) => setState(() => _idx = i),
-      labelType: NavigationRailLabelType.all,
-      minWidth: 90,
-      selectedIconTheme: const IconThemeData(color: RpgColors.accent, size: 22),
-      unselectedIconTheme: const IconThemeData(color: RpgColors.textMuted, size: 22),
-      selectedLabelTextStyle: const TextStyle(
-        color: RpgColors.accent, fontFamily: 'Crimson', fontSize: 11, fontWeight: FontWeight.w600),
-      unselectedLabelTextStyle: const TextStyle(
-        color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 11),
-      destinations: [
-        const NavigationRailDestination(
-          icon: Icon(Icons.home_outlined),
-          selectedIcon: Icon(Icons.home),
-          label: Text('Inicio'),
+// ---------------------------------------------------------------------------
+// Desktop sidebar
+// ---------------------------------------------------------------------------
+
+class _DesktopSidebar extends StatelessWidget {
+  final int selectedIndex;
+  final void Function(int) onTabSelected;
+  const _DesktopSidebar(
+      {required this.selectedIndex, required this.onTabSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    return Container(
+      width: 200,
+      color: RpgColors.darkVoid,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // User info badge
+          if (auth.user != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(children: [
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: RpgColors.goldDark,
+                  backgroundImage: auth.user!.avatarUrl != null
+                      ? NetworkImage(auth.user!.avatarUrl!)
+                      : null,
+                  child: auth.user!.avatarUrl == null
+                      ? const Icon(Icons.person, size: 16, color: Colors.white)
+                      : null,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        auth.user!.displayName ?? auth.user!.username,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: RpgColors.textPrimary, fontWeight: FontWeight.w600,
+                          overflow: TextOverflow.ellipsis),
+                      ),
+                      Text(
+                        '@${auth.user!.username}',
+                        style: const TextStyle(
+                          fontSize: 10, color: RpgColors.textMuted,
+                          overflow: TextOverflow.ellipsis),
+                      ),
+                    ],
+                  ),
+                ),
+              ]),
+            ),
+          const Divider(height: 1),
+          const SizedBox(height: 8),
+          // Main tabs
+          for (var i = 0; i < _tabs.length; i++)
+            _SidebarItem(
+              tab: _tabs[i],
+              isSelected: i == selectedIndex,
+              onTap: () => onTabSelected(i),
+            ),
+          const Divider(height: 1),
+          // Extra shortcuts
+          _SidebarItem(
+            tab: const _NavTab(
+                'Estadísticas', Icons.bar_chart_outlined, Icons.bar_chart),
+            isSelected: false,
+            onTap: () => Navigator.push(
+                context, _slideRoute(const StatsScreen())),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SidebarItem extends StatefulWidget {
+  final _NavTab tab;
+  final bool isSelected;
+  final VoidCallback onTap;
+  const _SidebarItem(
+      {required this.tab, required this.isSelected, required this.onTap});
+
+  @override
+  State<_SidebarItem> createState() => _SidebarItemState();
+}
+
+class _SidebarItemState extends State<_SidebarItem> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit:  (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: widget.isSelected
+                ? RpgColors.accent.withOpacity(0.15)
+                : _hovered
+                    ? RpgColors.surface.withOpacity(0.5)
+                    : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(children: [
+            Icon(
+              widget.isSelected ? widget.tab.iconActive : widget.tab.icon,
+              color: widget.isSelected ? RpgColors.accent : RpgColors.textMuted,
+              size: 18,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              widget.tab.label,
+              style: TextStyle(
+                fontFamily: 'Crimson', fontSize: 14,
+                color: widget.isSelected ? RpgColors.accent : RpgColors.textMuted,
+                fontWeight: widget.isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ]),
         ),
-        ..._catalogSections.map((s) => NavigationRailDestination(
-          icon: Icon(s.icon),
-          selectedIcon: Icon(s.iconActive),
-          label: Text(s.label),
-        )),
-        const NavigationRailDestination(
-          icon: Icon(Icons.bar_chart_outlined),
-          selectedIcon: Icon(Icons.bar_chart),
-          label: Text('Stats'),
-        ),
-      ],
+      ),
     );
   }
 }

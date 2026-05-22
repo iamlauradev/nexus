@@ -91,7 +91,7 @@ class _SearchScreenState extends State<SearchScreen> {
           const Icon(Icons.search, color: RpgColors.border, size: 56),
           const SizedBox(height: 16),
           const Text('Busca en toda tu colección', style: TextStyle(
-            fontFamily: 'Cinzel', color: RpgColors.textSecondary, fontSize: 15)),
+            color: RpgColors.textSecondary, fontSize: 15)),
           const SizedBox(height: 8),
           const Text('Películas, series, anime, cómics…', style: TextStyle(
             color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 13)),
@@ -108,7 +108,7 @@ class _SearchScreenState extends State<SearchScreen> {
           const Icon(Icons.search_off, color: RpgColors.border, size: 48),
           const SizedBox(height: 16),
           Text('Sin resultados para "${_searchCtrl.text}"', style: const TextStyle(
-            fontFamily: 'Cinzel', color: RpgColors.textSecondary, fontSize: 14)),
+            color: RpgColors.textSecondary, fontSize: 14)),
           const SizedBox(height: 8),
           const Text('Prueba con otro término', style: TextStyle(
             color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 13)),

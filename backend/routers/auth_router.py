@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from models import UserCreate, UserLogin, UserOut, TokenPair, ProfileUpdate, PasswordChange
 from auth import (
     hash_password, verify_password, create_token, decode_token,
-    create_refresh_token, is_token_blacklisted,
+    create_refresh_token, is_token_blacklisted, get_token_sig,
 )
 from database import get_conn, fetchone, execute
 from limiter import limiter
@@ -27,9 +27,7 @@ def get_current_user(authorization: Optional[str] = Header(None)) -> dict:
     payload = decode_token(token)
     if not payload:
         raise HTTPException(401, "Token inválido o expirado")
-    # Check blacklist using the token signature (the part after the last '.')
-    _, sig = token.rsplit(".", 1)
-    if is_token_blacklisted(sig):
+    if is_token_blacklisted(get_token_sig(token)):
         raise HTTPException(401, "Token revocado")
     user = fetchone("SELECT * FROM users WHERE id = %s", (int(payload["sub"]),))
     if not user:
@@ -111,8 +109,8 @@ def logout(body: LogoutRequest, authorization: Optional[str] = Header(None)):
         token = authorization.removeprefix("Bearer ").strip()
         payload = decode_token(token)
         if payload:
-            _, sig = token.rsplit(".", 1)
             import datetime as _dt
+            sig = get_token_sig(token)
             expires_at = _dt.datetime.fromtimestamp(payload["exp"], tz=_dt.timezone.utc)
             with get_conn() as conn:
                 cur = conn.cursor()

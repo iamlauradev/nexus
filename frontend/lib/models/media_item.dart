@@ -75,6 +75,10 @@ class SearchResult {
   final String? network;
   final String? castText;
   final int? episodes;
+  // Set by backend when this item is already in the user's library
+  final int? entryId;
+  final String? entryStatus;
+  final String? entryRating;
 
   const SearchResult({
     required this.source,
@@ -93,6 +97,9 @@ class SearchResult {
     this.network,
     this.castText,
     this.episodes,
+    this.entryId,
+    this.entryStatus,
+    this.entryRating,
   });
 
   factory SearchResult.fromJson(Map<String, dynamic> j) => SearchResult(
@@ -112,6 +119,9 @@ class SearchResult {
     network:        j['network'],
     castText:       j['cast_text'],
     episodes:       j['episodes'] as int?,
+    entryId:        j['entry_id'] as int?,
+    entryStatus:    j['entry_status'] as String?,
+    entryRating:    j['entry_rating'] as String?,
   );
 }
 

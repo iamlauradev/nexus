@@ -63,22 +63,33 @@ class _LoginScreenState extends State<LoginScreen> {
                 constraints: const BoxConstraints(maxWidth: 400),
                 padding: const EdgeInsets.all(32),
                 decoration: BoxDecoration(
-                  color: RpgColors.surface.withOpacity(0.92),
-                  borderRadius: BorderRadius.circular(16),
+                  color: RpgColors.surfaceHigh,
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: RpgColors.border),
-                  boxShadow: [BoxShadow(
-                    color: Colors.black.withOpacity(0.5),
-                    blurRadius: 40, spreadRadius: 0,
-                  )],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.6),
+                      blurRadius: 48, spreadRadius: 0,
+                    ),
+                    BoxShadow(
+                      color: RpgColors.accent.withOpacity(0.08),
+                      blurRadius: 48, spreadRadius: 8,
+                    ),
+                  ],
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Image.asset('assets/images/logo.png', width: 96, height: 96),
-                    const SizedBox(height: 12),
+                    Image.asset('assets/images/logo.png', width: 80, height: 80),
+                    const SizedBox(height: 10),
                     const Text('NEXUS', style: TextStyle(
-                      fontFamily: 'Crimson', fontSize: 14,
-                      color: RpgColors.textSecondary, letterSpacing: 2)),
+                      fontFamily: 'Cinzel', fontSize: 22,
+                      color: RpgColors.textPrimary, letterSpacing: 4,
+                      fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 4),
+                    const Text('Tu colección multimedia', style: TextStyle(
+                      fontFamily: 'DMSans', fontSize: 12,
+                      color: RpgColors.textMuted, letterSpacing: 0.3)),
                     const SizedBox(height: 32),
                   if (_register) ...[
                     TextField(
@@ -135,27 +146,20 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
-                    height: 46,
+                    height: 48,
                     child: ElevatedButton(
                       onPressed: _loading ? null : _submit,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: RpgColors.goldDark,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                      ),
                       child: _loading
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: RpgColors.goldLight))
-                        : Text(
-                            _register ? 'CREAR CUENTA' : 'ENTRAR',
-                            style: const TextStyle(fontFamily: 'Cinzel', letterSpacing: 2, color: RpgColors.goldLight),
-                          ),
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : Text(_register ? 'Crear cuenta' : 'Entrar'),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
                   TextButton(
                     onPressed: () => setState(() { _register = !_register; _error = null; }),
                     child: Text(
                       _register ? '¿Ya tienes cuenta? Inicia sesión' : '¿Sin cuenta? Regístrate',
-                      style: const TextStyle(color: RpgColors.amethystLight, fontSize: 13),
+                      style: const TextStyle(color: RpgColors.goldLight, fontSize: 13, fontFamily: 'DMSans'),
                     ),
                   ),
                   const SizedBox(height: 8),

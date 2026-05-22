@@ -116,20 +116,22 @@ def create_entry(data: EntryCreate, current_user = Depends(get_current_user)):
 @router.get("/export")
 def export_entries(current_user = Depends(get_current_user)):
     uid = current_user["id"]
-    rows = fetchall(
+    rows = [dict(r) for r in fetchall(
         "SELECT * FROM user_entries WHERE user_id = %s ORDER BY updated_at DESC",
         (uid,),
-    )
+    )]
+
+    # Batch-fetch all media in one query instead of N individual queries
+    media_ids = list({r["media_id"] for r in rows if r.get("media_id")})
+    media_map: dict = {}
+    if media_ids:
+        media_rows = fetchall("SELECT * FROM media WHERE id = ANY(%s)", (media_ids,))
+        media_map = {r["id"]: dict(r) for r in media_rows}
+
     entries_out = []
     for row in rows:
-        row = dict(row)
-        media = None
-        if row.get("media_id"):
-            m = fetchone("SELECT * FROM media WHERE id = %s", (row["media_id"],))
-            if m:
-                media = dict(m)
         entries_out.append({
-            "media": media,
+            "media": media_map.get(row.get("media_id")),
             "entry": {k: (v.isoformat() if hasattr(v, "isoformat") else v) for k, v in row.items()},
         })
     return {

@@ -170,6 +170,10 @@ class SearchResult(BaseModel):
     network: Optional[str] = None
     cast_text: Optional[str] = None
     episodes: Optional[int] = None
+    # Library membership (populated per-user at search time, never cached)
+    entry_id: Optional[int] = None
+    entry_status: Optional[str] = None
+    entry_rating: Optional[str] = None
 
 
 class RatingConfigCreate(BaseModel):

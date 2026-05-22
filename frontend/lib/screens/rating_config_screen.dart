@@ -51,7 +51,7 @@ class _RatingConfigScreenState extends State<RatingConfigScreen> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: RpgColors.surface,
-        title: Text('Eliminar "${cfg.label}"', style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Cinzel', fontSize: 16)),
+        title: Text('Eliminar "${cfg.label}"', style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'DMSans', fontSize: 16, fontWeight: FontWeight.w600)),
         content: const Text('¿Eliminar esta valoración?', style: TextStyle(color: RpgColors.textSecondary, fontFamily: 'Crimson')),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar', style: TextStyle(color: RpgColors.textMuted))),
@@ -157,7 +157,7 @@ class _RatingConfigScreenState extends State<RatingConfigScreen> {
         backgroundColor: RpgColors.gold,
         icon: const Icon(Icons.add, color: RpgColors.obsidian),
         label: const Text('Añadir', style: TextStyle(
-          fontFamily: 'Cinzel', color: RpgColors.obsidian, fontWeight: FontWeight.bold)),
+          fontFamily: 'DMSans', color: RpgColors.obsidian, fontWeight: FontWeight.w700)),
       ),
     );
   }
@@ -239,7 +239,7 @@ class _RatingEditorState extends State<_RatingEditor> {
         children: [
           Text(
             widget.existing != null ? 'Editar valoración' : 'Nueva valoración',
-            style: const TextStyle(fontFamily: 'Cinzel', color: RpgColors.textPrimary, fontSize: 16),
+            style: const TextStyle(fontFamily: 'DMSans', color: RpgColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 16),
           TextField(
@@ -259,7 +259,7 @@ class _RatingEditorState extends State<_RatingEditor> {
               style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
             ),
           const SizedBox(height: 16),
-          const Text('Color', style: TextStyle(fontFamily: 'Cinzel', color: RpgColors.textSecondary, fontSize: 12, letterSpacing: 1)),
+          const Text('Color', style: TextStyle(fontFamily: 'DMSans', color: RpgColors.textSecondary, fontSize: 12, letterSpacing: 0.3)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8, runSpacing: 8,
@@ -293,7 +293,7 @@ class _RatingEditorState extends State<_RatingEditor> {
               child: _saving
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : Text(widget.existing != null ? 'Guardar cambios' : 'Crear valoración',
-                      style: const TextStyle(fontFamily: 'Cinzel', color: Colors.white, fontWeight: FontWeight.bold)),
+                      style: const TextStyle(fontFamily: 'DMSans', color: Colors.white, fontWeight: FontWeight.w700)),
             ),
           ),
         ],

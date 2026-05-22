@@ -135,8 +135,8 @@ class _StatsScreenState extends State<StatsScreen> {
         Row(children: [
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const Text('ESTADÍSTICAS', style: TextStyle(
-              fontFamily: 'Cinzel', fontSize: 20, color: RpgColors.textPrimary,
-              fontWeight: FontWeight.bold, letterSpacing: 3)),
+              fontFamily: 'DMSans', fontSize: 20, color: RpgColors.textPrimary,
+              fontWeight: FontWeight.w700, letterSpacing: 2)),
             const SizedBox(height: 4),
             Text('$total obras en tu colección', style: const TextStyle(
               fontFamily: 'Crimson', color: RpgColors.textSecondary, fontSize: 14)),
@@ -145,15 +145,14 @@ class _StatsScreenState extends State<StatsScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: RpgColors.charcoal,
+                color: RpgColors.statusComplete.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: RpgColors.statusComplete.withOpacity(0.5)),
               ),
               child: Column(children: [
                 Text('$completedThisYear', style: const TextStyle(
-                  fontFamily: 'Cinzel', fontSize: 20, color: RpgColors.statusComplete, fontWeight: FontWeight.bold)),
+                  fontFamily: 'DMSans', fontSize: 20, color: RpgColors.statusComplete, fontWeight: FontWeight.bold)),
                 const Text('este año', style: TextStyle(
-                  fontFamily: 'Crimson', fontSize: 10, color: RpgColors.textMuted)),
+                  fontFamily: 'DMSans', fontSize: 10, color: RpgColors.textMuted)),
               ]),
             ),
         ]),
@@ -302,15 +301,14 @@ class _SectionGrid extends StatelessWidget {
               decoration: BoxDecoration(
                 color: RpgColors.charcoal,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: RpgColors.border),
               ),
               child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 Icon(s.icon, color: RpgColors.gold.withOpacity(0.8), size: 20),
                 const SizedBox(height: 4),
                 Text('${s.count}', style: const TextStyle(
-                  fontFamily: 'Cinzel', fontSize: 16, color: RpgColors.textPrimary, fontWeight: FontWeight.bold)),
+                  fontFamily: 'DMSans', fontSize: 16, color: RpgColors.textPrimary, fontWeight: FontWeight.bold)),
                 Text(s.label, style: const TextStyle(
-                  fontFamily: 'Crimson', fontSize: 9, color: RpgColors.textMuted)),
+                  fontFamily: 'DMSans', fontSize: 9, color: RpgColors.textMuted)),
               ]),
             ),
           )).toList(),
@@ -323,15 +321,14 @@ class _SectionGrid extends StatelessWidget {
                 margin: const EdgeInsets.symmetric(horizontal: 3),
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 decoration: BoxDecoration(
-                  color: RpgColors.surface,
+                  color: RpgColors.surfaceHigh,
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: RpgColors.border),
                 ),
                 child: Column(children: [
                   Text('${data[t.$1] ?? 0}', style: const TextStyle(
-                    fontFamily: 'Cinzel', fontSize: 13, color: RpgColors.gold, fontWeight: FontWeight.bold)),
+                    fontSize: 13, color: RpgColors.gold, fontWeight: FontWeight.bold)),
                   Text(t.$2, style: const TextStyle(
-                    fontFamily: 'Crimson', fontSize: 9, color: RpgColors.textMuted)),
+                    fontFamily: 'DMSans', fontSize: 9, color: RpgColors.textMuted)),
                 ]),
               ),
             )).toList(),
@@ -380,7 +377,7 @@ class _StatusBars extends StatelessWidget {
             SizedBox(
               width: 34,
               child: Text('$count', textAlign: TextAlign.right, style: TextStyle(
-                color: color, fontFamily: 'Cinzel', fontSize: 13, fontWeight: FontWeight.bold)),
+                color: color, fontSize: 13, fontWeight: FontWeight.bold)),
             ),
           ]),
         );
@@ -438,7 +435,7 @@ class _RatingBars extends StatelessWidget {
             SizedBox(
               width: 28,
               child: Text('$count', textAlign: TextAlign.right, style: TextStyle(
-                color: color, fontFamily: 'Cinzel', fontSize: 12, fontWeight: FontWeight.bold)),
+                color: color, fontSize: 12, fontWeight: FontWeight.bold)),
             ),
           ]),
         );
@@ -485,14 +482,13 @@ class _TimeSpentBox extends StatelessWidget {
       decoration: BoxDecoration(
         color: RpgColors.charcoal,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: RpgColors.border),
       ),
       child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
         Column(children: [
           const Icon(Icons.schedule_outlined, color: RpgColors.gold, size: 28),
           const SizedBox(height: 6),
           Text('~${_format()}', style: const TextStyle(
-            fontFamily: 'Cinzel', fontSize: 18, color: RpgColors.textPrimary, fontWeight: FontWeight.bold)),
+            fontFamily: 'DMSans', fontSize: 18, color: RpgColors.textPrimary, fontWeight: FontWeight.bold)),
           Text(_subtitle(), style: const TextStyle(
             fontFamily: 'Crimson', fontSize: 12, color: RpgColors.textMuted)),
         ]),
@@ -502,7 +498,7 @@ class _TimeSpentBox extends StatelessWidget {
             const Icon(Icons.calendar_today_outlined, color: RpgColors.amethystLight, size: 28),
             const SizedBox(height: 6),
             Text('~${days.toStringAsFixed(1)} días', style: const TextStyle(
-              fontFamily: 'Cinzel', fontSize: 18, color: RpgColors.textPrimary, fontWeight: FontWeight.bold)),
+              fontFamily: 'DMSans', fontSize: 18, color: RpgColors.textPrimary, fontWeight: FontWeight.bold)),
             const Text('equivalente', style: TextStyle(
               fontFamily: 'Crimson', fontSize: 12, color: RpgColors.textMuted)),
           ]),
@@ -688,17 +684,16 @@ class _ContentTypeCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: RpgColors.charcoal,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: RpgColors.border),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Icon(icon, color: RpgColors.gold.withOpacity(0.8), size: 16),
           const SizedBox(width: 8),
           Text(label, style: const TextStyle(
-            fontFamily: 'Cinzel', fontSize: 12, color: RpgColors.textPrimary, fontWeight: FontWeight.bold)),
+            fontSize: 12, color: RpgColors.textPrimary, fontWeight: FontWeight.w600)),
           const Spacer(),
           Text('$total', style: const TextStyle(
-            fontFamily: 'Cinzel', fontSize: 14, color: RpgColors.gold, fontWeight: FontWeight.bold)),
+            fontFamily: 'DMSans', fontSize: 14, color: RpgColors.gold, fontWeight: FontWeight.bold)),
           const Text('  obras', style: TextStyle(
             fontFamily: 'Crimson', fontSize: 12, color: RpgColors.textMuted)),
         ]),
@@ -728,7 +723,7 @@ class _ContentTypeCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 SizedBox(width: 28, child: Text('$count', textAlign: TextAlign.right, style: TextStyle(
-                  color: color, fontFamily: 'Cinzel', fontSize: 11, fontWeight: FontWeight.bold))),
+                  color: color, fontSize: 11, fontWeight: FontWeight.bold))),
               ]),
             );
           }),
@@ -780,7 +775,7 @@ class _GenreBars extends StatelessWidget {
               width: 42,
               child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
                 Text('${e.value}', style: const TextStyle(
-                  color: RpgColors.amethystLight, fontFamily: 'Cinzel', fontSize: 11, fontWeight: FontWeight.bold)),
+                  color: RpgColors.amethystLight, fontSize: 11, fontWeight: FontWeight.bold)),
                 Text(' $pctOfTotal%', style: const TextStyle(
                   color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 10)),
               ]),
@@ -838,7 +833,7 @@ class _AvgScoreByType extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             SizedBox(width: 36, child: Text(e.value.toStringAsFixed(1), textAlign: TextAlign.right,
-              style: TextStyle(color: color, fontFamily: 'Cinzel', fontSize: 12, fontWeight: FontWeight.bold))),
+              style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold))),
           ]),
         );
       }).toList(),
@@ -871,7 +866,6 @@ class _TopRewatched extends StatelessWidget {
           decoration: BoxDecoration(
             color: RpgColors.charcoal,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: RpgColors.border),
           ),
           child: Row(children: [
             Container(
@@ -879,10 +873,9 @@ class _TopRewatched extends StatelessWidget {
               decoration: BoxDecoration(
                 color: RpgColors.gold.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: RpgColors.gold.withOpacity(0.4)),
               ),
               child: Center(child: Text('${i + 1}', style: const TextStyle(
-                fontFamily: 'Cinzel', fontSize: 11, color: RpgColors.gold, fontWeight: FontWeight.bold))),
+                fontSize: 11, color: RpgColors.gold, fontWeight: FontWeight.bold))),
             ),
             const SizedBox(width: 10),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -896,7 +889,7 @@ class _TopRewatched extends StatelessWidget {
               const Icon(Icons.replay_outlined, size: 14, color: RpgColors.amethystLight),
               const SizedBox(width: 4),
               Text('x$count', style: const TextStyle(
-                fontFamily: 'Cinzel', fontSize: 13, color: RpgColors.amethystLight, fontWeight: FontWeight.bold)),
+                fontSize: 13, color: RpgColors.amethystLight, fontWeight: FontWeight.bold)),
             ]),
           ]),
         );
@@ -937,7 +930,7 @@ class _DecadeChart extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             SizedBox(width: 28, child: Text('${e.value}', textAlign: TextAlign.right,
-              style: const TextStyle(color: RpgColors.gold, fontFamily: 'Cinzel', fontSize: 12, fontWeight: FontWeight.bold))),
+              style: const TextStyle(color: RpgColors.gold, fontFamily: 'DMSans', fontSize: 12, fontWeight: FontWeight.bold))),
           ]),
         );
       }).toList(),
@@ -975,12 +968,11 @@ class _GenresByCategory extends StatelessWidget {
           decoration: BoxDecoration(
             color: RpgColors.charcoal,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: RpgColors.border),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(cat, style: TextStyle(
-              fontFamily: 'Cinzel', fontSize: 11, color: color,
-              fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+              fontFamily: 'DMSans', fontSize: 11, color: color,
+              fontWeight: FontWeight.bold, letterSpacing: 0.3)),
             const SizedBox(height: 8),
             ...genres.map((g) {
               final count = (g['count'] as num).toInt();
@@ -1004,7 +996,7 @@ class _GenresByCategory extends StatelessWidget {
                   )),
                   const SizedBox(width: 6),
                   SizedBox(width: 22, child: Text('$count', textAlign: TextAlign.right,
-                    style: TextStyle(color: color, fontFamily: 'Cinzel', fontSize: 10, fontWeight: FontWeight.bold))),
+                    style: TextStyle(color: color, fontFamily: 'DMSans', fontSize: 10, fontWeight: FontWeight.bold))),
                 ]),
               );
             }),
@@ -1062,7 +1054,6 @@ class _RecentActivity extends StatelessWidget {
           decoration: BoxDecoration(
             color: RpgColors.charcoal,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: RpgColors.border),
           ),
           child: Row(children: [
             Container(width: 3, height: 36,

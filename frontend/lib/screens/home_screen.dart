@@ -100,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
           color: accent, borderRadius: BorderRadius.circular(2))),
         const SizedBox(width: 8),
         Text(label, style: const TextStyle(
-          fontFamily: 'Cinzel', fontSize: 13, color: RpgColors.textSecondary, letterSpacing: 1)),
+          fontSize: 13, color: RpgColors.textSecondary, letterSpacing: 0.3, fontWeight: FontWeight.w600)),
         if (trailing != null) ...[const Spacer(), trailing],
       ]),
     );
@@ -124,32 +124,27 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Row(children: [
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('Hola, ${user?.name ?? ''}',
-                    style: const TextStyle(fontFamily: 'Crimson', fontSize: 16, color: RpgColors.textSecondary)),
+                    style: const TextStyle(fontFamily: 'DMSans', fontSize: 13, color: RpgColors.textMuted)),
                   const Text('Tu colección',
-                    style: TextStyle(fontFamily: 'Cinzel', fontSize: 26, fontWeight: FontWeight.bold,
-                      color: RpgColors.textPrimary, letterSpacing: 2)),
+                    style: TextStyle(fontFamily: 'Cinzel', fontSize: 26, fontWeight: FontWeight.w700,
+                      color: RpgColors.textPrimary, letterSpacing: 1)),
                 ])),
-                // ¿Qué ver ahora? button
                 if (!_loading)
-                  Tooltip(
-                    message: '¿Qué ver ahora?',
-                    child: InkWell(
-                      onTap: _showRandomPick,
-                      borderRadius: BorderRadius.circular(10),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: RpgColors.charcoal,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: RpgColors.gold.withOpacity(0.4)),
-                        ),
-                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          Icon(Icons.shuffle_rounded, color: RpgColors.gold, size: 18),
-                          const SizedBox(width: 6),
-                          const Text('¿Qué ver?', style: TextStyle(
-                            fontFamily: 'Cinzel', fontSize: 10, color: RpgColors.gold, letterSpacing: 0.5)),
-                        ]),
+                  GestureDetector(
+                    onTap: _showRandomPick,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: RpgColors.surface,
+                        borderRadius: BorderRadius.circular(10),
                       ),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.shuffle_rounded, color: RpgColors.accent, size: 16),
+                        const SizedBox(width: 6),
+                        const Text('¿Qué ver?', style: TextStyle(
+                          fontFamily: 'DMSans', fontSize: 11,
+                          color: RpgColors.textSecondary, fontWeight: FontWeight.w500)),
+                      ]),
                     ),
                   ),
               ]),
@@ -276,7 +271,6 @@ class _EmissionCalendar extends StatelessWidget {
       decoration: BoxDecoration(
         color: RpgColors.charcoal,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: RpgColors.border),
       ),
       child: Column(
         children: List.generate(7, (day) {
@@ -301,7 +295,7 @@ class _EmissionCalendar extends StatelessWidget {
                         border: isToday ? Border.all(color: RpgColors.gold.withOpacity(0.7)) : null,
                       ),
                       child: Center(child: Text(_dayLabels[day], style: TextStyle(
-                        fontFamily: 'Cinzel', fontSize: 11, fontWeight: FontWeight.bold,
+                        fontSize: 11, fontWeight: FontWeight.w600,
                         color: isToday ? RpgColors.gold : RpgColors.textMuted))),
                     ),
                     const SizedBox(width: 10),
@@ -345,7 +339,7 @@ class _EmissionCalendar extends StatelessWidget {
                           border: Border.all(color: RpgColors.gold.withOpacity(0.5)),
                         ),
                         child: const Text('HOY', style: TextStyle(
-                          fontFamily: 'Cinzel', fontSize: 8, color: RpgColors.gold, letterSpacing: 1)),
+                          fontSize: 8, color: RpgColors.gold, letterSpacing: 0.5, fontWeight: FontWeight.w600)),
                       ),
                   ]),
                 ),
@@ -405,8 +399,7 @@ class _RandomPickDialogState extends State<_RandomPickDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: RpgColors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: RpgColors.gold.withOpacity(0.3))),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -433,12 +426,11 @@ class _RandomPickDialogState extends State<_RandomPickDialog> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: selected ? RpgColors.gold.withOpacity(0.2) : RpgColors.charcoal,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: selected ? RpgColors.gold : RpgColors.border),
+                      color: selected ? RpgColors.gold.withOpacity(0.18) : RpgColors.surfaceHigh,
+                      borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(opt.label, style: TextStyle(
-                      fontFamily: 'Crimson', fontSize: 12,
+                      fontFamily: 'DMSans', fontSize: 12,
                       color: selected ? RpgColors.gold : RpgColors.textSecondary)),
                   ),
                 ),
@@ -463,7 +455,7 @@ class _RandomPickDialogState extends State<_RandomPickDialog> {
               Expanded(child: OutlinedButton.icon(
                 onPressed: _fetch,
                 icon: const Icon(Icons.refresh, size: 16),
-                label: const Text('Otra', style: TextStyle(fontFamily: 'Cinzel', fontSize: 11)),
+                label: const Text('Otra', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: RpgColors.textSecondary,
                   side: const BorderSide(color: RpgColors.border),
@@ -474,7 +466,7 @@ class _RandomPickDialogState extends State<_RandomPickDialog> {
               Expanded(child: ElevatedButton.icon(
                 onPressed: () => widget.onEntryTap(_pick!),
                 icon: const Icon(Icons.play_arrow_rounded, size: 16),
-                label: const Text('Ver detalle', style: TextStyle(fontFamily: 'Cinzel', fontSize: 11)),
+                label: const Text('Ver detalle', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: RpgColors.gold,
                   foregroundColor: Colors.black,
@@ -500,7 +492,6 @@ class _PickCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: RpgColors.charcoal,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: RpgColors.gold.withOpacity(0.3)),
       ),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         if (m?.coverUrl != null)
@@ -512,7 +503,7 @@ class _PickCard extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(m?.title ?? '', style: const TextStyle(
-            fontFamily: 'Cinzel', fontSize: 13, color: RpgColors.textPrimary, fontWeight: FontWeight.bold),
+            fontSize: 13, color: RpgColors.textPrimary, fontWeight: FontWeight.w600),
             maxLines: 2, overflow: TextOverflow.ellipsis),
           if (m?.year != null) ...[
             const SizedBox(height: 3),
@@ -525,11 +516,10 @@ class _PickCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: RpgColors.surface,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: RpgColors.border),
+                borderRadius: BorderRadius.circular(20),
               ),
               child: Text(g, style: const TextStyle(
-                fontFamily: 'Crimson', fontSize: 10, color: RpgColors.textMuted)),
+                fontFamily: 'DMSans', fontSize: 10, color: RpgColors.textMuted)),
             )).toList()),
           ],
           if (m?.synopsis != null) ...[
@@ -578,12 +568,11 @@ class _StatBox extends StatelessWidget {
         decoration: BoxDecoration(
           color: RpgColors.charcoal,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: RpgColors.border),
         ),
         child: Column(children: [
-          Text(value, style: TextStyle(fontFamily: 'Cinzel', fontSize: 22, color: color, fontWeight: FontWeight.bold)),
+          Text(value, style: TextStyle(fontFamily: 'DMSans', fontSize: 22, color: color, fontWeight: FontWeight.bold)),
           const SizedBox(height: 3),
-          Text(label, style: const TextStyle(fontFamily: 'Crimson', fontSize: 12, color: RpgColors.textMuted)),
+          Text(label, style: const TextStyle(fontFamily: 'DMSans', fontSize: 12, color: RpgColors.textMuted)),
         ]),
       ),
     );
@@ -615,15 +604,14 @@ class _TypeStats extends StatelessWidget {
           decoration: BoxDecoration(
             color: RpgColors.charcoal,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: RpgColors.border),
           ),
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             Icon(s.icon, color: RpgColors.gold.withOpacity(0.7), size: 20),
             const SizedBox(height: 5),
             Text('${s.count}', style: const TextStyle(
-              fontFamily: 'Cinzel', fontSize: 15, color: RpgColors.textPrimary, fontWeight: FontWeight.bold)),
+              fontFamily: 'DMSans', fontSize: 15, color: RpgColors.textPrimary, fontWeight: FontWeight.bold)),
             Text(s.label, style: const TextStyle(
-              fontFamily: 'Crimson', fontSize: 10, color: RpgColors.textMuted)),
+              fontFamily: 'DMSans', fontSize: 10, color: RpgColors.textMuted)),
           ]),
         ),
       )).toList(),

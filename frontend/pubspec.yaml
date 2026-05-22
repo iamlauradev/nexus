@@ -19,6 +19,9 @@ dependencies:
   fl_chart: ^0.68.0
   go_router: ^14.2.0
   provider: ^6.1.2
+  # Riverpod — next-gen state management (migration in progress)
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
   image_picker: ^1.1.2
   flutter_rating_bar: ^4.0.1
   shimmer: ^3.0.0
@@ -32,6 +35,10 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  build_runner: ^2.4.12
+  riverpod_generator: ^2.4.3
+  custom_lint: ^0.7.6
+  riverpod_lint: ^2.6.5
 
 flutter:
   uses-material-design: true
@@ -47,4 +54,9 @@ flutter:
       fonts:
         - asset: assets/fonts/CrimsonText-Regular.ttf
         - asset: assets/fonts/CrimsonText-Italic.ttf
+          style: italic
+    - family: DMSans
+      fonts:
+        - asset: assets/fonts/DMSans[opsz,wght].ttf
+        - asset: assets/fonts/DMSans-Italic[opsz,wght].ttf
           style: italic

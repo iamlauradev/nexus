@@ -15,8 +15,8 @@ class GoldDivider extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Text(label!, style: const TextStyle(
-              fontFamily: 'Cinzel', color: RpgColors.textMuted,
-              fontSize: 10, letterSpacing: 2,
+              color: RpgColors.textMuted,
+              fontSize: 10, letterSpacing: 0.8, fontWeight: FontWeight.w500,
             )),
           )
         else
@@ -39,18 +39,18 @@ class RatingBadge extends StatelessWidget {
     final color = RatingConfigCache.colorFor(label);
     final text = RatingConfigCache.labelFor(label);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        border: Border.all(color: color.withOpacity(0.6)),
-        borderRadius: BorderRadius.circular(4),
+        color: color.withOpacity(0.12),
+        border: Border.all(color: color.withOpacity(0.4)),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         text,
         style: TextStyle(
           color: color,
           fontSize: fontSize ?? 11,
-          fontFamily: 'Crimson',
+          fontFamily: 'DMSans',
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -71,16 +71,16 @@ class EmissionBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        border: Border.all(color: color.withOpacity(0.6)),
-        borderRadius: BorderRadius.circular(4),
+        color: color.withOpacity(0.12),
+        border: Border.all(color: color.withOpacity(0.4)),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-          const SizedBox(width: 5),
-          Text(label, style: TextStyle(color: color, fontSize: 11, fontFamily: 'Crimson')),
+          Container(width: 5, height: 5, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          const SizedBox(width: 4),
+          Text(label, style: TextStyle(color: color, fontSize: 11, fontFamily: 'DMSans', fontWeight: FontWeight.w500)),
         ],
       ),
     );
@@ -97,15 +97,15 @@ class StatusBadge extends StatelessWidget {
     final color = statusColor(status);
     final text = statusLabel(status);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
         color: color.withOpacity(0.12),
-        border: Border.all(color: color.withOpacity(0.5)),
-        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withOpacity(0.4)),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         text,
-        style: TextStyle(color: color, fontSize: 11, fontFamily: 'Crimson'),
+        style: TextStyle(color: color, fontSize: 11, fontFamily: 'DMSans', fontWeight: FontWeight.w500),
       ),
     );
   }

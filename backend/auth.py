@@ -1,11 +1,13 @@
-import hashlib
 import secrets
-import base64
+import hashlib
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple
-import json
+
+import jwt as pyjwt
 
 from config import SECRET_KEY, TOKEN_EXPIRE_MINUTES
+
+_ALGORITHM = "HS256"
 
 
 def hash_password(password: str) -> str:
@@ -28,25 +30,23 @@ def create_token(user_id: int, username: str) -> str:
     payload = {
         "sub": str(user_id),
         "usr": username,
-        "exp": int(expire.timestamp()),
+        "exp": expire,
     }
-    data = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode()
-    sig  = hashlib.sha256(f"{data}{SECRET_KEY}".encode()).hexdigest()
-    return f"{data}.{sig}"
+    return pyjwt.encode(payload, SECRET_KEY, algorithm=_ALGORITHM)
 
 
 def decode_token(token: str) -> Optional[dict]:
     try:
-        data, sig = token.rsplit(".", 1)
-        expected = hashlib.sha256(f"{data}{SECRET_KEY}".encode()).hexdigest()
-        if not secrets.compare_digest(sig, expected):
-            return None
-        payload = json.loads(base64.urlsafe_b64decode(data + "=="))
-        if payload["exp"] < datetime.now(timezone.utc).timestamp():
-            return None
-        return payload
-    except Exception:
+        return pyjwt.decode(token, SECRET_KEY, algorithms=[_ALGORITHM])
+    except pyjwt.ExpiredSignatureError:
         return None
+    except pyjwt.InvalidTokenError:
+        return None
+
+
+def get_token_sig(token: str) -> str:
+    """Returns the signature segment of a JWT (last dot-separated component)."""
+    return token.rsplit(".", 1)[-1]
 
 
 def create_refresh_token(user_id: int) -> Tuple[str, datetime]:

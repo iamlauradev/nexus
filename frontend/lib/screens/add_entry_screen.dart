@@ -189,8 +189,9 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
           Navigator.pop(context);
         }
       } catch (e) {
+        if (!mounted) return;
         setState(() => _saving = false);
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e'), backgroundColor: RpgColors.statusDropped));
       }
       return;
@@ -325,7 +326,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton(onPressed: _search,
-                  child: const Text('Buscar', style: TextStyle(fontFamily: 'Cinzel', fontSize: 12))),
+                  child: const Text('Buscar', style: TextStyle(fontFamily: 'DMSans', fontSize: 12))),
               ]),
               const SizedBox(height: 4),
               TextButton(
@@ -342,7 +343,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                   decoration: BoxDecoration(
                     color: RpgColors.charcoal,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: RpgColors.border),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -580,14 +580,13 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                     decoration: BoxDecoration(
                       color: RpgColors.charcoal,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: RpgColors.border),
                     ),
                     child: Row(children: [
                       const Icon(Icons.play_circle_outline, size: 14, color: RpgColors.statusWatching),
                       const SizedBox(width: 6),
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         const Text('INICIO', style: TextStyle(
-                          fontFamily: 'Cinzel', fontSize: 8, color: RpgColors.textMuted, letterSpacing: 1)),
+                          fontSize: 8, color: RpgColors.textMuted, letterSpacing: 0.6, fontWeight: FontWeight.w500)),
                         Text(_formatDate(_startedAt),
                           style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13)),
                       ])),
@@ -609,14 +608,13 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                     decoration: BoxDecoration(
                       color: RpgColors.charcoal,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: RpgColors.border),
                     ),
                     child: Row(children: [
                       const Icon(Icons.check_circle_outline, size: 14, color: RpgColors.statusComplete),
                       const SizedBox(width: 6),
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         const Text('FIN', style: TextStyle(
-                          fontFamily: 'Cinzel', fontSize: 8, color: RpgColors.textMuted, letterSpacing: 1)),
+                          fontSize: 8, color: RpgColors.textMuted, letterSpacing: 0.6, fontWeight: FontWeight.w500)),
                         Text(_formatDate(_completedAt),
                           style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13)),
                       ])),
@@ -646,7 +644,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                                 ? 'AÑADIR (1)'
                                 : 'AÑADIR ${_selectedItems.length} OBRAS',
                         style: const TextStyle(
-                          fontFamily: 'Cinzel', letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 14),
+                          fontFamily: 'DMSans', letterSpacing: 1, fontWeight: FontWeight.w700, fontSize: 14),
                       ),
               ),
             ),
@@ -668,8 +666,30 @@ class _CompactResultTile extends StatelessWidget {
   final VoidCallback onTap;
   const _CompactResultTile({required this.result, required this.selected, required this.onTap});
 
+  static const _statusLabels = {
+    'plan_to_watch': 'Pendiente',
+    'watching':      'Viendo',
+    'completed':     'Completado',
+    'on_hold':       'En espera',
+    'dropped':       'Abandonado',
+  };
+
+  Color _statusColor(String? s) {
+    switch (s) {
+      case 'watching':      return RpgColors.statusWatching;
+      case 'completed':     return RpgColors.statusComplete;
+      case 'plan_to_watch': return RpgColors.statusPlan;
+      case 'on_hold':       return RpgColors.statusOnHold;
+      case 'dropped':       return RpgColors.statusDropped;
+      default:              return RpgColors.textMuted;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final inLibrary = result.entryId != null;
+    final statusColor = _statusColor(result.entryStatus);
+
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -693,32 +713,55 @@ class _CompactResultTile extends StatelessWidget {
             ),
             const SizedBox(width: 8),
 
-            // Small cover
-            ClipRRect(
-              borderRadius: BorderRadius.circular(3),
-              child: result.coverUrl != null
-                  ? CachedNetworkImage(
-                      imageUrl: result.coverUrl!,
-                      width: 28, height: 40, fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) => _nocover(),
-                    )
-                  : _nocover(),
+            // Small cover with "in library" checkmark overlay
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(3),
+                  child: result.coverUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: result.coverUrl!,
+                          width: 28, height: 40, fit: BoxFit.cover,
+                          errorWidget: (_, __, ___) => _nocover(),
+                        )
+                      : _nocover(),
+                ),
+                if (inLibrary)
+                  Positioned(
+                    bottom: 0, left: 0, right: 0,
+                    child: Container(
+                      height: 13,
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.88),
+                        borderRadius: const BorderRadius.only(
+                          bottomLeft:  Radius.circular(3),
+                          bottomRight: Radius.circular(3),
+                        ),
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.check, size: 9, color: Colors.white),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(width: 8),
 
-            // Title + meta
+            // Title + meta + library status
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(result.title,
+                  Text(
+                    result.title,
                     maxLines: 1, overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: selected ? RpgColors.goldLight : RpgColors.textPrimary,
                       fontFamily: 'Crimson', fontSize: 13,
                       fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-                    )),
+                    ),
+                  ),
                   Row(children: [
                     if (result.year != null)
                       Text('${result.year}', style: const TextStyle(
@@ -729,6 +772,24 @@ class _CompactResultTile extends StatelessWidget {
                       Text('★ ${result.score!.toStringAsFixed(1)}',
                         style: const TextStyle(color: RpgColors.statusPlan, fontFamily: 'Crimson', fontSize: 11)),
                   ]),
+                  if (inLibrary) ...[
+                    const SizedBox(height: 2),
+                    Row(children: [
+                      Container(
+                        width: 5, height: 5,
+                        decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _statusLabels[result.entryStatus] ?? 'En tu lista',
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600, letterSpacing: 0.3,
+                        ),
+                      ),
+                    ]),
+                  ],
                 ],
               ),
             ),
@@ -739,10 +800,9 @@ class _CompactResultTile extends StatelessWidget {
               decoration: BoxDecoration(
                 color: RpgColors.surface,
                 borderRadius: BorderRadius.circular(3),
-                border: Border.all(color: RpgColors.border),
               ),
               child: Text(result.source.toUpperCase(),
-                style: const TextStyle(color: RpgColors.textMuted, fontSize: 8, fontFamily: 'Cinzel')),
+                style: const TextStyle(color: RpgColors.textMuted, fontSize: 8, fontWeight: FontWeight.w500)),
             ),
           ],
         ),
@@ -792,7 +852,7 @@ class _EmissionDayPicker extends StatelessWidget {
                 ),
                 child: Center(
                   child: Text(_days[i], style: TextStyle(
-                    fontFamily: 'Cinzel', fontSize: 11,
+                    fontFamily: 'DMSans', fontSize: 11,
                     color: sel ? RpgColors.gold : RpgColors.textMuted,
                     fontWeight: sel ? FontWeight.bold : FontWeight.normal,
                   )),
@@ -813,7 +873,7 @@ class _Label extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     text.toUpperCase(),
-    style: const TextStyle(fontFamily: 'Cinzel', fontSize: 10, color: RpgColors.textMuted, letterSpacing: 1.5),
+    style: const TextStyle(fontFamily: 'DMSans', fontSize: 10, color: RpgColors.textMuted, letterSpacing: 0.5),
   );
 }
 
@@ -841,12 +901,11 @@ class _EpisodeStepper extends StatelessWidget {
       decoration: BoxDecoration(
         color: RpgColors.charcoal,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: RpgColors.border),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text(label, style: const TextStyle(
-            fontFamily: 'Cinzel', fontSize: 9, color: RpgColors.textMuted, letterSpacing: 1.5)),
+            fontSize: 9, color: RpgColors.textMuted, letterSpacing: 0.8, fontWeight: FontWeight.w500)),
           Row(children: [
             GestureDetector(
               onTap: current > 0 ? () => onChanged(current - 1) : null,
@@ -855,7 +914,6 @@ class _EpisodeStepper extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: current > 0 ? RpgColors.surface : RpgColors.obsidian,
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: RpgColors.border),
                 ),
                 child: Icon(Icons.remove, size: 14,
                   color: current > 0 ? RpgColors.textPrimary : RpgColors.textMuted),
@@ -866,7 +924,7 @@ class _EpisodeStepper extends StatelessWidget {
               child: Text(
                 total != null ? '$current / $total' : '$current',
                 style: const TextStyle(
-                  color: RpgColors.gold, fontFamily: 'Cinzel', fontSize: 14, fontWeight: FontWeight.bold),
+                  color: RpgColors.gold, fontFamily: 'DMSans', fontSize: 14, fontWeight: FontWeight.bold),
               ),
             ),
             GestureDetector(
@@ -939,7 +997,6 @@ class _RewatchCounter extends StatelessWidget {
       decoration: BoxDecoration(
         color: RpgColors.charcoal,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: RpgColors.border),
       ),
       child: Row(children: [
         const Icon(Icons.replay_outlined, size: 16, color: RpgColors.textMuted),
@@ -947,7 +1004,7 @@ class _RewatchCounter extends StatelessWidget {
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(label, style: const TextStyle(
-              fontFamily: 'Cinzel', fontSize: 9, color: RpgColors.textMuted, letterSpacing: 1.5)),
+              fontSize: 9, color: RpgColors.textMuted, letterSpacing: 0.8, fontWeight: FontWeight.w500)),
             Text(
               count == 0 ? 'Sin revisiones' : 'x$count ${count == 1 ? "vez" : "veces"}',
               style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13),
@@ -962,7 +1019,6 @@ class _RewatchCounter extends StatelessWidget {
               decoration: BoxDecoration(
                 color: RpgColors.surface,
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: RpgColors.border),
               ),
               child: const Icon(Icons.remove, size: 14, color: RpgColors.textMuted),
             ),

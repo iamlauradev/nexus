@@ -39,8 +39,10 @@ class DetailScreen extends StatefulWidget {
   State<DetailScreen> createState() => _DetailScreenState();
 }
 
-class _DetailScreenState extends State<DetailScreen> {
+class _DetailScreenState extends State<DetailScreen>
+    with TickerProviderStateMixin {
   late UserEntry _entry;
+  late TabController _tabController;
   bool _editing = false;
   bool _saving = false;
   bool _synopsisExpanded = false;
@@ -67,6 +69,7 @@ class _DetailScreenState extends State<DetailScreen> {
   void initState() {
     super.initState();
     _entry = widget.entry;
+    _tabController = TabController(length: 3, vsync: this);
     _initFields();
   }
 
@@ -89,6 +92,7 @@ class _DetailScreenState extends State<DetailScreen> {
 
   @override
   void dispose() {
+    _tabController.dispose();
     _progressCtrl.dispose();
     _notesCtrl.dispose();
     _platformCtrl.dispose();
@@ -121,6 +125,7 @@ class _DetailScreenState extends State<DetailScreen> {
         'rewatch_count': _rewatchCount,
         'emission_day':  _emissionDay,
       });
+      if (!mounted) return;
       setState(() {
         _entry = UserEntry(
           id: updated.id, userId: updated.userId, mediaId: updated.mediaId,
@@ -135,10 +140,11 @@ class _DetailScreenState extends State<DetailScreen> {
         _saving = false;
       });
       _initFields();
-      if (mounted) context.read<EntryChangeNotifier>().entryAdded();
+      context.read<EntryChangeNotifier>().entryAdded();
     } catch (e) {
+      if (!mounted) return;
       setState(() => _saving = false);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e'), backgroundColor: RpgColors.statusDropped));
     }
   }
@@ -148,7 +154,7 @@ class _DetailScreenState extends State<DetailScreen> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: RpgColors.surface,
-        title: const Text('Eliminar', style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Cinzel', fontSize: 16)),
+        title: const Text('Eliminar', style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'DMSans', fontSize: 16, fontWeight: FontWeight.w600)),
         content: Text(
           '¿Quitar "${_entry.media?.title}" de tu lista?',
           style: const TextStyle(color: RpgColors.textSecondary, fontFamily: 'Crimson'),
@@ -271,7 +277,7 @@ class _DetailScreenState extends State<DetailScreen> {
           ? const SizedBox(width: 20, height: 20,
               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
           : const Text('Guardar', style: TextStyle(
-              fontFamily: 'Cinzel', color: RpgColors.obsidian, fontWeight: FontWeight.bold)),
+              fontFamily: 'DMSans', color: RpgColors.obsidian, fontWeight: FontWeight.w700)),
       icon: const Icon(Icons.save_outlined, color: RpgColors.obsidian),
     );
   }
@@ -393,20 +399,60 @@ class _DetailScreenState extends State<DetailScreen> {
       );
     }
 
-    // Mobile layout
+    // Mobile layout — TabBar splits content into digestible sections
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          _buildSliverHeader(media),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: _editing ? _buildEditForm() : _buildView(media),
-            ),
-          ),
-        ],
-      ),
       floatingActionButton: _editing ? _buildSaveFab() : null,
+      body: _editing
+          ? CustomScrollView(slivers: [
+              _buildSliverHeader(media),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: _buildEditForm(),
+                ),
+              ),
+            ])
+          : NestedScrollView(
+              headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                _buildSliverHeader(media),
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _TabBarDelegate(
+                    TabBar(
+                      controller: _tabController,
+                      labelColor: RpgColors.accent,
+                      unselectedLabelColor: RpgColors.textMuted,
+                      indicatorColor: RpgColors.accent,
+                      indicatorSize: TabBarIndicatorSize.label,
+                      labelStyle: const TextStyle(
+                        fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.3),
+                      tabs: const [
+                        Tab(text: 'PROGRESO'),
+                        Tab(text: 'INFO'),
+                        Tab(text: 'HISTORIAL'),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+              body: TabBarView(
+                controller: _tabController,
+                children: [
+                  // Tab 0: Tracking / progress
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: _buildTrackingSection(),
+                  ),
+                  // Tab 1: Media info
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: _buildInfoSection(media),
+                  ),
+                  // Tab 2: History
+                  _buildHistoryTab(),
+                ],
+              ),
+            ),
     );
   }
 
@@ -637,7 +683,7 @@ class _DetailScreenState extends State<DetailScreen> {
             const SizedBox(width: 8),
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Text('VALORACIÓN', style: TextStyle(
-                fontFamily: 'Cinzel', fontSize: 9, color: RpgColors.textMuted, letterSpacing: 1.5)),
+                fontSize: 9, color: RpgColors.textMuted, letterSpacing: 0.8, fontWeight: FontWeight.w500)),
               const SizedBox(height: 2),
               Text(ratingText, style: TextStyle(
                 color: ratingColor, fontFamily: 'Crimson', fontSize: 14, fontWeight: FontWeight.w600)),
@@ -698,7 +744,6 @@ class _DetailScreenState extends State<DetailScreen> {
             decoration: BoxDecoration(
               color: RpgColors.charcoal,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: RpgColors.border),
             ),
             child: Text(_entry.notes!, style: const TextStyle(
               color: RpgColors.textSecondary, fontFamily: 'Crimson',
@@ -728,12 +773,11 @@ class _DetailScreenState extends State<DetailScreen> {
               children: (media.genres as List<String>).map((g) => Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: RpgColors.charcoal,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: RpgColors.border),
+                  color: RpgColors.surfaceHigh,
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(g, style: const TextStyle(
-                  fontSize: 12, color: RpgColors.textSecondary, fontFamily: 'Crimson')),
+                  fontSize: 12, color: RpgColors.textSecondary, fontFamily: 'DMSans')),
               )).toList(),
             ),
           ],
@@ -949,6 +993,66 @@ class _DetailScreenState extends State<DetailScreen> {
       ],
     );
   }
+
+  Widget _buildHistoryTab() {
+    return FutureBuilder<List<dynamic>>(
+      future: ApiService.getEntryHistory(_entry.id),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(color: RpgColors.gold, strokeWidth: 2));
+        }
+        final history = snapshot.data ?? [];
+        if (history.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: Text('Sin cambios registrados',
+                style: TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 14)),
+            ),
+          );
+        }
+        return ListView.separated(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+          itemCount: history.length,
+          separatorBuilder: (_, __) => const Divider(color: RpgColors.border, height: 1),
+          itemBuilder: (context, i) {
+            final h = history[i];
+            final date = DateTime.tryParse(h['changed_at'] ?? '');
+            final dateStr = date != null
+                ? '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}'
+                : '';
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Row(children: [
+                const Icon(Icons.history_outlined, size: 14, color: RpgColors.textMuted),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(
+                      (h['field_name'] ?? '').toString().toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 9, color: RpgColors.textMuted,
+                        letterSpacing: 0.8, fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${h['old_value'] ?? '—'}  →  ${h['new_value'] ?? '—'}',
+                      style: const TextStyle(
+                        color: RpgColors.textSecondary,
+                        fontFamily: 'Crimson', fontSize: 13),
+                    ),
+                  ]),
+                ),
+                Text(dateStr, style: const TextStyle(
+                  color: RpgColors.textMuted, fontSize: 11, fontFamily: 'Crimson')),
+              ]),
+            );
+          },
+        );
+      },
+    );
+  }
 }
 
 // ---- Helper widgets ----
@@ -975,7 +1079,6 @@ class _DatePickerTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: RpgColors.charcoal,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: RpgColors.border),
         ),
         child: Row(children: [
           const Icon(Icons.calendar_today_outlined, size: 14, color: RpgColors.gold),
@@ -983,7 +1086,7 @@ class _DatePickerTile extends StatelessWidget {
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(label.toUpperCase(), style: const TextStyle(
-                fontFamily: 'Cinzel', fontSize: 8, color: RpgColors.textMuted, letterSpacing: 1)),
+                fontSize: 8, color: RpgColors.textMuted, letterSpacing: 0.6, fontWeight: FontWeight.w500)),
               const SizedBox(height: 2),
               Text(value, style: const TextStyle(
                 color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13)),
@@ -1024,12 +1127,11 @@ class _EpisodeProgressBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: RpgColors.charcoal,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: RpgColors.border),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           const Text('EPISODIOS', style: TextStyle(
-            fontFamily: 'Cinzel', fontSize: 9, color: RpgColors.textMuted, letterSpacing: 1.5)),
+            fontSize: 9, color: RpgColors.textMuted, letterSpacing: 0.8, fontWeight: FontWeight.w500)),
           Row(mainAxisSize: MainAxisSize.min, children: [
             if (onDecrement != null)
               GestureDetector(
@@ -1038,16 +1140,15 @@ class _EpisodeProgressBar extends StatelessWidget {
                   width: 24, height: 24,
                   margin: const EdgeInsets.only(right: 6),
                   decoration: BoxDecoration(
-                    color: RpgColors.surface,
+                    color: RpgColors.surfaceHigh,
                     borderRadius: BorderRadius.circular(5),
-                    border: Border.all(color: RpgColors.border),
                   ),
                   child: const Icon(Icons.remove, size: 12, color: RpgColors.textMuted),
                 ),
               ),
             Text(
               total > 0 ? '$current / $total' : 'Ep. $current',
-              style: const TextStyle(color: RpgColors.gold, fontFamily: 'Cinzel', fontSize: 12, fontWeight: FontWeight.bold),
+              style: const TextStyle(color: RpgColors.gold, fontSize: 12, fontWeight: FontWeight.bold),
             ),
             if (onIncrement != null)
               GestureDetector(
@@ -1101,7 +1202,6 @@ class _RewatchTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: RpgColors.charcoal,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: RpgColors.border),
       ),
       child: Row(children: [
         const Icon(Icons.replay_outlined, size: 16, color: RpgColors.textMuted),
@@ -1109,7 +1209,7 @@ class _RewatchTile extends StatelessWidget {
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const Text('VUELTO A VER', style: TextStyle(
-              fontFamily: 'Cinzel', fontSize: 9, color: RpgColors.textMuted, letterSpacing: 1.5)),
+              fontSize: 9, color: RpgColors.textMuted, letterSpacing: 0.8, fontWeight: FontWeight.w500)),
             Text(
               count == 0 ? 'Sin revisiones' : 'x$count ${count == 1 ? "vez" : "veces"}',
               style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13),
@@ -1122,9 +1222,8 @@ class _RewatchTile extends StatelessWidget {
             child: Container(
               width: 28, height: 28,
               decoration: BoxDecoration(
-                color: RpgColors.surface,
+                color: RpgColors.surfaceHigh,
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: RpgColors.border),
               ),
               child: const Icon(Icons.remove, size: 14, color: RpgColors.textMuted),
             ),
@@ -1171,21 +1270,19 @@ class _EpisodeStepper extends StatelessWidget {
       decoration: BoxDecoration(
         color: RpgColors.charcoal,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: RpgColors.border),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text(label, style: const TextStyle(
-            fontFamily: 'Cinzel', fontSize: 9, color: RpgColors.textMuted, letterSpacing: 1.5)),
+            fontSize: 9, color: RpgColors.textMuted, letterSpacing: 0.8, fontWeight: FontWeight.w500)),
           Row(children: [
             GestureDetector(
               onTap: current > 0 ? () => onChanged(current - 1) : null,
               child: Container(
                 width: 28, height: 28,
                 decoration: BoxDecoration(
-                  color: current > 0 ? RpgColors.surface : RpgColors.obsidian,
+                  color: current > 0 ? RpgColors.surfaceHigh : RpgColors.obsidian,
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: RpgColors.border),
                 ),
                 child: Icon(Icons.remove, size: 14,
                   color: current > 0 ? RpgColors.textPrimary : RpgColors.textMuted),
@@ -1196,7 +1293,7 @@ class _EpisodeStepper extends StatelessWidget {
               child: Text(
                 total != null ? '$current / $total' : '$current',
                 style: const TextStyle(
-                  color: RpgColors.gold, fontFamily: 'Cinzel', fontSize: 14, fontWeight: FontWeight.bold),
+                  color: RpgColors.gold, fontFamily: 'DMSans', fontSize: 14, fontWeight: FontWeight.bold),
               ),
             ),
             GestureDetector(
@@ -1268,7 +1365,6 @@ class _RewatchStepper extends StatelessWidget {
       decoration: BoxDecoration(
         color: RpgColors.charcoal,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: RpgColors.border),
       ),
       child: Row(children: [
         const Icon(Icons.replay_outlined, size: 16, color: RpgColors.textMuted),
@@ -1276,7 +1372,7 @@ class _RewatchStepper extends StatelessWidget {
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(label, style: const TextStyle(
-              fontFamily: 'Cinzel', fontSize: 9, color: RpgColors.textMuted, letterSpacing: 1.5)),
+              fontSize: 9, color: RpgColors.textMuted, letterSpacing: 0.8, fontWeight: FontWeight.w500)),
             Text(
               count == 0 ? 'Sin revisiones' : 'x$count ${count == 1 ? "vez" : "veces"}',
               style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13),
@@ -1289,9 +1385,8 @@ class _RewatchStepper extends StatelessWidget {
             child: Container(
               width: 28, height: 28,
               decoration: BoxDecoration(
-                color: RpgColors.surface,
+                color: RpgColors.surfaceHigh,
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: RpgColors.border),
               ),
               child: const Icon(Icons.remove, size: 14, color: RpgColors.textMuted),
             ),
@@ -1338,16 +1433,13 @@ class _EmissionDayPickerDetail extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: sel ? RpgColors.gold.withOpacity(0.18) : RpgColors.charcoal,
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: sel ? RpgColors.gold : RpgColors.border,
-                    width: sel ? 1.5 : 1,
-                  ),
+                  border: sel ? Border.all(color: RpgColors.gold, width: 1.5) : null,
                 ),
                 child: Center(
                   child: Text(_days[i], style: TextStyle(
-                    fontFamily: 'Cinzel', fontSize: 11,
+                    fontSize: 11,
                     color: sel ? RpgColors.gold : RpgColors.textMuted,
-                    fontWeight: sel ? FontWeight.bold : FontWeight.normal,
+                    fontWeight: sel ? FontWeight.w600 : FontWeight.normal,
                   )),
                 ),
               ),
@@ -1367,7 +1459,7 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) => Text(
     text.toUpperCase(),
     style: const TextStyle(
-      fontFamily: 'Cinzel', fontSize: 10, color: RpgColors.textMuted, letterSpacing: 2),
+      fontSize: 10, color: RpgColors.textMuted, letterSpacing: 0.8, fontWeight: FontWeight.w500),
   );
 }
 
@@ -1385,11 +1477,10 @@ class _InfoTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: RpgColors.charcoal,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: RpgColors.border),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(label.toUpperCase(), style: const TextStyle(
-          fontFamily: 'Cinzel', fontSize: 9, color: RpgColors.textMuted, letterSpacing: 1.5)),
+          fontSize: 9, color: RpgColors.textMuted, letterSpacing: 0.8, fontWeight: FontWeight.w500)),
         const SizedBox(height: 4),
         Row(children: [
           Icon(icon, size: 14, color: valueColor ?? RpgColors.textSecondary),
@@ -1416,7 +1507,6 @@ class _MetaChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: RpgColors.charcoal,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: RpgColors.border),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Icon(icon, size: 13, color: RpgColors.textMuted),
@@ -1476,7 +1566,7 @@ class _HistorySectionState extends State<_HistorySection> {
   Widget build(BuildContext context) {
     return ExpansionTile(
       title: const Text('Historial de cambios',
-          style: TextStyle(color: RpgColors.textSecondary, fontFamily: 'Cinzel', fontSize: 13)),
+          style: TextStyle(color: RpgColors.textSecondary, fontSize: 13)),
       iconColor: RpgColors.gold,
       collapsedIconColor: RpgColors.textMuted,
       onExpansionChanged: (v) {
@@ -1506,4 +1596,28 @@ class _HistorySectionState extends State<_HistorySection> {
             }).toList(),
     );
   }
+}
+
+// ---- Tab bar delegate for NestedScrollView ----
+
+class _TabBarDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar tabBar;
+  const _TabBarDelegate(this.tabBar);
+
+  @override
+  double get minExtent => tabBar.preferredSize.height;
+
+  @override
+  double get maxExtent => tabBar.preferredSize.height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: RpgColors.darkVoid,
+      child: tabBar,
+    );
+  }
+
+  @override
+  bool shouldRebuild(_TabBarDelegate old) => tabBar != old.tabBar;
 }

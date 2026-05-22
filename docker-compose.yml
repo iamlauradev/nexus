@@ -1,5 +1,20 @@
 services:
 
+  nexus_redis:
+    image: redis:7-alpine
+    container_name: nexus_redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6380:6379"
+    networks:
+      - homelab_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   nexus_postgres:
     image: postgres:16-alpine
     container_name: nexus_postgres
@@ -34,10 +49,14 @@ services:
       SECRET_KEY:  ${SECRET_KEY:-cambiar-esto-en-produccion}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-10080}
       TMDB_API_KEY: ${TMDB_API_KEY:-}
+      REDIS_HOST:  nexus_redis
+      REDIS_PORT:  6379
     ports:
       - "${BACKEND_PORT:-8500}:8000"
     depends_on:
       nexus_postgres:
+        condition: service_healthy
+      nexus_redis:
         condition: service_healthy
     networks:
       - homelab_net

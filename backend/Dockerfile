@@ -12,8 +12,14 @@ RUN pip install --no-cache-dir \
     psycopg2-binary==2.9.9 \
     pydantic==2.8.2 \
     requests==2.32.3 \
-    slowapi==0.1.9
+    slowapi==0.1.9 \
+    PyJWT==2.9.0 \
+    redis==5.2.1 \
+    alembic==1.13.3 \
+    SQLAlchemy==2.0.36
 
 COPY . .
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+RUN chmod +x entrypoint.sh
+
+CMD ["./entrypoint.sh"]

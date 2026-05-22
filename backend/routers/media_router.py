@@ -7,7 +7,8 @@ from pydantic import BaseModel
 from models import MediaCreate, MediaOut, SearchResult, MediaType, EmissionStatus
 from database import get_conn, fetchone, fetchall
 from routers.auth_router import get_current_user
-from config import TMDB_API_KEY, ANILIST_URL
+from config import TMDB_API_KEY, ANILIST_URL, CACHE_TTL_SEARCH
+import cache_service as cache
 
 router = APIRouter(prefix="/media", tags=["media"])
 
@@ -19,7 +20,6 @@ JIKAN_BASE = "https://api.jikan.moe/v4"
 MANGADEX_BASE = "https://api.mangadex.org"
 MANGADEX_IMG = "https://uploads.mangadex.org/covers"
 MU_BASE = "https://api.mangaupdates.com/v1"
-
 # Países considerados dorama
 DORAMA_COUNTRIES = {"KR", "JP", "TH", "CN", "TW", "HK", "SG", "PH", "ID", "VN"}
 
@@ -116,6 +116,10 @@ def _strip_html(text: str) -> str:
 # ---------------------------------------------------------------------------
 
 def _search_tmdb_movies(query: str) -> List[SearchResult]:
+    ck = cache.cache_key("tmdb:movies", query)
+    cached = cache.get(ck)
+    if cached is not None:
+        return [SearchResult(**r) for r in cached]
     data = _tmdb_get("/search/movie", {"query": query, "include_adult": False})
     gmap = _ensure_tmdb_genres()
     results = []
@@ -134,6 +138,7 @@ def _search_tmdb_movies(query: str) -> List[SearchResult]:
             type=MediaType.MOVIE,
             country=m.get("original_language", "").upper() or None,
         ))
+    cache.set(ck, [r.model_dump() for r in results], ttl=CACHE_TTL_SEARCH)
     return results
 
 
@@ -167,6 +172,10 @@ def _build_tmdb_tv_result(m: dict, forced_type: Optional[MediaType] = None) -> S
 
 def _search_tmdb_series(query: str) -> List[SearchResult]:
     """Series occidentales: filtra resultados que NO sean de países dorama."""
+    ck = cache.cache_key("tmdb:series", query)
+    cached = cache.get(ck)
+    if cached is not None:
+        return [SearchResult(**r) for r in cached]
     data = _tmdb_get("/search/tv", {"query": query, "include_adult": False})
     results = []
     for m in data.get("results", [])[:10]:
@@ -177,13 +186,58 @@ def _search_tmdb_series(query: str) -> List[SearchResult]:
     if not results:
         for m in data.get("results", [])[:5]:
             results.append(_build_tmdb_tv_result(m, forced_type=MediaType.SERIES))
+    cache.set(ck, [r.model_dump() for r in results[:6]], ttl=CACHE_TTL_SEARCH)
     return results[:6]
+
+
+# ---------------------------------------------------------------------------
+# Title language helpers
+# ---------------------------------------------------------------------------
+
+def _is_non_latin(text: str) -> bool:
+    """Returns True if text contains Thai, CJK, Korean or other non-Latin script."""
+    for c in text:
+        cp = ord(c)
+        if (0x0E00 <= cp <= 0x0E7F    # Thai
+                or 0x4E00 <= cp <= 0x9FFF   # CJK Unified Ideographs
+                or 0x3040 <= cp <= 0x30FF   # Hiragana + Katakana
+                or 0xAC00 <= cp <= 0xD7A3   # Korean syllables
+                or 0x1100 <= cp <= 0x11FF): # Korean Jamo
+            return True
+    return False
+
+
+def _apply_latin_title(results: List[SearchResult], query: str) -> List[SearchResult]:
+    """
+    For any result whose title is in non-Latin script (Thai, CJK, Korean), make
+    one extra TMDB call with language=en-US and replace with the English title.
+    This is lazy: the call is only made when at least one non-Latin title exists.
+    """
+    if not any(_is_non_latin(r.title) for r in results):
+        return results
+
+    en_data = _tmdb_get("/search/tv", {"query": query, "include_adult": False, "language": "en-US"})
+    en_map: dict = {}
+    for m in en_data.get("results", []):
+        name = m.get("name", "")
+        if name and not _is_non_latin(name):
+            en_map[str(m["id"])] = name
+
+    return [
+        r.model_copy(update={"title": en_map[r.external_id]})
+        if _is_non_latin(r.title) and r.external_id in en_map
+        else r
+        for r in results
+    ]
 
 
 def _search_tmdb_dorama(query: str) -> List[SearchResult]:
     """
-    Doramas asiáticos: busca en TMDB y prioriza contenido de países asiáticos.
-    Hace búsqueda extra en coreano/japonés si hay pocos resultados.
+    Doramas asiáticos. Todas las llamadas usan language=en-US para obtener el título
+    oficial en inglés directamente, sin depender de traducciones al español que a menudo
+    no existen y provocan que TMDB devuelva el título en el idioma original (tailandés,
+    chino, japonés…). _apply_latin_title queda como red de seguridad para obras que
+    TMDB no tiene traducidas al inglés.
     """
     seen_ids: set = set()
     results: List[SearchResult] = []
@@ -197,41 +251,43 @@ def _search_tmdb_dorama(query: str) -> List[SearchResult]:
                 seen_ids.add(str(m["id"]))
                 results.append(_build_tmdb_tv_result(m, forced_type=MediaType.DORAMA))
 
-    # Búsqueda principal en español
-    _add_from_data(_tmdb_get("/search/tv", {"query": query, "include_adult": False}))
+    # Búsqueda principal en inglés — TMDB busca en todos los idiomas pero devuelve
+    # el título en-US, que tiene cobertura mucho mayor que es-ES para contenido asiático
+    _add_from_data(_tmdb_get("/search/tv", {
+        "query": query, "include_adult": False, "language": "en-US",
+    }))
 
-    # Búsqueda adicional con idioma original (inglés, para títulos romanizados)
-    if len(results) < 5:
-        _add_from_data(_tmdb_get("/search/tv", {
-            "query": query,
-            "include_adult": False,
-            "language": "en-US",
-        }))
-
-    # Fallback: discover con países asiáticos + query aproximado por popularidad
+    # Fallback: discover por idioma original + match manual de palabras del query
     if len(results) < 3:
-        for lang in ["ko", "ja", "zh", "th"]:
+        for lang in ["ko", "ja", "zh", "th", "vi", "id"]:
             disc = _tmdb_get("/discover/tv", {
                 "with_original_language": lang,
                 "sort_by": "vote_count.desc",
                 "include_adult": False,
-                "vote_count.gte": 50,
-                "language": "es-ES",
+                "vote_count.gte": 20,
+                "language": "en-US",
             })
-            # El discover no filtra por texto, así que hacemos match manual
             for m in disc.get("results", [])[:20]:
-                title_lower = (m.get("name", "") + " " + m.get("original_name", "")).lower()
-                if any(word.lower() in title_lower for word in query.split() if len(word) > 2):
+                name_en = m.get("name", "")
+                orig    = m.get("original_name", "")
+                # Match contra título inglés y también contra título original romanizado
+                haystack = (name_en + " " + orig).lower()
+                if any(w.lower() in haystack for w in query.split() if len(w) > 2):
                     if str(m["id"]) not in seen_ids:
                         seen_ids.add(str(m["id"]))
                         results.append(_build_tmdb_tv_result(m, forced_type=MediaType.DORAMA))
 
-    # Si aún sin resultados asiáticos, devuelve cualquier resultado de la búsqueda
+    # Sin resultados asiáticos: devuelve cualquier resultado en inglés
     if not results:
-        data = _tmdb_get("/search/tv", {"query": query, "include_adult": False})
+        data = _tmdb_get("/search/tv", {
+            "query": query, "include_adult": False, "language": "en-US",
+        })
         for m in data.get("results", [])[:5]:
             if str(m["id"]) not in seen_ids:
                 results.append(_build_tmdb_tv_result(m, forced_type=MediaType.DORAMA))
+
+    # Red de seguridad: sustituye cualquier título no-latino residual por su versión inglesa
+    results = _apply_latin_title(results, query)
 
     return results[:8]
 
@@ -241,6 +297,10 @@ def _search_tmdb_dorama(query: str) -> List[SearchResult]:
 # ---------------------------------------------------------------------------
 
 def _search_anilist(query: str, media_type: str) -> List[SearchResult]:
+    ck = cache.cache_key("anilist", media_type, query)
+    cached = cache.get(ck)
+    if cached is not None:
+        return [SearchResult(**r) for r in cached]
     try:
         r = requests.post(
             ANILIST_URL,
@@ -310,11 +370,16 @@ def _search_anilist(query: str, media_type: str) -> List[SearchResult]:
             cast_text=cast_text,
             episodes=ep_count,
         ))
+    cache.set(ck, [r.model_dump() for r in results], ttl=CACHE_TTL_SEARCH)
     return results
 
 
 def _search_jikan_anime(query: str) -> List[SearchResult]:
     """MyAnimeList via Jikan v4 — fuente secundaria de anime."""
+    ck = cache.cache_key("jikan:anime", query)
+    cached = cache.get(ck)
+    if cached is not None:
+        return [SearchResult(**r) for r in cached]
     data = _jikan_get("/anime", {"q": query, "limit": 8, "sfw": True})
     seen_mal_ids: set = set()
     results = []
@@ -354,6 +419,7 @@ def _search_jikan_anime(query: str) -> List[SearchResult]:
             duration=duration,
             country="JP",
         ))
+    cache.set(ck, [r.model_dump() for r in results], ttl=CACHE_TTL_SEARCH)
     return results
 
 
@@ -548,6 +614,84 @@ def _search_manga(query: str, requested_type: MediaType) -> List[SearchResult]:
 
 
 # ---------------------------------------------------------------------------
+# Library membership check — annotates SearchResults with entry_id/status/rating
+# Called after external-API results are obtained so the cache never stores user data.
+# ---------------------------------------------------------------------------
+
+def _augment_with_library(results: List[SearchResult], user_id: int) -> List[SearchResult]:
+    if not results:
+        return results
+
+    tmdb_ids    = [int(r.external_id) for r in results
+                   if r.source == "tmdb" and r.external_id.isdigit()]
+    anilist_ids = [int(r.external_id) for r in results
+                   if r.source == "anilist" and r.external_id.isdigit()]
+    other_titles = [r.title.lower() for r in results
+                    if r.source not in ("tmdb", "anilist")]
+
+    conditions: List[str] = []
+    params: list = [user_id]
+
+    if tmdb_ids:
+        conditions.append("m.tmdb_id = ANY(%s)")
+        params.append(tmdb_ids)
+    if anilist_ids:
+        conditions.append("m.anilist_id = ANY(%s)")
+        params.append(anilist_ids)
+    if other_titles:
+        conditions.append("LOWER(m.title) = ANY(%s)")
+        params.append(other_titles)
+
+    if not conditions:
+        return results
+
+    try:
+        rows = fetchall(
+            f"""
+            SELECT ue.id, ue.status, ue.rating_label,
+                   m.tmdb_id, m.anilist_id, LOWER(m.title) AS title_lower
+            FROM user_entries ue
+            JOIN media m ON m.id = ue.media_id
+            WHERE ue.user_id = %s AND ({' OR '.join(conditions)})
+            """,
+            params,
+        )
+    except Exception:
+        return results
+
+    tmdb_map:   dict = {}
+    anilist_map: dict = {}
+    title_map:  dict = {}
+
+    for row in rows:
+        info = {
+            "entry_id":     row["id"],
+            "entry_status": row["status"],
+            "entry_rating": row["rating_label"],
+        }
+        if row["tmdb_id"]:
+            tmdb_map[row["tmdb_id"]] = info
+        if row["anilist_id"]:
+            anilist_map[row["anilist_id"]] = info
+        tl = row["title_lower"]
+        if tl:
+            title_map[tl] = info
+
+    augmented = []
+    for r in results:
+        match = None
+        if r.source == "tmdb" and r.external_id.isdigit():
+            match = tmdb_map.get(int(r.external_id))
+        elif r.source == "anilist" and r.external_id.isdigit():
+            match = anilist_map.get(int(r.external_id))
+        else:
+            match = title_map.get(r.title.lower())
+        augmented.append(r.model_copy(update=match) if match else r)
+
+    return augmented
+
+
+# ---------------------------------------------------------------------------
 # Endpoint principal
 # ---------------------------------------------------------------------------
 
@@ -555,29 +699,31 @@ def _search_manga(query: str, requested_type: MediaType) -> List[SearchResult]:
 def search_metadata(
     q: str = Query(min_length=2),
     type: MediaType = Query(MediaType.DORAMA),
-    _user = Depends(get_current_user),
+    user = Depends(get_current_user),
 ):
     if type == MediaType.MOVIE:
-        return _search_tmdb_movies(q)
+        results = _search_tmdb_movies(q)
 
-    if type == MediaType.SERIES:
-        return _search_tmdb_series(q)
+    elif type == MediaType.SERIES:
+        results = _search_tmdb_series(q)
 
-    if type == MediaType.DORAMA:
-        return _search_tmdb_dorama(q)
+    elif type == MediaType.DORAMA:
+        results = _search_tmdb_dorama(q)
 
-    if type == MediaType.ANIME:
+    elif type == MediaType.ANIME:
         anilist = _search_anilist(q, "ANIME")
         jikan = _search_jikan_anime(q)
-        # Merge: preferir AniList, añadir Jikan si hay resultados únicos
         seen_titles = {r.title.lower() for r in anilist}
         extras = [r for r in jikan if r.title.lower() not in seen_titles]
-        return (anilist + extras)[:10]
+        results = (anilist + extras)[:10]
 
-    if type in (MediaType.MANGA, MediaType.MANHWA, MediaType.MANHUA, MediaType.WEBTOON):
-        return _search_manga(q, type)
+    elif type in (MediaType.MANGA, MediaType.MANHWA, MediaType.MANHUA, MediaType.WEBTOON):
+        results = _search_manga(q, type)
 
-    return []
+    else:
+        results = []
+
+    return _augment_with_library(results, user["id"])
 
 
 # ---------------------------------------------------------------------------
