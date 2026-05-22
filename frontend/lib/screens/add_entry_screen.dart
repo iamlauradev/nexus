@@ -134,6 +134,16 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
   bool get _hasEpisodes => _type != 'MOVIE';
 
   void _toggleSelection(SearchResult r) {
+    if (r.entryId != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ya está en tu biblioteca'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Color(0xFF4A4570),
+        ),
+      );
+      return;
+    }
     setState(() {
       final idx = _selectedItems.indexWhere((s) => s.externalId == r.externalId);
       if (idx >= 0) {
@@ -692,62 +702,50 @@ class _CompactResultTile extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      child: Padding(
+      child: Container(
+        decoration: inLibrary
+            ? BoxDecoration(
+                color: statusColor.withOpacity(0.07),
+                border: Border(left: BorderSide(color: statusColor, width: 3)),
+              )
+            : null,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         child: Row(
           children: [
-            // Checkbox
-            Container(
-              width: 18, height: 18,
-              decoration: BoxDecoration(
-                color: selected ? RpgColors.gold.withOpacity(0.2) : Colors.transparent,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: selected ? RpgColors.gold : RpgColors.border,
-                  width: selected ? 1.5 : 1,
-                ),
-              ),
-              child: selected
-                  ? const Icon(Icons.check, size: 12, color: RpgColors.gold)
-                  : null,
-            ),
-            const SizedBox(width: 8),
-
-            // Small cover with "in library" checkmark overlay
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(3),
-                  child: result.coverUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: result.coverUrl!,
-                          width: 28, height: 40, fit: BoxFit.cover,
-                          errorWidget: (_, __, ___) => _nocover(),
-                        )
-                      : _nocover(),
-                ),
-                if (inLibrary)
-                  Positioned(
-                    bottom: 0, left: 0, right: 0,
-                    child: Container(
-                      height: 13,
-                      decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.88),
-                        borderRadius: const BorderRadius.only(
-                          bottomLeft:  Radius.circular(3),
-                          bottomRight: Radius.circular(3),
-                        ),
-                      ),
-                      child: const Center(
-                        child: Icon(Icons.check, size: 9, color: Colors.white),
-                      ),
-                    ),
+            // Checkbox (hidden when already in library)
+            if (!inLibrary)
+              Container(
+                width: 18, height: 18,
+                decoration: BoxDecoration(
+                  color: selected ? RpgColors.gold.withOpacity(0.2) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: selected ? RpgColors.gold : RpgColors.border,
+                    width: selected ? 1.5 : 1,
                   ),
-              ],
+                ),
+                child: selected
+                    ? const Icon(Icons.check, size: 12, color: RpgColors.gold)
+                    : null,
+              )
+            else
+              Icon(Icons.check_circle, size: 18, color: statusColor),
+            const SizedBox(width: 8),
+
+            // Small cover
+            ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: result.coverUrl != null
+                  ? CachedNetworkImage(
+                      imageUrl: result.coverUrl!,
+                      width: 28, height: 40, fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => _nocover(),
+                    )
+                  : _nocover(),
             ),
             const SizedBox(width: 8),
 
-            // Title + meta + library status
+            // Title + meta + library badge
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -757,39 +755,43 @@ class _CompactResultTile extends StatelessWidget {
                     result.title,
                     maxLines: 1, overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: selected ? RpgColors.goldLight : RpgColors.textPrimary,
+                      color: inLibrary
+                          ? RpgColors.textMuted
+                          : (selected ? RpgColors.goldLight : RpgColors.textPrimary),
                       fontFamily: 'Crimson', fontSize: 13,
                       fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
                     ),
                   ),
-                  Row(children: [
-                    if (result.year != null)
-                      Text('${result.year}', style: const TextStyle(
-                        color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 11)),
-                    if (result.year != null && result.score != null)
-                      const Text('  ·  ', style: TextStyle(color: RpgColors.textMuted, fontSize: 11)),
-                    if (result.score != null)
-                      Text('★ ${result.score!.toStringAsFixed(1)}',
-                        style: const TextStyle(color: RpgColors.statusPlan, fontFamily: 'Crimson', fontSize: 11)),
-                  ]),
-                  if (inLibrary) ...[
-                    const SizedBox(height: 2),
-                    Row(children: [
-                      Container(
-                        width: 5, height: 5,
-                        decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
+                  if (inLibrary)
+                    Container(
+                      margin: const EdgeInsets.only(top: 3),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: statusColor.withOpacity(0.5)),
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _statusLabels[result.entryStatus] ?? 'En tu lista',
+                      child: Text(
+                        'Ya en tu lista · ${_statusLabels[result.entryStatus] ?? "En tu lista"}',
                         style: TextStyle(
                           color: statusColor,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w600, letterSpacing: 0.3,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.2,
                         ),
                       ),
+                    )
+                  else
+                    Row(children: [
+                      if (result.year != null)
+                        Text('${result.year}', style: const TextStyle(
+                          color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 11)),
+                      if (result.year != null && result.score != null)
+                        const Text('  ·  ', style: TextStyle(color: RpgColors.textMuted, fontSize: 11)),
+                      if (result.score != null)
+                        Text('★ ${result.score!.toStringAsFixed(1)}',
+                          style: const TextStyle(color: RpgColors.statusPlan, fontFamily: 'Crimson', fontSize: 11)),
                     ]),
-                  ],
                 ],
               ),
             ),
