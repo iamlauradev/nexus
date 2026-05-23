@@ -13,7 +13,7 @@ docker run --rm \
   sh -c "
     flutter pub get && \
     flutter build apk --release \
-      --dart-define=API_URL=\${API_URL:-http://tu-servidor:8500} && \
+      --dart-define=API_URL=\${API_URL:-https://nexus-api.iamlaura.dev} && \
     echo '✓ APK generado en build/app/outputs/flutter-apk/app-release.apk'
   "
 
