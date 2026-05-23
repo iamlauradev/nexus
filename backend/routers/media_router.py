@@ -683,7 +683,10 @@ def _augment_with_library(results: List[SearchResult], user_id: int) -> List[Sea
             match = tmdb_map.get(int(r.external_id))
         elif r.source == "anilist" and r.external_id.isdigit():
             match = anilist_map.get(int(r.external_id))
-        if match is None:
+        else:
+            # Only fall back to title matching for sources without a canonical numeric ID
+            # (jikan, mangadex, mangaupdates). Never use title alone for tmdb/anilist
+            # because the same title can belong to multiple distinct works (different years).
             match = title_map.get(r.title.lower())
         augmented.append(r.model_copy(update=match) if match else r)
 
