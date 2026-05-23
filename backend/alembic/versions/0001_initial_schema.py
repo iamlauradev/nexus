@@ -32,9 +32,9 @@ def upgrade() -> None:
         name="rating_label", create_type=False,
     )
 
-    op.execute("CREATE TYPE IF NOT EXISTS media_type AS ENUM ('MANGA','MANHWA','MANHUA','WEBTOON','ANIME','MOVIE','SERIES','DORAMA')")
-    op.execute("CREATE TYPE IF NOT EXISTS tracking_status AS ENUM ('plan_to_watch','watching','completed','on_hold','dropped')")
-    op.execute("CREATE TYPE IF NOT EXISTS rating_label AS ENUM ('must','me_encanta','muy_bonita','bonita','pasable','no_me_gusto','abandonado','sin_valorar')")
+    op.execute("DO $$ BEGIN CREATE TYPE media_type AS ENUM ('MANGA','MANHWA','MANHUA','WEBTOON','ANIME','MOVIE','SERIES','DORAMA'); EXCEPTION WHEN duplicate_object THEN NULL; END $$")
+    op.execute("DO $$ BEGIN CREATE TYPE tracking_status AS ENUM ('plan_to_watch','watching','completed','on_hold','dropped'); EXCEPTION WHEN duplicate_object THEN NULL; END $$")
+    op.execute("DO $$ BEGIN CREATE TYPE rating_label AS ENUM ('must','me_encanta','muy_bonita','bonita','pasable','no_me_gusto','abandonado','sin_valorar'); EXCEPTION WHEN duplicate_object THEN NULL; END $$")
 
     op.create_table(
         "users",
@@ -51,7 +51,7 @@ def upgrade() -> None:
     op.create_table(
         "media",
         sa.Column("id", sa.Integer, primary_key=True),
-        sa.Column("type", sa.Enum(name="media_type"), nullable=False),
+        sa.Column("type", media_type, nullable=False),
         sa.Column("title", sa.Text, nullable=False),
         sa.Column("title_original", sa.Text),
         sa.Column("year", sa.Integer),
@@ -77,10 +77,10 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer, primary_key=True),
         sa.Column("user_id", sa.Integer, sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
         sa.Column("media_id", sa.Integer, sa.ForeignKey("media.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("status", sa.Enum(name="tracking_status"), nullable=False, server_default="plan_to_watch"),
+        sa.Column("status", tracking_status, nullable=False, server_default="plan_to_watch"),
         sa.Column("progress", sa.Text),
         sa.Column("score", sa.Numeric(4, 1)),
-        sa.Column("rating_label", sa.Enum(name="rating_label"), server_default="sin_valorar"),
+        sa.Column("rating_label", rating_label, server_default="sin_valorar"),
         sa.Column("notes", sa.Text),
         sa.Column("platform", sa.Text),
         sa.Column("started_at", sa.Date),
