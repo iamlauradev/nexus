@@ -362,8 +362,8 @@ def list_entries(
         conditions.append("m.type = %s")
         params.append(media_type)
     if q:
-        conditions.append("m.title ILIKE %s")
-        params.append(f"%{q}%")
+        conditions.append("(m.title ILIKE %s OR m.title_original ILIKE %s)")
+        params.extend([f"%{q}%", f"%{q}%"])
 
     where = " AND ".join(conditions)
     sql = f"""

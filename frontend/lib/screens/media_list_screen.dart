@@ -24,19 +24,24 @@ class MediaListScreen extends StatefulWidget {
 }
 
 const _allTypes = [
-  'MOVIE', 'DORAMA', 'SERIES', 'MANGA', 'MANHWA', 'MANHUA', 'WEBTOON', 'ANIME'
+  'MOVIE', 'DORAMA', 'SERIES', 'MANGA', 'MANHWA', 'MANHUA', 'WEBTOON', 'ANIME', 'NOVEL'
 ];
 
+// Virtual group: selects all readable/book types at once
+const _lecturaTypes = ['NOVEL', 'MANGA', 'MANHWA', 'MANHUA', 'WEBTOON'];
+
 const _typeLabels = {
-  'all':     'Tipo',
-  'MOVIE':   'Películas',
-  'DORAMA':  'Doramas',
-  'SERIES':  'Series',
-  'MANGA':   'Manga',
-  'MANHWA':  'Manhwa',
-  'MANHUA':  'Manhua',
-  'WEBTOON': 'Webtoon',
-  'ANIME':   'Anime',
+  'all':      'Tipo',
+  'LECTURA':  'Libros / Novelas',
+  'NOVEL':    'Novela',
+  'MANGA':    'Manga',
+  'MANHWA':   'Manhwa',
+  'MANHUA':   'Manhua',
+  'WEBTOON':  'Webtoon',
+  'MOVIE':    'Películas',
+  'DORAMA':   'Doramas',
+  'SERIES':   'Series',
+  'ANIME':    'Anime',
 };
 
 class _MediaListScreenState extends State<MediaListScreen> {
@@ -140,6 +145,7 @@ class _MediaListScreenState extends State<MediaListScreen> {
 
   List<String> get _activeTypes {
     if (widget.types != null) return widget.types!;
+    if (_typeFilter == 'LECTURA') return _lecturaTypes;
     if (_typeFilter != 'all') return [_typeFilter];
     return _allTypes;
   }
@@ -174,8 +180,12 @@ class _MediaListScreenState extends State<MediaListScreen> {
   List<UserEntry> get _filteredEntries {
     var result = _entries;
     if (_searchQuery.isNotEmpty) {
-      result = result.where((e) =>
-        (e.media?.title ?? '').toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+      final q = _searchQuery.toLowerCase();
+      result = result.where((e) {
+        final title     = (e.media?.title         ?? '').toLowerCase();
+        final titleOrig = (e.media?.titleOriginal ?? '').toLowerCase();
+        return title.contains(q) || titleOrig.contains(q);
+      }).toList();
     }
     if (_genre != 'all') {
       result = result.where((e) => (e.media?.genres ?? []).contains(_genre)).toList();

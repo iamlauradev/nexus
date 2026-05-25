@@ -9,6 +9,7 @@ import 'utils/responsive.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/media_list_screen.dart';
+import 'screens/catalog_hub_screen.dart';
 import 'screens/stats_screen.dart';
 import 'screens/add_entry_screen.dart';
 import 'screens/rating_config_screen.dart';
@@ -52,7 +53,7 @@ GoRouter _makeRouter(AuthProvider auth) {
           StatefulShellBranch(routes: [
             GoRoute(
               path: '/catalog',
-              pageBuilder: (_, state) => _fadePage(state, const MediaListScreen()),
+              pageBuilder: (_, state) => _fadePage(state, const CatalogHubScreen()),
             ),
           ]),
           StatefulShellBranch(routes: [
@@ -284,7 +285,7 @@ class _ShellScaffold extends StatelessWidget {
                     initialType: 'MOVIE',
                     availableTypes: [
                       'MOVIE', 'DORAMA', 'SERIES',
-                      'MANGA', 'MANHWA', 'MANHUA', 'WEBTOON', 'ANIME',
+                      'MANGA', 'MANHWA', 'MANHUA', 'WEBTOON', 'ANIME', 'NOVEL',
                     ],
                   )),
                 );
