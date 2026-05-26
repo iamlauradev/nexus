@@ -18,5 +18,5 @@ backend/routers/__pycache__/
 # APK output
 *.apk
 
-# Registro de actividad Claude (nunca subir a GitHub)
-claude-activity.txt
+# Registro de actividad local (nunca subir a GitHub)
+activity.txt
