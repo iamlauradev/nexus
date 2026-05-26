@@ -84,7 +84,7 @@ nexus/
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `DB_HOST` | Yes | — | PostgreSQL host |
+| `DB_HOST` | No | `localhost` | PostgreSQL host |
 | `DB_PORT` | No | `5432` | PostgreSQL port |
 | `DB_NAME` | No | `nexusdb` | Database name |
 | `DB_USER` | No | `nexus` | Database user |
@@ -116,7 +116,7 @@ The web app is available at `http://localhost:3500` and the API docs at `http://
 
 ### First user
 
-Register via the app's login screen → "Sign up". The first registered user becomes admin.
+Register via the app's login screen → "Sign up". Admin access is granted manually at the database level (`UPDATE users SET is_admin = true WHERE username = 'your_username'`).
 
 ### Importing an existing spreadsheet
 
@@ -159,7 +159,7 @@ Main endpoints:
 | `GET` | `/media/search` | Search TMDB / AniList / local DB |
 | `GET` | `/entries/` | Get all user library entries |
 | `POST` | `/entries/` | Add entry to library |
-| `PATCH` | `/entries/{id}` | Update entry |
+| `PUT` | `/entries/{entry_id}` | Update entry |
 | `GET` | `/entries/stats` | Library statistics |
 | `GET` | `/media/` | Browse all media in DB |
 
