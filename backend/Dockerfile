@@ -16,7 +16,7 @@ RUN pip install --no-cache-dir \
     PyJWT==2.9.0 \
     redis==5.2.1 \
     alembic==1.13.3 \
-    SQLAlchemy==2.0.36
+    bcrypt==4.2.1
 
 COPY . .
 

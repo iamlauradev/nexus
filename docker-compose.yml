@@ -4,67 +4,73 @@ services:
     image: redis:7-alpine
     container_name: nexus_redis
     restart: unless-stopped
-    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
-    ports:
-      - "6380:6379"
+    environment:
+      TZ: Europe/Madrid
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD}
     networks:
       - homelab_net
+    deploy:
+      resources:
+        limits:
+          memory: 192M
+          cpus: '0.2'
+        reservations:
+          memory: 16M
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
-
-  nexus_postgres:
-    image: postgres:16-alpine
-    container_name: nexus_postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB:       ${DB_NAME:-nexusdb}
-      POSTGRES_USER:     ${DB_USER:-nexus}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-nexus2024}
-    volumes:
-      - ./data/postgres:/var/lib/postgresql/data
-      - ./sql:/docker-entrypoint-initdb.d:ro
-    ports:
-      - "5433:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-nexus} -d ${DB_NAME:-nexusdb}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    networks:
-      - homelab_net
+      start_period: 10s
 
   nexus_backend:
     build: ./backend
     container_name: nexus_backend
     restart: unless-stopped
     environment:
-      DB_HOST:     nexus_postgres
+      TZ: Europe/Madrid
+      DB_HOST:     shared_postgres
       DB_PORT:     5432
-      DB_NAME:     ${DB_NAME:-nexusdb}
-      DB_USER:     ${DB_USER:-nexus}
-      DB_PASSWORD: ${DB_PASSWORD:-nexus2024}
-      SECRET_KEY:  ${SECRET_KEY:-cambiar-esto-en-produccion}
+      DB_NAME:     ${DB_NAME:-trackerdb}
+      DB_USER:     ${DB_USER:-tracker}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SECRET_KEY:  ${SECRET_KEY}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-10080}
       TMDB_API_KEY: ${TMDB_API_KEY:-}
-      REDIS_HOST:  nexus_redis
-      REDIS_PORT:  6379
+      REDIS_HOST:     nexus_redis
+      REDIS_PORT:     6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      ANILIST_URL: ${ANILIST_URL:-https://graphql.anilist.co}
     ports:
       - "${BACKEND_PORT:-8500}:8000"
     depends_on:
-      nexus_postgres:
-        condition: service_healthy
       nexus_redis:
         condition: service_healthy
     networks:
       - homelab_net
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 64M
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.nexus-api.rule=Host(`nexus-api.iamlaura.dev`)"
       - "traefik.http.routers.nexus-api.entrypoints=websecure"
       - "traefik.http.routers.nexus-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.nexus-api.middlewares=security-headers@file"
       - "traefik.http.services.nexus-api.loadbalancer.server.port=8000"
 
   nexus_frontend:
@@ -74,17 +80,35 @@ services:
         API_URL: ${API_EXTERNAL_URL:-https://nexus-api.iamlaura.dev}
     container_name: nexus_frontend
     restart: unless-stopped
+    environment:
+      TZ: Europe/Madrid
     ports:
       - "${FRONTEND_PORT:-3500}:80"
     depends_on:
       - nexus_backend
     networks:
       - homelab_net
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.1'
+        reservations:
+          memory: 8M
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.nexus.rule=Host(`nexus.iamlaura.dev`)"
       - "traefik.http.routers.nexus.entrypoints=websecure"
       - "traefik.http.routers.nexus.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.nexus.middlewares=security-headers@file"
       - "traefik.http.services.nexus.loadbalancer.server.port=80"
 
 networks:

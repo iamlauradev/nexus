@@ -209,26 +209,69 @@ def _is_non_latin(text: str) -> bool:
 
 def _apply_latin_title(results: List[SearchResult], query: str) -> List[SearchResult]:
     """
-    For any result whose title is in non-Latin script (Thai, CJK, Korean), make
-    one extra TMDB call with language=en-US and replace with the English title.
-    This is lazy: the call is only made when at least one non-Latin title exists.
+    For any result whose title is in non-Latin script (Thai, CJK, Korean), resolve
+    an English title via three escalating strategies:
+    1. Re-search TMDB with the original query and language=en-US (fast, covers most cases).
+    2. Fetch /tv/{id} with language=en-US directly (covers discovery-fallback results
+       whose name doesn't match the query).
+    3. Check /tv/{id}/alternative_titles for any Latin-script title (covers shows with
+       no official en-US translation but known by an English alias).
+    If none of the three yield a Latin title the original is kept but moved to
+    title_original so the user can at least see it.
     """
-    if not any(_is_non_latin(r.title) for r in results):
+    non_latin = [r for r in results if _is_non_latin(r.title)]
+    if not non_latin:
         return results
 
-    en_data = _tmdb_get("/search/tv", {"query": query, "include_adult": False, "language": "en-US"})
     en_map: dict = {}
+
+    # Strategy 1: re-search by query
+    en_data = _tmdb_get("/search/tv", {"query": query, "include_adult": False, "language": "en-US"})
     for m in en_data.get("results", []):
         name = m.get("name", "")
         if name and not _is_non_latin(name):
             en_map[str(m["id"])] = name
 
-    return [
-        r.model_copy(update={"title": en_map[r.external_id]})
-        if _is_non_latin(r.title) and r.external_id in en_map
-        else r
-        for r in results
-    ]
+    # Strategies 2 & 3: per-show lookup for still-unresolved results
+    for r in non_latin:
+        if r.external_id in en_map:
+            continue
+        # Strategy 2: detail endpoint
+        detail = _tmdb_get(f"/tv/{r.external_id}", {"language": "en-US"})
+        name = detail.get("name", "")
+        if name and not _is_non_latin(name):
+            en_map[r.external_id] = name
+            continue
+        # Strategy 3: alternative titles
+        alts = _tmdb_get(f"/tv/{r.external_id}/alternative_titles")
+        best: str = ""
+        for alt in alts.get("results", []):
+            alt_title = alt.get("title", "")
+            if not alt_title or _is_non_latin(alt_title):
+                continue
+            iso = alt.get("iso_3166_1", "")
+            if iso in ("US", "GB", "AU", "XW"):  # English-speaking or global
+                en_map[r.external_id] = alt_title
+                best = ""
+                break
+            if not best:
+                best = alt_title  # first Latin alt as fallback
+        if r.external_id not in en_map and best:
+            en_map[r.external_id] = best
+
+    out = []
+    for r in results:
+        if not _is_non_latin(r.title):
+            out.append(r)
+        elif r.external_id in en_map:
+            # Preserve original-script title in title_original if not already set
+            orig = r.title_original if r.title_original else r.title
+            out.append(r.model_copy(update={"title": en_map[r.external_id], "title_original": orig}))
+        else:
+            # No Latin title found anywhere — keep as-is; at least title_original is populated
+            orig = r.title_original if r.title_original else r.title
+            out.append(r.model_copy(update={"title_original": orig}))
+    return out
 
 
 def _search_tmdb_dorama(query: str) -> List[SearchResult]:
@@ -765,6 +808,73 @@ def create_media(data: MediaCreate, _user = Depends(get_current_user)):
     if row is None:
         raise HTTPException(500, "No se pudo crear el media")
     return MediaOut(**dict(row))
+
+
+@router.post("/admin/repair-titles")
+def repair_non_latin_titles(_user = Depends(get_current_user)):
+    """Find all media records with non-Latin titles and resolve them via TMDB."""
+    if not _user.get("is_admin"):
+        raise HTTPException(403, "Solo administradores")
+
+    rows = fetchall("""
+        SELECT id, type, title, title_original, tmdb_id
+        FROM media
+        WHERE title ~ '[^\\x00-\\x7F]'
+        ORDER BY id
+    """)
+
+    updated = 0
+    skipped = 0
+    results = []
+
+    for row in rows:
+        media_id = row["id"]
+        tmdb_id = row["tmdb_id"]
+        current_title = row["title"]
+        current_orig = row["title_original"]
+
+        new_title = None
+
+        if tmdb_id:
+            # Strategy 1: detail endpoint
+            mtype = row["type"]
+            endpoint = f"/movie/{tmdb_id}" if mtype == "MOVIE" else f"/tv/{tmdb_id}"
+            detail = _tmdb_get(endpoint, {"language": "en-US"})
+            name = detail.get("name") or detail.get("title", "")
+            if name and not _is_non_latin(name):
+                new_title = name
+            else:
+                # Strategy 2: alternative titles
+                alts_ep = f"/movie/{tmdb_id}/alternative_titles" if mtype == "MOVIE" else f"/tv/{tmdb_id}/alternative_titles"
+                alts = _tmdb_get(alts_ep)
+                best = ""
+                for alt in alts.get("results", []) + alts.get("titles", []):
+                    alt_title = alt.get("title", "")
+                    if not alt_title or _is_non_latin(alt_title):
+                        continue
+                    if alt.get("iso_3166_1") in ("US", "GB", "AU", "XW"):
+                        new_title = alt_title
+                        best = ""
+                        break
+                    if not best:
+                        best = alt_title
+                if not new_title and best:
+                    new_title = best
+
+        if new_title:
+            orig = current_orig if current_orig else current_title
+            with get_conn() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    "UPDATE media SET title=%s, title_original=%s, updated_at=NOW() WHERE id=%s",
+                    (new_title, orig, media_id)
+                )
+            results.append({"id": media_id, "old": current_title, "new": new_title})
+            updated += 1
+        else:
+            skipped += 1
+
+    return {"updated": updated, "skipped": skipped, "details": results}
 
 
 @router.post("/admin/backfill-genres")

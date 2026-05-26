@@ -3,6 +3,7 @@ import hashlib
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple
 
+import bcrypt
 import jwt as pyjwt
 
 from config import SECRET_KEY, TOKEN_EXPIRE_MINUTES
@@ -11,13 +12,14 @@ _ALGORITHM = "HS256"
 
 
 def hash_password(password: str) -> str:
-    salt = secrets.token_hex(16)
-    h = hashlib.sha256(f"{salt}{password}{SECRET_KEY}".encode()).hexdigest()
-    return f"{salt}:{h}"
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
 
 def verify_password(password: str, stored: str) -> bool:
     try:
+        if stored.startswith("$2b$") or stored.startswith("$2a$"):
+            return bcrypt.checkpw(password.encode(), stored.encode())
+        # Legacy SHA-256 path — for accounts created before bcrypt migration
         salt, h = stored.split(":", 1)
         expected = hashlib.sha256(f"{salt}{password}{SECRET_KEY}".encode()).hexdigest()
         return secrets.compare_digest(h, expected)

@@ -9,7 +9,7 @@ from typing import Any, Optional
 
 import redis as redis_lib
 
-from config import REDIS_HOST, REDIS_PORT, REDIS_DB
+from config import REDIS_HOST, REDIS_PORT, REDIS_DB, REDIS_PASSWORD
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +23,7 @@ def _get_client() -> Optional[redis_lib.Redis]:
     try:
         _client = redis_lib.Redis(
             host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB,
+            password=REDIS_PASSWORD or None,
             decode_responses=True, socket_connect_timeout=2,
         )
         _client.ping()

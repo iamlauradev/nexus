@@ -26,10 +26,12 @@ ANILIST_URL    = os.environ.get("ANILIST_URL", "https://graphql.anilist.co")
 
 DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
-REDIS_HOST = os.environ.get("REDIS_HOST", "nexus_redis")
-REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
-REDIS_DB   = int(os.environ.get("REDIS_DB", 0))
-REDIS_URL  = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
+REDIS_HOST     = os.environ.get("REDIS_HOST", "nexus_redis")
+REDIS_PORT     = int(os.environ.get("REDIS_PORT", 6379))
+REDIS_DB       = int(os.environ.get("REDIS_DB", 0))
+REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD", "")
+_auth = f":{REDIS_PASSWORD}@" if REDIS_PASSWORD else ""
+REDIS_URL      = f"redis://{_auth}{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
 
 # TTLs in seconds for external API response caching
 CACHE_TTL_SEARCH  = int(os.environ.get("CACHE_TTL_SEARCH",  3600))   # 1 hour
