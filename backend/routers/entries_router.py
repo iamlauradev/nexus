@@ -141,33 +141,46 @@ def export_entries(current_user = Depends(get_current_user)):
     }
 
 
-@router.get("/stats")
-def get_stats(current_user = Depends(get_current_user)):
+@router.get("/platforms")
+def get_platforms(current_user = Depends(get_current_user)):
     uid = current_user["id"]
+    rows = fetchall(
+        "SELECT DISTINCT platform FROM user_entries WHERE user_id = %s AND platform IS NOT NULL AND platform != '' ORDER BY platform",
+        (uid,),
+    )
+    return [r["platform"] for r in rows]
+
+
+@router.get("/stats")
+def get_stats(year: Optional[int] = Query(None), current_user = Depends(get_current_user)):
+    uid = current_user["id"]
+    yf     = " AND EXTRACT(year FROM created_at) = %s" if year else ""
+    yf_ue  = " AND EXTRACT(year FROM ue.created_at) = %s" if year else ""
+    yp     = (year,) if year else ()
 
     with get_conn() as conn:
         cur = conn.cursor()
 
-        cur.execute("SELECT COUNT(*) AS n FROM user_entries WHERE user_id=%s", (uid,))
+        cur.execute(f"SELECT COUNT(*) AS n FROM user_entries WHERE user_id=%s{yf}", (uid,) + yp)
         total = cur.fetchone()["n"]
 
-        cur.execute("SELECT status, COUNT(*) AS n FROM user_entries WHERE user_id=%s GROUP BY status", (uid,))
+        cur.execute(f"SELECT status, COUNT(*) AS n FROM user_entries WHERE user_id=%s{yf} GROUP BY status", (uid,) + yp)
         by_status = {r["status"]: r["n"] for r in cur.fetchall()}
 
-        cur.execute("""SELECT m.type, COUNT(*) AS n FROM user_entries ue
-            JOIN media m ON m.id=ue.media_id WHERE ue.user_id=%s GROUP BY m.type""", (uid,))
+        cur.execute(f"""SELECT m.type, COUNT(*) AS n FROM user_entries ue
+            JOIN media m ON m.id=ue.media_id WHERE ue.user_id=%s{yf_ue} GROUP BY m.type""", (uid,) + yp)
         by_type = {r["type"]: r["n"] for r in cur.fetchall()}
 
-        cur.execute("""SELECT rating_label, COUNT(*) AS n FROM user_entries
-            WHERE user_id=%s AND rating_label IS NOT NULL GROUP BY rating_label""", (uid,))
+        cur.execute(f"""SELECT rating_label, COUNT(*) AS n FROM user_entries
+            WHERE user_id=%s AND rating_label IS NOT NULL{yf} GROUP BY rating_label""", (uid,) + yp)
         by_rating = {r["rating_label"]: r["n"] for r in cur.fetchall()}
 
-        cur.execute("""
+        cur.execute(f"""
             SELECT m.type, unnest(m.genres) AS genre, COUNT(*) AS count
             FROM user_entries ue JOIN media m ON m.id = ue.media_id
-            WHERE ue.user_id = %s AND m.genres IS NOT NULL AND array_length(m.genres, 1) > 0
+            WHERE ue.user_id = %s AND m.genres IS NOT NULL AND array_length(m.genres, 1) > 0{yf_ue}
             GROUP BY m.type, genre ORDER BY count DESC
-        """, (uid,))
+        """, (uid,) + yp)
         raw_genres: dict = defaultdict(int)
         _COMICS = {"MANGA", "MANHWA", "MANHUA", "WEBTOON"}
         _CAT_LABEL = {"MOVIE": "Películas", "SERIES": "Series", "DORAMA": "Doramas", "ANIME": "Anime"}
@@ -203,10 +216,10 @@ def get_stats(current_user = Depends(get_current_user)):
             for r in cur.fetchall()
         ]
 
-        cur.execute("""
+        cur.execute(f"""
             SELECT COUNT(*) AS n FROM user_entries ue JOIN media m ON m.id = ue.media_id
-            WHERE ue.user_id = %s AND (m.genres IS NULL OR m.genres = '{}')
-        """, (uid,))
+            WHERE ue.user_id = %s AND (m.genres IS NULL OR m.genres = '{{}}'){yf_ue}
+        """, (uid,) + yp)
         no_genre_count = cur.fetchone()["n"]
 
         cur.execute("""
@@ -216,33 +229,40 @@ def get_stats(current_user = Depends(get_current_user)):
         """, (uid,))
         completed_this_year = cur.fetchone()["n"]
 
-        cur.execute("""
-            SELECT to_char(date_trunc('month', created_at), 'YYYY-MM') AS month, COUNT(*) AS count
-            FROM user_entries WHERE user_id = %s AND created_at >= NOW() - INTERVAL '12 months'
-            GROUP BY month ORDER BY month ASC
-        """, (uid,))
+        if year:
+            cur.execute("""
+                SELECT to_char(date_trunc('month', created_at), 'YYYY-MM') AS month, COUNT(*) AS count
+                FROM user_entries WHERE user_id = %s AND EXTRACT(year FROM created_at) = %s
+                GROUP BY month ORDER BY month ASC
+            """, (uid, year))
+        else:
+            cur.execute("""
+                SELECT to_char(date_trunc('month', created_at), 'YYYY-MM') AS month, COUNT(*) AS count
+                FROM user_entries WHERE user_id = %s AND created_at >= NOW() - INTERVAL '12 months'
+                GROUP BY month ORDER BY month ASC
+            """, (uid,))
         monthly_added = [{"month": r["month"], "count": r["count"]} for r in cur.fetchall()]
 
-        cur.execute("""
+        cur.execute(f"""
             SELECT ROUND(score)::int AS score, COUNT(*) AS count
             FROM user_entries
-            WHERE user_id = %s AND score IS NOT NULL AND score >= 1 AND score <= 10
+            WHERE user_id = %s AND score IS NOT NULL AND score >= 1 AND score <= 10{yf}
             GROUP BY ROUND(score)::int ORDER BY score ASC
-        """, (uid,))
+        """, (uid,) + yp)
         score_distribution = [{"score": r["score"], "count": r["count"]} for r in cur.fetchall()]
 
-        cur.execute("""
+        cur.execute(f"""
             SELECT m.type, m.duration, ue.ep_current, ue.status
             FROM user_entries ue JOIN media m ON m.id = ue.media_id
-            WHERE ue.user_id = %s AND ue.status != 'plan_to_watch'
-        """, (uid,))
+            WHERE ue.user_id = %s AND ue.status != 'plan_to_watch'{yf_ue}
+        """, (uid,) + yp)
         watched_rows = cur.fetchall()
 
-        cur.execute("""
+        cur.execute(f"""
             SELECT m.type, ue.status, COUNT(*) AS count
             FROM user_entries ue JOIN media m ON m.id = ue.media_id
-            WHERE ue.user_id = %s GROUP BY m.type, ue.status
-        """, (uid,))
+            WHERE ue.user_id = %s{yf_ue} GROUP BY m.type, ue.status
+        """, (uid,) + yp)
         content_type_stats: dict = {}
         for r in cur.fetchall():
             t = r["type"]
@@ -250,19 +270,19 @@ def get_stats(current_user = Depends(get_current_user)):
                 content_type_stats[t] = {}
             content_type_stats[t][r["status"]] = r["count"]
 
-        cur.execute("""
+        cur.execute(f"""
             SELECT m.type, ROUND(AVG(ue.score)::numeric, 2) AS avg_score
             FROM user_entries ue JOIN media m ON m.id = ue.media_id
-            WHERE ue.user_id = %s AND ue.score IS NOT NULL GROUP BY m.type
-        """, (uid,))
+            WHERE ue.user_id = %s AND ue.score IS NOT NULL{yf_ue} GROUP BY m.type
+        """, (uid,) + yp)
         avg_score_by_type = {r["type"]: float(r["avg_score"]) for r in cur.fetchall()}
 
-        cur.execute("""
+        cur.execute(f"""
             SELECT ue.rewatch_count, m.title, m.type
             FROM user_entries ue JOIN media m ON m.id = ue.media_id
-            WHERE ue.user_id = %s AND ue.rewatch_count > 0
+            WHERE ue.user_id = %s AND ue.rewatch_count > 0{yf_ue}
             ORDER BY ue.rewatch_count DESC LIMIT 5
-        """, (uid,))
+        """, (uid,) + yp)
         top_rewatched = [{"title": r["title"], "type": r["type"], "count": r["rewatch_count"]} for r in cur.fetchall()]
 
         cur.execute("""

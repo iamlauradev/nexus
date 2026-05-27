@@ -294,8 +294,16 @@ class ApiService {
     await _handleResponse(r, retry: () => http.delete(uri, headers: _headers));
   }
 
-  static Future<Map<String, dynamic>> getStats() async {
-    final uri = Uri.parse('$_baseUrl/entries/stats');
+  static Future<List<String>> getPlatforms() async {
+    final uri = Uri.parse('$_baseUrl/entries/platforms');
+    final r = await http.get(uri, headers: _headers);
+    final list = await _handleListResponse(r, retry: () => http.get(uri, headers: _headers));
+    return list.map((e) => e.toString()).toList();
+  }
+
+  static Future<Map<String, dynamic>> getStats({int? year}) async {
+    final params = year != null ? {'year': year.toString()} : null;
+    final uri = Uri.parse('$_baseUrl/entries/stats').replace(queryParameters: params);
     final r = await http.get(uri, headers: _headers);
     return _handleResponse(r, retry: () => http.get(uri, headers: _headers));
   }

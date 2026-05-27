@@ -46,6 +46,9 @@ class _DetailScreenState extends State<DetailScreen>
   bool _editing = false;
   bool _saving = false;
   bool _synopsisExpanded = false;
+  bool _notesExpanded = false;
+  List<String> _platforms = [];
+  final _platformFocus = FocusNode();
 
   late String _status;
   late String _ratingLabel;
@@ -71,6 +74,8 @@ class _DetailScreenState extends State<DetailScreen>
     _entry = widget.entry;
     _tabController = TabController(length: 3, vsync: this);
     _initFields();
+    _platformFocus.addListener(() => setState(() {}));
+    ApiService.getPlatforms().then((p) { if (mounted) setState(() => _platforms = p); });
   }
 
   void _initFields() {
@@ -98,6 +103,7 @@ class _DetailScreenState extends State<DetailScreen>
     _progressCtrl.dispose();
     _notesCtrl.dispose();
     _platformCtrl.dispose();
+    _platformFocus.dispose();
     _coverUrlCtrl.dispose();
     super.dispose();
   }
@@ -228,6 +234,54 @@ class _DetailScreenState extends State<DetailScreen>
           updatedAt: updated.updatedAt, media: _entry.media,
         );
         _epCurrent = updated.epCurrent ?? 0;
+      });
+      if (mounted && updated.epTotal != null && updated.epCurrent == updated.epTotal && _entry.status != 'completed') {
+        _suggestComplete();
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _suggestComplete() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: RpgColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text('¿Has terminado?', style: TextStyle(
+          fontFamily: 'Cinzel', fontSize: 16, color: RpgColors.textPrimary)),
+        content: Text('Llegaste al último episodio. ¿Marcar como completado?',
+          style: TextStyle(color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 14)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('No', style: TextStyle(color: RpgColors.textMuted)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('Sí, completar', style: TextStyle(fontFamily: 'DMSans')),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    final today = DateTime.now().toIso8601String().split('T').first;
+    try {
+      final updated = await ApiService.updateEntry(_entry.id, {
+        'status': 'completed',
+        'completed_at': today,
+      });
+      setState(() {
+        _entry = UserEntry(
+          id: updated.id, userId: updated.userId, mediaId: updated.mediaId,
+          status: updated.status, progress: updated.progress, score: updated.score,
+          ratingLabel: updated.ratingLabel, notes: updated.notes, platform: updated.platform,
+          startedAt: updated.startedAt, completedAt: updated.completedAt,
+          epCurrent: updated.epCurrent, epTotal: updated.epTotal,
+          rewatchCount: updated.rewatchCount, emissionDay: updated.emissionDay,
+          updatedAt: updated.updatedAt, media: _entry.media,
+        );
+        _status = updated.status;
+        _completedAt = updated.completedAt;
       });
     } catch (_) {}
   }
@@ -376,7 +430,6 @@ class _DetailScreenState extends State<DetailScreen>
           ),
           actions: _buildDetailActions(),
         ),
-        floatingActionButton: _editing ? _buildSaveFab() : null,
         body: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -411,7 +464,6 @@ class _DetailScreenState extends State<DetailScreen>
 
     // Mobile layout — TabBar splits content into digestible sections
     return Scaffold(
-      floatingActionButton: _editing ? _buildSaveFab() : null,
       body: _editing
           ? CustomScrollView(slivers: [
               _buildSliverHeader(media),
@@ -737,17 +789,36 @@ class _DetailScreenState extends State<DetailScreen>
           SizedBox(height: 12),
           _SectionHeader('Mis notas'),
           SizedBox(height: 8),
-          Container(
+          GestureDetector(
+            onTap: () => setState(() => _notesExpanded = !_notesExpanded),
+            child: Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: RpgColors.charcoal,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Text(_entry.notes!, style: TextStyle(
-              color: RpgColors.textSecondary, fontFamily: 'Crimson',
-              fontSize: 14, height: 1.6, fontStyle: FontStyle.italic)),
-          ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _entry.notes!,
+                  maxLines: _notesExpanded ? null : 5,
+                  overflow: _notesExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: RpgColors.textSecondary, fontFamily: 'Crimson',
+                    fontSize: 14, height: 1.6, fontStyle: FontStyle.italic),
+                ),
+                if (_entry.notes!.length > 150 || _entry.notes!.contains('\n')) ...[
+                  SizedBox(height: 6),
+                  Text(
+                    _notesExpanded ? 'ver menos ↑' : 'ver más ↓',
+                    style: TextStyle(color: RpgColors.gold, fontSize: 12, fontFamily: 'Crimson'),
+                  ),
+                ],
+              ],
+            ),
+          )),
         ],
       ],
     );
@@ -930,6 +1001,7 @@ class _DetailScreenState extends State<DetailScreen>
 
         TextField(
           controller: _progressCtrl,
+          textCapitalization: TextCapitalization.sentences,
           decoration: const InputDecoration(
             labelText: 'Notas de progreso (T2 E5, Cap 23…)',
             prefixIcon: Icon(Icons.bookmark_outline, color: RpgColors.gold, size: 18),
@@ -939,12 +1011,40 @@ class _DetailScreenState extends State<DetailScreen>
         SizedBox(height: 12),
         TextField(
           controller: _platformCtrl,
+          focusNode: _platformFocus,
+          textCapitalization: TextCapitalization.words,
           decoration: const InputDecoration(
             labelText: 'Plataforma (Netflix, Crunchyroll…)',
             prefixIcon: Icon(Icons.devices_outlined, color: RpgColors.gold, size: 18),
           ),
           style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
         ),
+        if (_platformFocus.hasFocus && _platforms.isNotEmpty) ...[
+          SizedBox(height: 6),
+          SizedBox(
+            height: 30,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: _platforms.map((p) => GestureDetector(
+                onTap: () {
+                  _platformCtrl.text = p;
+                  _platformFocus.unfocus();
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(right: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: RpgColors.charcoal,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: RpgColors.border),
+                  ),
+                  child: Center(child: Text(p, style: TextStyle(
+                    color: RpgColors.textSecondary, fontSize: 12, fontFamily: 'Crimson'))),
+                ),
+              )).toList(),
+            ),
+          ),
+        ],
         SizedBox(height: 12),
         // Date pickers
         _SectionHeader('Fechas'),
@@ -982,13 +1082,27 @@ class _DetailScreenState extends State<DetailScreen>
         TextField(
           controller: _notesCtrl,
           maxLines: 6,
+          textCapitalization: TextCapitalization.sentences,
           decoration: const InputDecoration(
             labelText: 'Mis notas / reseña',
             alignLabelWithHint: true,
           ),
           style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 14, height: 1.5),
         ),
-        SizedBox(height: 100),
+        SizedBox(height: 24),
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: ElevatedButton(
+            onPressed: _saving ? null : _save,
+            child: _saving
+                ? const SizedBox(width: 20, height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : Text('GUARDAR CAMBIOS', style: TextStyle(
+                    fontFamily: 'DMSans', letterSpacing: 1, fontWeight: FontWeight.w700, fontSize: 14)),
+          ),
+        ),
+        SizedBox(height: 32),
       ],
     );
   }

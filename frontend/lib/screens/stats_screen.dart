@@ -18,6 +18,7 @@ class _StatsScreenState extends State<StatsScreen> {
   bool _loading = true;
   bool _fetching = false;
   EntryChangeNotifier? _entryNotifier;
+  int? _yearFilter;
 
   @override
   void initState() {
@@ -46,7 +47,7 @@ class _StatsScreenState extends State<StatsScreen> {
     if (_fetching) return;
     _fetching = true;
     try {
-      final s = await ApiService.getStats();
+      final s = await ApiService.getStats(year: _yearFilter);
       if (mounted) setState(() { _stats = s; _loading = false; });
     } catch (_) {
       if (mounted) setState(() { _loading = false; });
@@ -68,6 +69,30 @@ class _StatsScreenState extends State<StatsScreen> {
         title: Text('ESTADÍSTICAS', style: TextStyle(
           fontFamily: 'Cinzel', fontSize: 15, color: RpgColors.textPrimary, letterSpacing: 1)),
         actions: [
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _yearFilter = _yearFilter == null ? DateTime.now().year : null;
+                _loading = true;
+              });
+              _load();
+            },
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              decoration: BoxDecoration(
+                color: _yearFilter != null ? RpgColors.gold.withOpacity(0.15) : RpgColors.charcoal,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: _yearFilter != null ? RpgColors.gold : RpgColors.border),
+              ),
+              child: Center(child: Text(
+                _yearFilter != null ? '$_yearFilter' : 'Todo',
+                style: TextStyle(
+                  color: _yearFilter != null ? RpgColors.gold : RpgColors.textMuted,
+                  fontSize: 12, fontFamily: 'DMSans', fontWeight: FontWeight.w600),
+              )),
+            ),
+          ),
           IconButton(
             icon: Icon(Icons.refresh_outlined, color: RpgColors.textMuted),
             onPressed: _load,

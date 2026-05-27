@@ -60,6 +60,8 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
   final _notesCtrl    = TextEditingController();
   final _platformCtrl = TextEditingController();
   final _titleCtrl    = TextEditingController();
+  final _platformFocus = FocusNode();
+  List<String> _platforms = [];
 
   List<SearchResult> _results = [];
   final List<SearchResult> _selectedItems = [];
@@ -86,6 +88,8 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
       _ratingLabel = keys.isNotEmpty ? keys.last : 'sin_valorar';
     }
     if (widget.initialType != null) _type = widget.initialType!;
+    _platformFocus.addListener(() => setState(() {}));
+    ApiService.getPlatforms().then((p) { if (mounted) setState(() => _platforms = p); });
   }
 
   @override
@@ -95,6 +99,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
     _notesCtrl.dispose();
     _platformCtrl.dispose();
     _titleCtrl.dispose();
+    _platformFocus.dispose();
     super.dispose();
   }
 
@@ -559,12 +564,41 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
 
             TextField(
               controller: _platformCtrl,
+              focusNode: _platformFocus,
+              textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(
                 labelText: 'Plataforma',
                 prefixIcon: Icon(Icons.devices_outlined, color: RpgColors.gold, size: 18),
               ),
               style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
             ),
+            if (_platformFocus.hasFocus && _platforms.isNotEmpty) ...[
+              SizedBox(height: 6),
+              SizedBox(
+                height: 30,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: _platforms.map((p) => GestureDetector(
+                    onTap: () {
+                      _platformCtrl.text = p;
+                      _platformFocus.unfocus();
+                      setState(() {});
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      decoration: BoxDecoration(
+                        color: RpgColors.charcoal,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: RpgColors.border),
+                      ),
+                      child: Center(child: Text(p, style: TextStyle(
+                        color: RpgColors.textSecondary, fontSize: 12, fontFamily: 'Crimson'))),
+                    ),
+                  )).toList(),
+                ),
+              ),
+            ],
             SizedBox(height: 12),
 
             TextField(
