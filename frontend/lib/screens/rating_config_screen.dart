@@ -51,14 +51,14 @@ class _RatingConfigScreenState extends State<RatingConfigScreen> {
       context: context,
       builder: (dialogCtx) => AlertDialog(
         backgroundColor: RpgColors.surface,
-        title: Text('Eliminar "${cfg.label}"', style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'DMSans', fontSize: 16, fontWeight: FontWeight.w600)),
-        content: const Text('¿Eliminar esta valoración?', style: TextStyle(color: RpgColors.textSecondary, fontFamily: 'Crimson')),
+        title: Text('Eliminar "${cfg.label}"', style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'DMSans', fontSize: 16, fontWeight: FontWeight.w600)),
+        content: Text('¿Eliminar esta valoración?', style: TextStyle(color: RpgColors.textSecondary, fontFamily: 'Crimson')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogCtx, false), child: const Text('Cancelar', style: TextStyle(color: RpgColors.textMuted))),
+          TextButton(onPressed: () => Navigator.pop(dialogCtx, false), child: Text('Cancelar', style: TextStyle(color: RpgColors.textMuted))),
           ElevatedButton(
             onPressed: () => Navigator.pop(dialogCtx, true),
             style: ElevatedButton.styleFrom(backgroundColor: RpgColors.statusDropped),
-            child: const Text('Eliminar'),
+            child: Text('Eliminar'),
           ),
         ],
       ),
@@ -88,20 +88,20 @@ class _RatingConfigScreenState extends State<RatingConfigScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: RpgColors.surface,
-      appBar: AppBar(title: const Text('Mis valoraciones')),
+      appBar: AppBar(title: Text('Mis valoraciones')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: RpgColors.gold))
+          ? Center(child: CircularProgressIndicator(color: RpgColors.gold))
           : Column(
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
                   child: Text(
                     'Define tus categorías de valoración con el nombre y color que quieras.',
-                    style: const TextStyle(color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 13),
+                    style: TextStyle(color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 13),
                   ),
                 ),
                 if (_configs.isEmpty)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.symmetric(vertical: 24),
                     child: Center(child: Text(
                       'Cargando valoraciones...',
@@ -128,19 +128,19 @@ class _RatingConfigScreenState extends State<RatingConfigScreen> {
                             width: 28, height: 28,
                             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
                           ),
-                          title: Text(cfg.label, style: const TextStyle(
+                          title: Text(cfg.label, style: TextStyle(
                             color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 15)),
-                          subtitle: Text(cfg.key, style: const TextStyle(
+                          subtitle: Text(cfg.key, style: TextStyle(
                             color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 12)),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton(
-                                icon: const Icon(Icons.edit_outlined, color: RpgColors.textSecondary, size: 20),
+                                icon: Icon(Icons.edit_outlined, color: RpgColors.textSecondary, size: 20),
                                 onPressed: () => _openEditor(cfg: cfg),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.delete_outline, color: RpgColors.statusDropped, size: 20),
+                                icon: Icon(Icons.delete_outline, color: RpgColors.statusDropped, size: 20),
                                 onPressed: () => _delete(cfg),
                               ),
                             ],
@@ -155,8 +155,8 @@ class _RatingConfigScreenState extends State<RatingConfigScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openEditor(),
         backgroundColor: RpgColors.gold,
-        icon: const Icon(Icons.add, color: RpgColors.obsidian),
-        label: const Text('Añadir', style: TextStyle(
+        icon: Icon(Icons.add, color: RpgColors.obsidian),
+        label: Text('Añadir', style: TextStyle(
           fontFamily: 'DMSans', color: RpgColors.obsidian, fontWeight: FontWeight.w700)),
       ),
     );
@@ -239,28 +239,28 @@ class _RatingEditorState extends State<_RatingEditor> {
         children: [
           Text(
             widget.existing != null ? 'Editar valoración' : 'Nueva valoración',
-            style: const TextStyle(fontFamily: 'DMSans', color: RpgColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
+            style: TextStyle(fontFamily: 'DMSans', color: RpgColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           TextField(
             controller: _labelCtrl,
-            decoration: const InputDecoration(labelText: 'Nombre visible (ej: Obra maestra)'),
-            style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+            decoration: InputDecoration(labelText: 'Nombre visible (ej: Obra maestra)'),
+            style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           if (widget.existing == null)
             TextField(
               controller: _keyCtrl,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Clave interna (ej: obra_maestra, sin espacios)',
                 helperText: 'Identificador único, no se puede cambiar después',
                 helperStyle: TextStyle(color: RpgColors.textMuted, fontSize: 11),
               ),
-              style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+              style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
             ),
-          const SizedBox(height: 16),
-          const Text('Color', style: TextStyle(fontFamily: 'DMSans', color: RpgColors.textSecondary, fontSize: 12, letterSpacing: 0.3)),
-          const SizedBox(height: 8),
+          SizedBox(height: 16),
+          Text('Color', style: TextStyle(fontFamily: 'DMSans', color: RpgColors.textSecondary, fontSize: 12, letterSpacing: 0.3)),
+          SizedBox(height: 8),
           Wrap(
             spacing: 8, runSpacing: 8,
             children: _presetColors.map((hex) {
@@ -284,16 +284,16 @@ class _RatingEditorState extends State<_RatingEditor> {
               );
             }).toList(),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: _saving ? null : _save,
               style: ElevatedButton.styleFrom(backgroundColor: selectedColor),
               child: _saving
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : Text(widget.existing != null ? 'Guardar cambios' : 'Crear valoración',
-                      style: const TextStyle(fontFamily: 'DMSans', color: Colors.white, fontWeight: FontWeight.w700)),
+                      style: TextStyle(fontFamily: 'DMSans', color: Colors.white, fontWeight: FontWeight.w700)),
             ),
           ),
         ],

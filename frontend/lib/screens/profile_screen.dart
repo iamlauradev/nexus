@@ -94,7 +94,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
     return Scaffold(
-      appBar: AppBar(title: const Text('Mi perfil')),
+      appBar: AppBar(title: Text('Mi perfil')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -111,126 +111,126 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     shape: BoxShape.circle,
                     border: Border.all(color: RpgColors.obsidian, width: 2),
                   ),
-                  child: const Icon(Icons.edit_outlined, size: 14, color: Colors.white),
+                  child: Icon(Icons.edit_outlined, size: 14, color: Colors.white),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Center(child: Text(
             user?.displayName != null && user!.displayName!.isNotEmpty
                 ? user.displayName!
                 : '@${user?.username ?? ''}',
-            style: const TextStyle(
+            style: TextStyle(
               color: RpgColors.textPrimary, fontFamily: 'Cinzel', fontSize: 16, fontWeight: FontWeight.w600),
           )),
           Center(child: Text('@${user?.username ?? ''}',
-            style: const TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 13))),
-          const SizedBox(height: 28),
+            style: TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 13))),
+          SizedBox(height: 28),
 
           const _SectionTitle('INFORMACIÓN'),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           TextField(
             controller: _nameCtrl,
             decoration: const InputDecoration(
               labelText: 'Nombre visible',
               prefixIcon: Icon(Icons.badge_outlined, color: RpgColors.accent, size: 18)),
-            style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+            style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           TextField(
             controller: _avatarCtrl,
             decoration: const InputDecoration(
               labelText: 'URL de avatar',
               hintText: 'https://...',
               prefixIcon: Icon(Icons.image_outlined, color: RpgColors.accent, size: 18)),
-            style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+            style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
             keyboardType: TextInputType.url,
           ),
           // Live avatar preview when URL is set
           if (_avatarPreview.isNotEmpty) ...[
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             Row(children: [
-              const Icon(Icons.preview_outlined, size: 13, color: RpgColors.textMuted),
-              const SizedBox(width: 6),
-              const Text('Vista previa', style: TextStyle(
+              Icon(Icons.preview_outlined, size: 13, color: RpgColors.textMuted),
+              SizedBox(width: 6),
+              Text('Vista previa', style: TextStyle(
                 fontSize: 11, color: RpgColors.textMuted, fontFamily: 'DMSans')),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               _AvatarPreview(url: _avatarPreview, radius: 20),
             ]),
           ],
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: _savingProfile ? null : _saveProfile,
               child: _savingProfile
-                  ? const SizedBox(width: 18, height: 18,
+                  ? SizedBox(width: 18, height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text('Guardar cambios'),
+                  : Text('Guardar cambios'),
             ),
           ),
 
-          const SizedBox(height: 32),
+          SizedBox(height: 32),
           const _SectionTitle('CAMBIAR CONTRASEÑA'),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           TextField(
             controller: _currPwCtrl,
             obscureText: !_showCurrPw,
             decoration: InputDecoration(
               labelText: 'Contraseña actual',
-              prefixIcon: const Icon(Icons.lock_outline, color: RpgColors.accent, size: 18),
+              prefixIcon: Icon(Icons.lock_outline, color: RpgColors.accent, size: 18),
               suffixIcon: IconButton(
                 icon: Icon(_showCurrPw ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                   color: RpgColors.textMuted, size: 18),
                 onPressed: () => setState(() => _showCurrPw = !_showCurrPw),
               ),
             ),
-            style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+            style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           TextField(
             controller: _newPwCtrl,
             obscureText: !_showNewPw,
             decoration: InputDecoration(
               labelText: 'Nueva contraseña (mín. 8 caracteres)',
-              prefixIcon: const Icon(Icons.lock_reset_outlined, color: RpgColors.accent, size: 18),
+              prefixIcon: Icon(Icons.lock_reset_outlined, color: RpgColors.accent, size: 18),
               suffixIcon: IconButton(
                 icon: Icon(_showNewPw ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                   color: RpgColors.textMuted, size: 18),
                 onPressed: () => setState(() => _showNewPw = !_showNewPw),
               ),
             ),
-            style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+            style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           TextField(
             controller: _confPwCtrl,
             obscureText: !_showConfPw,
             decoration: InputDecoration(
               labelText: 'Confirmar nueva contraseña',
-              prefixIcon: const Icon(Icons.lock_reset_outlined, color: RpgColors.accent, size: 18),
+              prefixIcon: Icon(Icons.lock_reset_outlined, color: RpgColors.accent, size: 18),
               suffixIcon: IconButton(
                 icon: Icon(_showConfPw ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                   color: RpgColors.textMuted, size: 18),
                 onPressed: () => setState(() => _showConfPw = !_showConfPw),
               ),
             ),
-            style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+            style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: _savingPw ? null : _changePassword,
               style: ElevatedButton.styleFrom(backgroundColor: RpgColors.goldDark),
               child: _savingPw
-                  ? const SizedBox(width: 18, height: 18,
+                  ? SizedBox(width: 18, height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text('Cambiar contraseña'),
+                  : Text('Cambiar contraseña'),
             ),
           ),
-          const SizedBox(height: 40),
+          SizedBox(height: 40),
         ]),
       ),
     );
@@ -279,7 +279,7 @@ class _SectionTitle extends StatelessWidget {
   final String text;
   const _SectionTitle(this.text);
   @override
-  Widget build(BuildContext context) => Text(text, style: const TextStyle(
+  Widget build(BuildContext context) => Text(text, style: TextStyle(
     fontFamily: 'DMSans', fontSize: 11, color: RpgColors.accent,
     letterSpacing: 0.8, fontWeight: FontWeight.w700));
 }

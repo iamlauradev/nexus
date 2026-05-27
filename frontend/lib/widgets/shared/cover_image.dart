@@ -50,7 +50,7 @@ class _Placeholder extends StatelessWidget {
       width: width,
       height: height,
       color: RpgColors.charcoal,
-      child: const Center(
+      child: Center(
         child: Icon(Icons.auto_stories, color: RpgColors.border, size: 32),
       ),
     );

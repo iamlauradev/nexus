@@ -98,8 +98,8 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(children: [
         Container(width: 3, height: 14, decoration: BoxDecoration(
           color: accent, borderRadius: BorderRadius.circular(2))),
-        const SizedBox(width: 8),
-        Text(label, style: const TextStyle(
+        SizedBox(width: 8),
+        Text(label, style: TextStyle(
           fontSize: 13, color: RpgColors.textSecondary, letterSpacing: 0.3, fontWeight: FontWeight.w600)),
         if (trailing != null) ...[const Spacer(), trailing],
       ]),
@@ -124,8 +124,8 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Row(children: [
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('Hola, ${user?.name ?? ''}',
-                    style: const TextStyle(fontFamily: 'DMSans', fontSize: 13, color: RpgColors.textMuted)),
-                  const Text('Tu colección',
+                    style: TextStyle(fontFamily: 'DMSans', fontSize: 13, color: RpgColors.textMuted)),
+                  Text('Tu colección',
                     style: TextStyle(fontFamily: 'Cinzel', fontSize: 26, fontWeight: FontWeight.w700,
                       color: RpgColors.textPrimary, letterSpacing: 1)),
                 ])),
@@ -140,8 +140,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       child: Row(mainAxisSize: MainAxisSize.min, children: [
                         Icon(Icons.shuffle_rounded, color: RpgColors.accent, size: 16),
-                        const SizedBox(width: 6),
-                        const Text('¿Qué ver?', style: TextStyle(
+                        SizedBox(width: 6),
+                        Text('¿Qué ver?', style: TextStyle(
                           fontFamily: 'DMSans', fontSize: 11,
                           color: RpgColors.textSecondary, fontWeight: FontWeight.w500)),
                       ]),
@@ -185,8 +185,8 @@ class _HomeScreenState extends State<HomeScreen> {
             // Viendo ahora
             SliverToBoxAdapter(child: _sectionHeader('Viendo ahora', RpgColors.statusWatching)),
             if (_recent.isEmpty)
-              const SliverToBoxAdapter(child: Padding(
-                padding: EdgeInsets.all(32),
+              SliverToBoxAdapter(child: Padding(
+                padding: const EdgeInsets.all(32),
                 child: Center(child: Text('Nada en progreso todavía',
                   style: TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 14))),
               ))
@@ -280,7 +280,7 @@ class _EmissionCalendar extends StatelessWidget {
           return Column(
             children: [
               if (day != firstFilledDay)
-                const Divider(height: 1, color: RpgColors.border),
+                Divider(height: 1, color: RpgColors.border),
               InkWell(
                 onTap: dayEntries.length == 1 ? () => onTap(dayEntries.first) : null,
                 child: Padding(
@@ -298,7 +298,7 @@ class _EmissionCalendar extends StatelessWidget {
                         fontSize: 11, fontWeight: FontWeight.w600,
                         color: isToday ? RpgColors.gold : RpgColors.textMuted))),
                     ),
-                    const SizedBox(width: 10),
+                    SizedBox(width: 10),
                     // Entry covers / titles
                     Expanded(child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
@@ -314,9 +314,9 @@ class _EmissionCalendar extends StatelessWidget {
                                   fit: BoxFit.cover,
                                   errorBuilder: (_, __, ___) => Container(
                                     width: 28, height: 40, color: RpgColors.surface,
-                                    child: const Icon(Icons.broken_image, size: 14, color: RpgColors.textMuted))),
+                                    child: Icon(Icons.broken_image, size: 14, color: RpgColors.textMuted))),
                               ),
-                            const SizedBox(width: 6),
+                            SizedBox(width: 6),
                             ConstrainedBox(
                               constraints: const BoxConstraints(maxWidth: 120),
                               child: Text(e.media?.title ?? '', maxLines: 2,
@@ -338,7 +338,7 @@ class _EmissionCalendar extends StatelessWidget {
                           borderRadius: BorderRadius.circular(4),
                           border: Border.all(color: RpgColors.gold.withOpacity(0.5)),
                         ),
-                        child: const Text('HOY', style: TextStyle(
+                        child: Text('HOY', style: TextStyle(
                           fontSize: 8, color: RpgColors.gold, letterSpacing: 0.5, fontWeight: FontWeight.w600)),
                       ),
                   ]),
@@ -404,16 +404,16 @@ class _RandomPickDialogState extends State<_RandomPickDialog> {
         padding: const EdgeInsets.all(20),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            const Icon(Icons.shuffle_rounded, color: RpgColors.gold, size: 18),
-            const SizedBox(width: 8),
-            const Text('¿Qué ver ahora?', style: TextStyle(
+            Icon(Icons.shuffle_rounded, color: RpgColors.gold, size: 18),
+            SizedBox(width: 8),
+            Text('¿Qué ver ahora?', style: TextStyle(
               fontFamily: 'Cinzel', fontSize: 15, color: RpgColors.textPrimary, fontWeight: FontWeight.bold)),
             const Spacer(),
             IconButton(onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.close, size: 18, color: RpgColors.textMuted),
+              icon: Icon(Icons.close, size: 18, color: RpgColors.textMuted),
               padding: EdgeInsets.zero, constraints: const BoxConstraints()),
           ]),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           // Type filter chips
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -437,36 +437,36 @@ class _RandomPickDialogState extends State<_RandomPickDialog> {
               );
             }).toList()),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           // Result
           if (_loading)
-            const Center(child: Padding(
+            Center(child: Padding(
               padding: EdgeInsets.all(24),
               child: CircularProgressIndicator(color: RpgColors.gold)))
           else if (_error != null)
             Center(child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Text(_error!, style: const TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson'))))
+              child: Text(_error!, style: TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson'))))
           else if (_pick != null)
             _PickCard(entry: _pick!),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           if (!_loading && _error == null && _pick != null)
             Row(children: [
               Expanded(child: OutlinedButton.icon(
                 onPressed: _fetch,
-                icon: const Icon(Icons.refresh, size: 16),
-                label: const Text('Otra', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                icon: Icon(Icons.refresh, size: 16),
+                label: Text('Otra', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: RpgColors.textSecondary,
-                  side: const BorderSide(color: RpgColors.border),
+                  side: BorderSide(color: RpgColors.border),
                   padding: const EdgeInsets.symmetric(vertical: 10),
                 ),
               )),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Expanded(child: ElevatedButton.icon(
                 onPressed: () => widget.onEntryTap(_pick!),
-                icon: const Icon(Icons.play_arrow_rounded, size: 16),
-                label: const Text('Ver detalle', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                icon: Icon(Icons.play_arrow_rounded, size: 16),
+                label: Text('Ver detalle', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: RpgColors.gold,
                   foregroundColor: Colors.black,
@@ -500,31 +500,31 @@ class _PickCard extends StatelessWidget {
             child: Image.network(m!.coverUrl!, width: 60, height: 86, fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => Container(width: 60, height: 86, color: RpgColors.surface)),
           ),
-        const SizedBox(width: 12),
+        SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(m?.title ?? '', style: const TextStyle(
+          Text(m?.title ?? '', style: TextStyle(
             fontSize: 13, color: RpgColors.textPrimary, fontWeight: FontWeight.w600),
             maxLines: 2, overflow: TextOverflow.ellipsis),
           if (m?.year != null) ...[
-            const SizedBox(height: 3),
-            Text('${m!.year}', style: const TextStyle(
+            SizedBox(height: 3),
+            Text('${m!.year}', style: TextStyle(
               fontFamily: 'Crimson', fontSize: 11, color: RpgColors.textMuted)),
           ],
           if (m?.genres?.isNotEmpty == true) ...[
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             Wrap(spacing: 4, runSpacing: 4, children: m!.genres!.take(3).map((g) => Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: RpgColors.surface,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Text(g, style: const TextStyle(
+              child: Text(g, style: TextStyle(
                 fontFamily: 'DMSans', fontSize: 10, color: RpgColors.textMuted)),
             )).toList()),
           ],
           if (m?.synopsis != null) ...[
-            const SizedBox(height: 6),
-            Text(m!.synopsis!, style: const TextStyle(
+            SizedBox(height: 6),
+            Text(m!.synopsis!, style: TextStyle(
               fontFamily: 'Crimson', fontSize: 11, color: RpgColors.textSecondary),
               maxLines: 3, overflow: TextOverflow.ellipsis),
           ],
@@ -544,11 +544,11 @@ class _StatsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(children: [
       _StatBox(value: '${stats['total'] ?? 0}',     label: 'Total',     color: RpgColors.textPrimary),
-      const SizedBox(width: 10),
+      SizedBox(width: 10),
       _StatBox(value: '${stats['watching'] ?? 0}',  label: 'Viendo',    color: RpgColors.statusWatching),
-      const SizedBox(width: 10),
+      SizedBox(width: 10),
       _StatBox(value: '${stats['completed'] ?? 0}', label: 'Completos', color: RpgColors.statusComplete),
-      const SizedBox(width: 10),
+      SizedBox(width: 10),
       _StatBox(value: '${stats['plan'] ?? 0}',      label: 'Pendiente', color: RpgColors.statusPlan),
     ]);
   }
@@ -571,8 +571,8 @@ class _StatBox extends StatelessWidget {
         ),
         child: Column(children: [
           Text(value, style: TextStyle(fontFamily: 'DMSans', fontSize: 22, color: color, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 3),
-          Text(label, style: const TextStyle(fontFamily: 'DMSans', fontSize: 12, color: RpgColors.textMuted)),
+          SizedBox(height: 3),
+          Text(label, style: TextStyle(fontFamily: 'DMSans', fontSize: 12, color: RpgColors.textMuted)),
         ]),
       ),
     );
@@ -607,10 +607,10 @@ class _TypeStats extends StatelessWidget {
           ),
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             Icon(s.icon, color: RpgColors.gold.withOpacity(0.7), size: 20),
-            const SizedBox(height: 5),
-            Text('${s.count}', style: const TextStyle(
+            SizedBox(height: 5),
+            Text('${s.count}', style: TextStyle(
               fontFamily: 'DMSans', fontSize: 15, color: RpgColors.textPrimary, fontWeight: FontWeight.bold)),
-            Text(s.label, style: const TextStyle(
+            Text(s.label, style: TextStyle(
               fontFamily: 'DMSans', fontSize: 10, color: RpgColors.textMuted)),
           ]),
         ),

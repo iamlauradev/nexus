@@ -24,7 +24,7 @@ class TypeChip extends StatelessWidget {
       ),
       child: Text(
         typeLabel(type),
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: 'DMSans',
           fontSize: 10,
           color: RpgColors.textMuted,

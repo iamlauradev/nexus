@@ -55,14 +55,14 @@ class _SearchScreenState extends State<SearchScreen> {
           onSubmitted: _search,
           decoration: InputDecoration(
             hintText: 'Buscar en tu colección...',
-            hintStyle: const TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson'),
+            hintStyle: TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson'),
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
             fillColor: Colors.transparent,
             suffixIcon: _searchCtrl.text.isNotEmpty
                 ? IconButton(
-                    icon: const Icon(Icons.close, color: RpgColors.textMuted, size: 18),
+                    icon: Icon(Icons.close, color: RpgColors.textMuted, size: 18),
                     onPressed: () {
                       _searchCtrl.clear();
                       setState(() { _results = []; _searched = false; });
@@ -70,11 +70,11 @@ class _SearchScreenState extends State<SearchScreen> {
                   )
                 : null,
           ),
-          style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 16),
+          style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 16),
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: RpgColors.gold))
+          ? Center(child: CircularProgressIndicator(color: RpgColors.gold))
           : !_searched
               ? _buildPrompt()
               : _results.isEmpty
@@ -88,12 +88,12 @@ class _SearchScreenState extends State<SearchScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.search, color: RpgColors.border, size: 56),
-          const SizedBox(height: 16),
-          const Text('Busca en toda tu colección', style: TextStyle(
+          Icon(Icons.search, color: RpgColors.border, size: 56),
+          SizedBox(height: 16),
+          Text('Busca en toda tu colección', style: TextStyle(
             color: RpgColors.textSecondary, fontSize: 15)),
-          const SizedBox(height: 8),
-          const Text('Películas, series, anime, cómics…', style: TextStyle(
+          SizedBox(height: 8),
+          Text('Películas, series, anime, cómics…', style: TextStyle(
             color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 13)),
         ],
       ),
@@ -105,12 +105,12 @@ class _SearchScreenState extends State<SearchScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.search_off, color: RpgColors.border, size: 48),
-          const SizedBox(height: 16),
-          Text('Sin resultados para "${_searchCtrl.text}"', style: const TextStyle(
+          Icon(Icons.search_off, color: RpgColors.border, size: 48),
+          SizedBox(height: 16),
+          Text('Sin resultados para "${_searchCtrl.text}"', style: TextStyle(
             color: RpgColors.textSecondary, fontSize: 14)),
-          const SizedBox(height: 8),
-          const Text('Prueba con otro término', style: TextStyle(
+          SizedBox(height: 8),
+          Text('Prueba con otro término', style: TextStyle(
             color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 13)),
         ],
       ),
@@ -124,7 +124,7 @@ class _SearchScreenState extends State<SearchScreen> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
           child: Text('${_results.length} resultado${_results.length != 1 ? 's' : ''}',
-            style: const TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 13)),
+            style: TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 13)),
         ),
         Expanded(
           child: ListView.builder(

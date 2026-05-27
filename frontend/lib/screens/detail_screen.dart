@@ -164,18 +164,18 @@ class _DetailScreenState extends State<DetailScreen>
       context: context,
       builder: (dialogCtx) => AlertDialog(
         backgroundColor: RpgColors.surface,
-        title: const Text('Eliminar', style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'DMSans', fontSize: 16, fontWeight: FontWeight.w600)),
+        title: Text('Eliminar', style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'DMSans', fontSize: 16, fontWeight: FontWeight.w600)),
         content: Text(
           '¿Quitar "${_entry.media?.title}" de tu lista?',
-          style: const TextStyle(color: RpgColors.textSecondary, fontFamily: 'Crimson'),
+          style: TextStyle(color: RpgColors.textSecondary, fontFamily: 'Crimson'),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogCtx, false),
-            child: const Text('Cancelar', style: TextStyle(color: RpgColors.textMuted))),
+            child: Text('Cancelar', style: TextStyle(color: RpgColors.textMuted))),
           ElevatedButton(
             onPressed: () => Navigator.pop(dialogCtx, true),
             style: ElevatedButton.styleFrom(backgroundColor: RpgColors.statusDropped),
-            child: const Text('Eliminar', style: TextStyle(color: Colors.white)),
+            child: Text('Eliminar', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -261,7 +261,7 @@ class _DetailScreenState extends State<DetailScreen>
       lastDate: DateTime(2100),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.dark(
+          colorScheme: ColorScheme.dark(
             primary: RpgColors.gold,
             onPrimary: RpgColors.obsidian,
             surface: RpgColors.surface,
@@ -284,11 +284,11 @@ class _DetailScreenState extends State<DetailScreen>
       onPressed: _saving ? null : _save,
       backgroundColor: RpgColors.gold,
       label: _saving
-          ? const SizedBox(width: 20, height: 20,
+          ? SizedBox(width: 20, height: 20,
               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-          : const Text('Guardar', style: TextStyle(
+          : Text('Guardar', style: TextStyle(
               fontFamily: 'DMSans', color: RpgColors.obsidian, fontWeight: FontWeight.w700)),
-      icon: const Icon(Icons.save_outlined, color: RpgColors.obsidian),
+      icon: Icon(Icons.save_outlined, color: RpgColors.obsidian),
     );
   }
 
@@ -320,7 +320,7 @@ class _DetailScreenState extends State<DetailScreen>
     if (_editing) {
       return [
         IconButton(
-          icon: const Icon(Icons.close, color: RpgColors.textMuted),
+          icon: Icon(Icons.close, color: RpgColors.textMuted),
           onPressed: () { setState(() { _editing = false; _initFields(); }); },
         ),
       ];
@@ -330,27 +330,27 @@ class _DetailScreenState extends State<DetailScreen>
     return [
       if (tmdb != null)
         IconButton(
-          icon: const Icon(Icons.movie_outlined, color: RpgColors.textSecondary),
+          icon: Icon(Icons.movie_outlined, color: RpgColors.textSecondary),
           onPressed: () => _openExternal(tmdb),
           tooltip: 'Ver en TMDB',
         ),
       if (anilist != null)
         IconButton(
-          icon: const Icon(Icons.open_in_new_rounded, color: RpgColors.textSecondary),
+          icon: Icon(Icons.open_in_new_rounded, color: RpgColors.textSecondary),
           onPressed: () => _openExternal(anilist),
           tooltip: 'Ver en AniList',
         ),
       IconButton(
-        icon: const Icon(Icons.share_outlined, color: RpgColors.gold),
+        icon: Icon(Icons.share_outlined, color: RpgColors.gold),
         onPressed: _share,
         tooltip: 'Compartir',
       ),
       IconButton(
-        icon: const Icon(Icons.edit_outlined, color: RpgColors.gold),
+        icon: Icon(Icons.edit_outlined, color: RpgColors.gold),
         onPressed: () => setState(() => _editing = true),
       ),
       IconButton(
-        icon: const Icon(Icons.delete_outline, color: RpgColors.statusDropped),
+        icon: Icon(Icons.delete_outline, color: RpgColors.statusDropped),
         onPressed: _delete,
       ),
     ];
@@ -366,12 +366,12 @@ class _DetailScreenState extends State<DetailScreen>
         appBar: AppBar(
           backgroundColor: RpgColors.darkVoid,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: RpgColors.textPrimary),
+            icon: Icon(Icons.arrow_back, color: RpgColors.textPrimary),
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
             media?.title ?? '',
-            style: const TextStyle(fontFamily: 'Cinzel', fontSize: 15, color: RpgColors.textPrimary),
+            style: TextStyle(fontFamily: 'Cinzel', fontSize: 15, color: RpgColors.textPrimary),
             overflow: TextOverflow.ellipsis,
           ),
           actions: _buildDetailActions(),
@@ -390,13 +390,13 @@ class _DetailScreenState extends State<DetailScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildDesktopCoverPanel(media),
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
                     if (_editing) _buildEditForm() else _buildTrackingSection(),
                   ],
                 ),
               ),
             ),
-            const VerticalDivider(thickness: 1, width: 1, color: RpgColors.border),
+            VerticalDivider(thickness: 1, width: 1, color: RpgColors.border),
             // Right panel: media info + history
             Expanded(
               child: SingleChildScrollView(
@@ -434,7 +434,7 @@ class _DetailScreenState extends State<DetailScreen>
                       unselectedLabelColor: RpgColors.textMuted,
                       indicatorColor: RpgColors.accent,
                       indicatorSize: TabBarIndicatorSize.label,
-                      labelStyle: const TextStyle(
+                      labelStyle: TextStyle(
                         fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.3),
                       tabs: const [
                         Tab(text: 'PROGRESO'),
@@ -482,37 +482,37 @@ class _DetailScreenState extends State<DetailScreen>
               : Container(
                   height: 440,
                   color: RpgColors.surface,
-                  child: const Center(
+                  child: Center(
                     child: Icon(Icons.image_outlined, color: RpgColors.border, size: 72)),
                 ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
         if (media?.titleOriginal != null)
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
             child: Text(media!.titleOriginal!,
-              style: const TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 13)),
+              style: TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 13)),
           ),
         Text(media?.title ?? '',
-          style: const TextStyle(
+          style: TextStyle(
             color: RpgColors.textPrimary, fontFamily: 'Cinzel', fontSize: 17,
             fontWeight: FontWeight.bold, height: 1.25)),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         Row(children: [
           _TypePill(media?.type),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           if (media?.year != null)
-            Text('${media!.year}', style: const TextStyle(
+            Text('${media!.year}', style: TextStyle(
               color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 14)),
         ]),
-        const SizedBox(height: 6),
+        SizedBox(height: 6),
         Row(children: [
           EmissionBadge(status: media?.emissionStatus),
           if (media?.externalScore != null) ...[
-            const SizedBox(width: 8),
-            const Icon(Icons.star_rounded, color: RpgColors.statusPlan, size: 14),
+            SizedBox(width: 8),
+            Icon(Icons.star_rounded, color: RpgColors.statusPlan, size: 14),
             Text(' ${media!.externalScore!.toStringAsFixed(1)}',
-              style: const TextStyle(color: RpgColors.statusPlan, fontFamily: 'Crimson', fontSize: 13)),
+              style: TextStyle(color: RpgColors.statusPlan, fontFamily: 'Crimson', fontSize: 13)),
           ],
         ]),
       ],
@@ -525,27 +525,27 @@ class _DetailScreenState extends State<DetailScreen>
       pinned: true,
       backgroundColor: RpgColors.darkVoid,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: RpgColors.textPrimary),
+        icon: Icon(Icons.arrow_back, color: RpgColors.textPrimary),
         onPressed: () => Navigator.pop(context),
       ),
       actions: [
         if (!_editing) ...[
           IconButton(
-            icon: const Icon(Icons.share_outlined, color: RpgColors.gold),
+            icon: Icon(Icons.share_outlined, color: RpgColors.gold),
             onPressed: _share,
             tooltip: 'Compartir',
           ),
           IconButton(
-            icon: const Icon(Icons.edit_outlined, color: RpgColors.gold),
+            icon: Icon(Icons.edit_outlined, color: RpgColors.gold),
             onPressed: () => setState(() => _editing = true),
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline, color: RpgColors.statusDropped),
+            icon: Icon(Icons.delete_outline, color: RpgColors.statusDropped),
             onPressed: _delete,
           ),
         ] else
           IconButton(
-            icon: const Icon(Icons.close, color: RpgColors.textMuted),
+            icon: Icon(Icons.close, color: RpgColors.textMuted),
             onPressed: () { setState(() { _editing = false; _initFields(); }); },
           ),
       ],
@@ -595,10 +595,10 @@ class _DetailScreenState extends State<DetailScreen>
                           : Container(
                               width: 100, height: 145,
                               color: RpgColors.charcoal,
-                              child: const Icon(Icons.image_outlined, color: RpgColors.border, size: 36),
+                              child: Icon(Icons.image_outlined, color: RpgColors.border, size: 36),
                             ),
                     ),
-                    const SizedBox(width: 14),
+                    SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -606,29 +606,29 @@ class _DetailScreenState extends State<DetailScreen>
                         children: [
                           if (media?.titleOriginal != null)
                             Text(media!.titleOriginal!, maxLines: 1, overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 12)),
+                              style: TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 12)),
                           Text(media?.title ?? '', maxLines: 2, overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: RpgColors.textPrimary, fontFamily: 'Cinzel', fontSize: 17,
                               fontWeight: FontWeight.bold, height: 1.2,
                               shadows: [Shadow(blurRadius: 8, color: Colors.black)],
                             )),
-                          const SizedBox(height: 6),
+                          SizedBox(height: 6),
                           Row(children: [
                             _TypePill(media?.type),
-                            const SizedBox(width: 6),
+                            SizedBox(width: 6),
                             if (media?.year != null)
-                              Text('${media!.year}', style: const TextStyle(
+                              Text('${media!.year}', style: TextStyle(
                                 color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 13)),
                           ]),
-                          const SizedBox(height: 6),
+                          SizedBox(height: 6),
                           Row(children: [
                             EmissionBadge(status: media?.emissionStatus),
                             if (media?.externalScore != null) ...[
-                              const SizedBox(width: 8),
-                              const Icon(Icons.star_rounded, color: RpgColors.statusPlan, size: 14),
+                              SizedBox(width: 8),
+                              Icon(Icons.star_rounded, color: RpgColors.statusPlan, size: 14),
                               Text(' ${media!.externalScore!.toStringAsFixed(1)}',
-                                style: const TextStyle(color: RpgColors.statusPlan, fontFamily: 'Crimson', fontSize: 13)),
+                                style: TextStyle(color: RpgColors.statusPlan, fontFamily: 'Crimson', fontSize: 13)),
                             ],
                           ]),
                         ],
@@ -653,7 +653,7 @@ class _DetailScreenState extends State<DetailScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionHeader('Mi seguimiento'),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         Row(children: [
           Expanded(child: _InfoTile(
             icon: Icons.circle_outlined,
@@ -661,7 +661,7 @@ class _DetailScreenState extends State<DetailScreen>
             value: statusLabel(_status),
             valueColor: statusColor(_status),
           )),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           Expanded(child: _InfoTile(
             icon: Icons.bookmark_outlined,
             label: 'Progreso',
@@ -669,7 +669,7 @@ class _DetailScreenState extends State<DetailScreen>
             valueColor: RpgColors.gold,
           )),
         ]),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
@@ -678,19 +678,19 @@ class _DetailScreenState extends State<DetailScreen>
             border: Border.all(color: ratingColor.withOpacity(0.4)),
           ),
           child: Row(children: [
-            const Icon(Icons.star_outline, size: 14, color: RpgColors.textMuted),
-            const SizedBox(width: 8),
+            Icon(Icons.star_outline, size: 14, color: RpgColors.textMuted),
+            SizedBox(width: 8),
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('VALORACIÓN', style: TextStyle(
+              Text('VALORACIÓN', style: TextStyle(
                 fontSize: 9, color: RpgColors.textMuted, letterSpacing: 0.8, fontWeight: FontWeight.w500)),
-              const SizedBox(height: 2),
+              SizedBox(height: 2),
               Text(ratingText, style: TextStyle(
                 color: ratingColor, fontFamily: 'Crimson', fontSize: 14, fontWeight: FontWeight.w600)),
             ]),
           ]),
         ),
         if (_entry.startedAt != null || _entry.completedAt != null) ...[
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Row(children: [
             if (_entry.startedAt != null)
               Expanded(child: _InfoTile(
@@ -700,7 +700,7 @@ class _DetailScreenState extends State<DetailScreen>
                 valueColor: RpgColors.statusWatching,
               )),
             if (_entry.startedAt != null && _entry.completedAt != null)
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
             if (_entry.completedAt != null)
               Expanded(child: _InfoTile(
                 icon: Icons.check_circle_outline,
@@ -711,7 +711,7 @@ class _DetailScreenState extends State<DetailScreen>
           ]),
         ],
         if (_entry.media?.type != 'MOVIE' && (_entry.epCurrent != null || _entry.epTotal != null)) ...[
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           _EpisodeProgressBar(
             epCurrent: _entry.epCurrent,
             epTotal: _entry.epTotal,
@@ -723,20 +723,20 @@ class _DetailScreenState extends State<DetailScreen>
                 : null,
           ),
         ],
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         _RewatchTile(
           count: _entry.rewatchCount,
           onIncrement: () => _quickUpdateRewatch(_entry.rewatchCount + 1),
           onDecrement: _entry.rewatchCount > 0 ? () => _quickUpdateRewatch(_entry.rewatchCount - 1) : null,
         ),
         if (_entry.platform != null) ...[
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           _InfoTile(icon: Icons.devices_outlined, label: 'Visto en', value: _entry.platform!),
         ],
         if (_entry.notes != null && _entry.notes!.isNotEmpty) ...[
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _SectionHeader('Mis notas'),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12),
@@ -744,7 +744,7 @@ class _DetailScreenState extends State<DetailScreen>
               color: RpgColors.charcoal,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Text(_entry.notes!, style: const TextStyle(
+            child: Text(_entry.notes!, style: TextStyle(
               color: RpgColors.textSecondary, fontFamily: 'Crimson',
               fontSize: 14, height: 1.6, fontStyle: FontStyle.italic)),
           ),
@@ -759,14 +759,14 @@ class _DetailScreenState extends State<DetailScreen>
       children: [
         if (media != null) ...[
           _SectionHeader('Información'),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Wrap(spacing: 8, runSpacing: 8, children: [
             if (media.country != null)   _MetaChip(Icons.flag_outlined, media.country!),
             if (media.duration != null)  _MetaChip(Icons.timer_outlined, media.duration!),
             if (media.network != null)   _MetaChip(Icons.broadcast_on_home_outlined, media.network!),
           ]),
           if (media.genres != null && media.genres!.isNotEmpty) ...[
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             Wrap(
               spacing: 6, runSpacing: 6,
               children: (media.genres as List<String>).map((g) => Container(
@@ -775,15 +775,15 @@ class _DetailScreenState extends State<DetailScreen>
                   color: RpgColors.surfaceHigh,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Text(g, style: const TextStyle(
+                child: Text(g, style: TextStyle(
                   fontSize: 12, color: RpgColors.textSecondary, fontFamily: 'DMSans')),
               )).toList(),
             ),
           ],
           if (media.synopsis != null && media.synopsis!.isNotEmpty) ...[
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             _SectionHeader('Sinopsis'),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             GestureDetector(
               onTap: () => setState(() => _synopsisExpanded = !_synopsisExpanded),
               child: Column(
@@ -793,30 +793,30 @@ class _DetailScreenState extends State<DetailScreen>
                     media.synopsis!,
                     maxLines: _synopsisExpanded ? null : 6,
                     overflow: _synopsisExpanded ? null : TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: RpgColors.textSecondary, fontFamily: 'Crimson',
                       fontSize: 14, height: 1.6),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Text(
                     _synopsisExpanded ? 'Ver menos ↑' : 'Ver más ↓',
-                    style: const TextStyle(color: RpgColors.gold, fontFamily: 'Crimson', fontSize: 13),
+                    style: TextStyle(color: RpgColors.gold, fontFamily: 'Crimson', fontSize: 13),
                   ),
                 ],
               ),
             ),
           ],
           if (media.castText != null && media.castText!.isNotEmpty) ...[
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             _SectionHeader('Reparto / Staff'),
-            const SizedBox(height: 8),
-            Text(media.castText!, style: const TextStyle(
+            SizedBox(height: 8),
+            Text(media.castText!, style: TextStyle(
               color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 13, height: 1.5)),
           ],
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
         ],
         _HistorySection(entryId: _entry.id),
-        const SizedBox(height: 80),
+        SizedBox(height: 80),
       ],
     );
   }
@@ -839,24 +839,24 @@ class _DetailScreenState extends State<DetailScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionHeader('Mi estado'),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         DropdownButtonFormField<String>(
           value: _status,
           dropdownColor: RpgColors.surface,
           decoration: const InputDecoration(isDense: true),
-          style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+          style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
           items: _statuses.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
           onChanged: (v) { if (v != null) setState(() => _status = v); },
         ),
-        const SizedBox(height: 14),
+        SizedBox(height: 14),
         if (_entry.media?.type != 'MOVIE') ...[
           _SectionHeader('Estado de emisión'),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           DropdownButtonFormField<String>(
             value: _emissionStatus,
             dropdownColor: RpgColors.surface,
             decoration: const InputDecoration(isDense: true),
-            style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+            style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
             items: _emissionStatuses.entries.map((e) => DropdownMenuItem(
               value: e.key,
               child: Row(children: [
@@ -870,36 +870,36 @@ class _DetailScreenState extends State<DetailScreen>
             )).toList(),
             onChanged: (v) { if (v != null) setState(() => _emissionStatus = v); },
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           _SectionHeader('Día de emisión (opcional)'),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           _EmissionDayPickerDetail(
             value: _emissionDay,
             onChanged: (v) => setState(() => _emissionDay = v),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
         ],
         _SectionHeader('Valoración'),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         DropdownButtonFormField<String>(
           value: _ratingLabel,
           dropdownColor: RpgColors.surface,
           decoration: const InputDecoration(isDense: true),
-          style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+          style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
           items: ratings.map((r) {
             final color = RatingConfigCache.colorFor(r['key']);
             return DropdownMenuItem(
               value: r['key'] as String,
               child: Row(children: [
                 Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Text(r['label'] as String),
               ]),
             );
           }).toList(),
           onChanged: (v) { if (v != null) setState(() => _ratingLabel = v); },
         ),
-        const SizedBox(height: 14),
+        SizedBox(height: 14),
         // Episode stepper (not for movies)
         if (_entry.media?.type != 'MOVIE') ...[
           _EpisodeStepper(
@@ -913,7 +913,7 @@ class _DetailScreenState extends State<DetailScreen>
             onChanged: (v) => setState(() => _epCurrent = v),
             onTotalChanged: (v) => setState(() => _epTotal = v),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
         ],
 
         // Rewatch counter
@@ -926,7 +926,7 @@ class _DetailScreenState extends State<DetailScreen>
               : 'VUELTO A VER',
           onChanged: (v) => setState(() => _rewatchCount = v),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
 
         TextField(
           controller: _progressCtrl,
@@ -934,21 +934,21 @@ class _DetailScreenState extends State<DetailScreen>
             labelText: 'Notas de progreso (T2 E5, Cap 23…)',
             prefixIcon: Icon(Icons.bookmark_outline, color: RpgColors.gold, size: 18),
           ),
-          style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+          style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         TextField(
           controller: _platformCtrl,
           decoration: const InputDecoration(
             labelText: 'Plataforma (Netflix, Crunchyroll…)',
             prefixIcon: Icon(Icons.devices_outlined, color: RpgColors.gold, size: 18),
           ),
-          style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+          style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         // Date pickers
         _SectionHeader('Fechas'),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         Row(children: [
           Expanded(
             child: _DatePickerTile(
@@ -958,7 +958,7 @@ class _DetailScreenState extends State<DetailScreen>
               onClear: _startedAt != null ? () => setState(() => _startedAt = null) : null,
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: _DatePickerTile(
               label: 'Fecha de fin',
@@ -968,7 +968,7 @@ class _DetailScreenState extends State<DetailScreen>
             ),
           ),
         ]),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         // Cover URL
         TextField(
           controller: _coverUrlCtrl,
@@ -976,9 +976,9 @@ class _DetailScreenState extends State<DetailScreen>
             labelText: 'URL de portada',
             prefixIcon: Icon(Icons.image_outlined, color: RpgColors.gold, size: 18),
           ),
-          style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13),
+          style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         TextField(
           controller: _notesCtrl,
           maxLines: 6,
@@ -986,9 +986,9 @@ class _DetailScreenState extends State<DetailScreen>
             labelText: 'Mis notas / reseña',
             alignLabelWithHint: true,
           ),
-          style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 14, height: 1.5),
+          style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 14, height: 1.5),
         ),
-        const SizedBox(height: 100),
+        SizedBox(height: 100),
       ],
     );
   }
@@ -998,12 +998,12 @@ class _DetailScreenState extends State<DetailScreen>
       future: ApiService.getEntryHistory(_entry.id),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
+          return Center(
             child: CircularProgressIndicator(color: RpgColors.gold, strokeWidth: 2));
         }
         final history = snapshot.data ?? [];
         if (history.isEmpty) {
-          return const Center(
+          return Center(
             child: Padding(
               padding: EdgeInsets.all(32),
               child: Text('Sin cambios registrados',
@@ -1014,7 +1014,7 @@ class _DetailScreenState extends State<DetailScreen>
         return ListView.separated(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
           itemCount: history.length,
-          separatorBuilder: (_, __) => const Divider(color: RpgColors.border, height: 1),
+          separatorBuilder: (_, __) => Divider(color: RpgColors.border, height: 1),
           itemBuilder: (context, i) {
             final h = history[i];
             final date = DateTime.tryParse(h['changed_at'] ?? '');
@@ -1024,26 +1024,26 @@ class _DetailScreenState extends State<DetailScreen>
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Row(children: [
-                const Icon(Icons.history_outlined, size: 14, color: RpgColors.textMuted),
-                const SizedBox(width: 10),
+                Icon(Icons.history_outlined, size: 14, color: RpgColors.textMuted),
+                SizedBox(width: 10),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(
                       (h['field_name'] ?? '').toString().toUpperCase(),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 9, color: RpgColors.textMuted,
                         letterSpacing: 0.8, fontWeight: FontWeight.w500),
                     ),
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2),
                     Text(
                       '${h['old_value'] ?? '—'}  →  ${h['new_value'] ?? '—'}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: RpgColors.textSecondary,
                         fontFamily: 'Crimson', fontSize: 13),
                     ),
                   ]),
                 ),
-                Text(dateStr, style: const TextStyle(
+                Text(dateStr, style: TextStyle(
                   color: RpgColors.textMuted, fontSize: 11, fontFamily: 'Crimson')),
               ]),
             );
@@ -1080,21 +1080,21 @@ class _DatePickerTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(children: [
-          const Icon(Icons.calendar_today_outlined, size: 14, color: RpgColors.gold),
-          const SizedBox(width: 6),
+          Icon(Icons.calendar_today_outlined, size: 14, color: RpgColors.gold),
+          SizedBox(width: 6),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(label.toUpperCase(), style: const TextStyle(
+              Text(label.toUpperCase(), style: TextStyle(
                 fontSize: 8, color: RpgColors.textMuted, letterSpacing: 0.6, fontWeight: FontWeight.w500)),
-              const SizedBox(height: 2),
-              Text(value, style: const TextStyle(
+              SizedBox(height: 2),
+              Text(value, style: TextStyle(
                 color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13)),
             ]),
           ),
           if (onClear != null)
             GestureDetector(
               onTap: onClear,
-              child: const Icon(Icons.close, size: 14, color: RpgColors.textMuted),
+              child: Icon(Icons.close, size: 14, color: RpgColors.textMuted),
             ),
         ]),
       ),
@@ -1129,7 +1129,7 @@ class _EpisodeProgressBar extends StatelessWidget {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          const Text('EPISODIOS', style: TextStyle(
+          Text('EPISODIOS', style: TextStyle(
             fontSize: 9, color: RpgColors.textMuted, letterSpacing: 0.8, fontWeight: FontWeight.w500)),
           Row(mainAxisSize: MainAxisSize.min, children: [
             if (onDecrement != null)
@@ -1142,12 +1142,12 @@ class _EpisodeProgressBar extends StatelessWidget {
                     color: RpgColors.surfaceHigh,
                     borderRadius: BorderRadius.circular(5),
                   ),
-                  child: const Icon(Icons.remove, size: 12, color: RpgColors.textMuted),
+                  child: Icon(Icons.remove, size: 12, color: RpgColors.textMuted),
                 ),
               ),
             Text(
               total > 0 ? '$current / $total' : 'Ep. $current',
-              style: const TextStyle(color: RpgColors.gold, fontSize: 12, fontWeight: FontWeight.bold),
+              style: TextStyle(color: RpgColors.gold, fontSize: 12, fontWeight: FontWeight.bold),
             ),
             if (onIncrement != null)
               GestureDetector(
@@ -1160,13 +1160,13 @@ class _EpisodeProgressBar extends StatelessWidget {
                     borderRadius: BorderRadius.circular(5),
                     border: Border.all(color: RpgColors.gold),
                   ),
-                  child: const Icon(Icons.add, size: 12, color: RpgColors.gold),
+                  child: Icon(Icons.add, size: 12, color: RpgColors.gold),
                 ),
               ),
           ]),
         ]),
         if (total > 0) ...[
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: Stack(children: [
@@ -1203,15 +1203,15 @@ class _RewatchTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(children: [
-        const Icon(Icons.replay_outlined, size: 16, color: RpgColors.textMuted),
-        const SizedBox(width: 8),
+        Icon(Icons.replay_outlined, size: 16, color: RpgColors.textMuted),
+        SizedBox(width: 8),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('VUELTO A VER', style: TextStyle(
+            Text('VUELTO A VER', style: TextStyle(
               fontSize: 9, color: RpgColors.textMuted, letterSpacing: 0.8, fontWeight: FontWeight.w500)),
             Text(
               count == 0 ? 'Sin revisiones' : 'x$count ${count == 1 ? "vez" : "veces"}',
-              style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13),
+              style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13),
             ),
           ]),
         ),
@@ -1224,10 +1224,10 @@ class _RewatchTile extends StatelessWidget {
                 color: RpgColors.surfaceHigh,
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: const Icon(Icons.remove, size: 14, color: RpgColors.textMuted),
+              child: Icon(Icons.remove, size: 14, color: RpgColors.textMuted),
             ),
           ),
-        const SizedBox(width: 6),
+        SizedBox(width: 6),
         GestureDetector(
           onTap: onIncrement,
           child: Container(
@@ -1237,7 +1237,7 @@ class _RewatchTile extends StatelessWidget {
               borderRadius: BorderRadius.circular(6),
               border: Border.all(color: RpgColors.gold),
             ),
-            child: const Icon(Icons.add, size: 14, color: RpgColors.gold),
+            child: Icon(Icons.add, size: 14, color: RpgColors.gold),
           ),
         ),
       ]),
@@ -1272,7 +1272,7 @@ class _EpisodeStepper extends StatelessWidget {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text(label, style: const TextStyle(
+          Text(label, style: TextStyle(
             fontSize: 9, color: RpgColors.textMuted, letterSpacing: 0.8, fontWeight: FontWeight.w500)),
           Row(children: [
             GestureDetector(
@@ -1291,7 +1291,7 @@ class _EpisodeStepper extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Text(
                 total != null ? '$current / $total' : '$current',
-                style: const TextStyle(
+                style: TextStyle(
                   color: RpgColors.gold, fontFamily: 'DMSans', fontSize: 14, fontWeight: FontWeight.bold),
               ),
             ),
@@ -1312,7 +1312,7 @@ class _EpisodeStepper extends StatelessWidget {
           ]),
         ]),
         if (total != null && total! > 0) ...[
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: Stack(children: [
@@ -1324,9 +1324,9 @@ class _EpisodeStepper extends StatelessWidget {
             ]),
           ),
         ] else ...[
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Row(children: [
-            const Text('Total: ', style: TextStyle(
+            Text('Total: ', style: TextStyle(
               color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 12)),
             Expanded(
               child: TextField(
@@ -1335,7 +1335,7 @@ class _EpisodeStepper extends StatelessWidget {
                   hintText: 'Desconocido',
                   isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 ),
-                style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13),
+                style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13),
                 onChanged: (v) => onTotalChanged(int.tryParse(v)),
               ),
             ),
@@ -1366,15 +1366,15 @@ class _RewatchStepper extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(children: [
-        const Icon(Icons.replay_outlined, size: 16, color: RpgColors.textMuted),
-        const SizedBox(width: 8),
+        Icon(Icons.replay_outlined, size: 16, color: RpgColors.textMuted),
+        SizedBox(width: 8),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label, style: const TextStyle(
+            Text(label, style: TextStyle(
               fontSize: 9, color: RpgColors.textMuted, letterSpacing: 0.8, fontWeight: FontWeight.w500)),
             Text(
               count == 0 ? 'Sin revisiones' : 'x$count ${count == 1 ? "vez" : "veces"}',
-              style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13),
+              style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13),
             ),
           ]),
         ),
@@ -1387,10 +1387,10 @@ class _RewatchStepper extends StatelessWidget {
                 color: RpgColors.surfaceHigh,
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: const Icon(Icons.remove, size: 14, color: RpgColors.textMuted),
+              child: Icon(Icons.remove, size: 14, color: RpgColors.textMuted),
             ),
           ),
-        const SizedBox(width: 6),
+        SizedBox(width: 6),
         GestureDetector(
           onTap: () => onChanged(count + 1),
           child: Container(
@@ -1400,7 +1400,7 @@ class _RewatchStepper extends StatelessWidget {
               borderRadius: BorderRadius.circular(6),
               border: Border.all(color: RpgColors.gold),
             ),
-            child: const Icon(Icons.add, size: 14, color: RpgColors.gold),
+            child: Icon(Icons.add, size: 14, color: RpgColors.gold),
           ),
         ),
       ]),
@@ -1457,7 +1457,7 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     text.toUpperCase(),
-    style: const TextStyle(
+    style: TextStyle(
       fontSize: 10, color: RpgColors.textMuted, letterSpacing: 0.8, fontWeight: FontWeight.w500),
   );
 }
@@ -1478,12 +1478,12 @@ class _InfoTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label.toUpperCase(), style: const TextStyle(
+        Text(label.toUpperCase(), style: TextStyle(
           fontSize: 9, color: RpgColors.textMuted, letterSpacing: 0.8, fontWeight: FontWeight.w500)),
-        const SizedBox(height: 4),
+        SizedBox(height: 4),
         Row(children: [
           Icon(icon, size: 14, color: valueColor ?? RpgColors.textSecondary),
-          const SizedBox(width: 5),
+          SizedBox(width: 5),
           Expanded(child: Text(value, style: TextStyle(
             color: valueColor ?? RpgColors.textPrimary,
             fontFamily: 'Crimson', fontSize: 14, fontWeight: FontWeight.w600),
@@ -1509,8 +1509,8 @@ class _MetaChip extends StatelessWidget {
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Icon(icon, size: 13, color: RpgColors.textMuted),
-        const SizedBox(width: 5),
-        Text(text, style: const TextStyle(
+        SizedBox(width: 5),
+        Text(text, style: TextStyle(
           color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 13)),
       ]),
     );
@@ -1530,7 +1530,7 @@ class _TypePill extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: RpgColors.amethystLight.withOpacity(0.4)),
       ),
-      child: Text(typeLabel(type), style: const TextStyle(
+      child: Text(typeLabel(type), style: TextStyle(
         color: RpgColors.amethystLight, fontSize: 11, fontFamily: 'Crimson')),
     );
   }
@@ -1564,7 +1564,7 @@ class _HistorySectionState extends State<_HistorySection> {
   @override
   Widget build(BuildContext context) {
     return ExpansionTile(
-      title: const Text('Historial de cambios',
+      title: Text('Historial de cambios',
           style: TextStyle(color: RpgColors.textSecondary, fontSize: 13)),
       iconColor: RpgColors.gold,
       collapsedIconColor: RpgColors.textMuted,
@@ -1573,7 +1573,7 @@ class _HistorySectionState extends State<_HistorySection> {
         setState(() => _expanded = v);
       },
       children: _history.isEmpty && _loaded
-          ? [const Padding(
+          ? [Padding(
               padding: EdgeInsets.all(12),
               child: Text('Sin cambios registrados',
                   style: TextStyle(color: RpgColors.textMuted, fontSize: 12)))]
@@ -1584,13 +1584,13 @@ class _HistorySectionState extends State<_HistorySection> {
                 dense: true,
                 title: Text(
                   '${h['field_name']}: ${h['old_value'] ?? '—'} → ${h['new_value'] ?? '—'}',
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: RpgColors.textSecondary,
                       fontSize: 12,
                       fontFamily: 'Crimson'),
                 ),
                 trailing: Text(dateStr,
-                    style: const TextStyle(color: RpgColors.textMuted, fontSize: 11)),
+                    style: TextStyle(color: RpgColors.textMuted, fontSize: 11)),
               );
             }).toList(),
     );

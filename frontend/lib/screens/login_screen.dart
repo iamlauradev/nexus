@@ -81,16 +81,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Image.asset('assets/images/logo.png', width: 80, height: 80),
-                    const SizedBox(height: 10),
-                    const Text('NEXUS', style: TextStyle(
+                    SizedBox(height: 10),
+                    Text('NEXUS', style: TextStyle(
                       fontFamily: 'Cinzel', fontSize: 22,
                       color: RpgColors.textPrimary, letterSpacing: 4,
                       fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 4),
-                    const Text('Tu colección multimedia', style: TextStyle(
+                    SizedBox(height: 4),
+                    Text('Tu colección multimedia', style: TextStyle(
                       fontFamily: 'DMSans', fontSize: 12,
                       color: RpgColors.textMuted, letterSpacing: 0.3)),
-                    const SizedBox(height: 32),
+                    SizedBox(height: 32),
                   if (_register) ...[
                     TextField(
                       controller: _displayCtrl,
@@ -98,9 +98,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         labelText: 'Nombre visible (opcional)',
                         prefixIcon: Icon(Icons.person, color: RpgColors.accent, size: 18),
                       ),
-                      style: const TextStyle(color: RpgColors.textPrimary),
+                      style: TextStyle(color: RpgColors.textPrimary),
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                   ],
                   AutofillGroup(
                     child: Column(
@@ -112,10 +112,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             labelText: 'Usuario',
                             prefixIcon: Icon(Icons.shield, color: RpgColors.accent, size: 18),
                           ),
-                          style: const TextStyle(color: RpgColors.textPrimary),
+                          style: TextStyle(color: RpgColors.textPrimary),
                           textInputAction: TextInputAction.next,
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12),
                         TextField(
                           controller: _passwordCtrl,
                           obscureText: true,
@@ -124,7 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             labelText: 'Contraseña',
                             prefixIcon: Icon(Icons.lock, color: RpgColors.accent, size: 18),
                           ),
-                          style: const TextStyle(color: RpgColors.textPrimary),
+                          style: TextStyle(color: RpgColors.textPrimary),
                           textInputAction: TextInputAction.done,
                           onSubmitted: (_) => _submit(),
                         ),
@@ -132,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   if (_error != null) ...[
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
@@ -140,29 +140,29 @@ class _LoginScreenState extends State<LoginScreen> {
                         border: Border.all(color: RpgColors.statusDropped.withOpacity(0.5)),
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: Text(_error!, style: const TextStyle(color: RpgColors.statusDropped, fontSize: 13)),
+                      child: Text(_error!, style: TextStyle(color: RpgColors.statusDropped, fontSize: 13)),
                     ),
                   ],
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
                     height: 48,
                     child: ElevatedButton(
                       onPressed: _loading ? null : _submit,
                       child: _loading
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                         : Text(_register ? 'Crear cuenta' : 'Entrar'),
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                   TextButton(
                     onPressed: () => setState(() { _register = !_register; _error = null; }),
                     child: Text(
                       _register ? '¿Ya tienes cuenta? Inicia sesión' : '¿Sin cuenta? Regístrate',
-                      style: const TextStyle(color: RpgColors.goldLight, fontSize: 13, fontFamily: 'DMSans'),
+                      style: TextStyle(color: RpgColors.goldLight, fontSize: 13, fontFamily: 'DMSans'),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                 ],
                 ),
               ),

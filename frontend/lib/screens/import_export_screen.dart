@@ -47,7 +47,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: RpgColors.surface,
-        title: const Text('Exportar colección', style: TextStyle(
+        title: Text('Exportar colección', style: TextStyle(
           color: RpgColors.textPrimary, fontSize: 15, fontWeight: FontWeight.w600)),
         content: SizedBox(
           width: double.maxFinite,
@@ -64,11 +64,11 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                 child: SingleChildScrollView(
                   child: Text(
                     jsonStr.length > 2000 ? '${jsonStr.substring(0, 2000)}…' : jsonStr,
-                    style: const TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 11),
+                    style: TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 11),
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Row(children: [
                 Expanded(
                   child: OutlinedButton.icon(
@@ -77,12 +77,12 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Copiado al portapapeles'), backgroundColor: RpgColors.statusComplete));
                     },
-                    icon: const Icon(Icons.copy, size: 16, color: RpgColors.gold),
-                    label: const Text('Copiar', style: TextStyle(color: RpgColors.gold, fontSize: 12)),
-                    style: OutlinedButton.styleFrom(side: const BorderSide(color: RpgColors.border)),
+                    icon: Icon(Icons.copy, size: 16, color: RpgColors.gold),
+                    label: Text('Copiar', style: TextStyle(color: RpgColors.gold, fontSize: 12)),
+                    style: OutlinedButton.styleFrom(side: BorderSide(color: RpgColors.border)),
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () async {
@@ -96,8 +96,8 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                         await Share.share(jsonStr, subject: 'Nexus — Mi colección');
                       }
                     },
-                    icon: const Icon(Icons.share_outlined, size: 16, color: RpgColors.obsidian),
-                    label: const Text('Compartir', style: TextStyle(color: RpgColors.obsidian, fontSize: 12)),
+                    icon: Icon(Icons.share_outlined, size: 16, color: RpgColors.obsidian),
+                    label: Text('Compartir', style: TextStyle(color: RpgColors.obsidian, fontSize: 12)),
                   ),
                 ),
               ]),
@@ -107,7 +107,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar', style: TextStyle(color: RpgColors.textMuted)),
+            child: Text('Cerrar', style: TextStyle(color: RpgColors.textMuted)),
           ),
         ],
       ),
@@ -162,22 +162,22 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: RpgColors.surface,
-        title: const Text('Importación completada', style: TextStyle(
+        title: Text('Importación completada', style: TextStyle(
           color: RpgColors.textPrimary, fontSize: 15, fontWeight: FontWeight.w600)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             _ResultRow(Icons.check_circle_outline, 'Importados', '$imported', RpgColors.statusComplete),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             _ResultRow(Icons.skip_next_outlined, 'Saltados', '$skipped', RpgColors.statusPlan),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             _ResultRow(Icons.error_outline, 'Errores', '$errors', RpgColors.statusDropped),
           ],
         ),
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+            child: Text('OK'),
           ),
         ],
       ),
@@ -190,14 +190,14 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
       builder: (_) => StatefulBuilder(
         builder: (ctx, setStateDlg) => AlertDialog(
           backgroundColor: RpgColors.surface,
-          title: Text('Importar ${_formatLabel(format)}', style: const TextStyle(
+          title: Text('Importar ${_formatLabel(format)}', style: TextStyle(
             color: RpgColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Pega el contenido del archivo aquí:', style: TextStyle(
+              Text('Pega el contenido del archivo aquí:', style: TextStyle(
                 color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 13)),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               TextField(
                 controller: _pasteCtrl,
                 maxLines: 8,
@@ -205,14 +205,14 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                   hintText: 'Contenido del archivo...',
                   alignLabelWithHint: true,
                 ),
-                style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 12),
+                style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 12),
               ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () { Navigator.pop(ctx); _pasteCtrl.clear(); },
-              child: const Text('Cancelar', style: TextStyle(color: RpgColors.textMuted)),
+              child: Text('Cancelar', style: TextStyle(color: RpgColors.textMuted)),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -222,7 +222,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                 _pasteCtrl.clear();
                 await _doImport(format, content);
               },
-              child: const Text('Importar'),
+              child: Text('Importar'),
             ),
           ],
         ),
@@ -247,7 +247,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Importar / Exportar')),
+      appBar: AppBar(title: Text('Importar / Exportar')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -255,32 +255,32 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
           children: [
             // EXPORT
             _SectionHeader('EXPORTAR'),
-            const SizedBox(height: 4),
-            const Text('Descarga tu colección completa en formato JSON.',
+            SizedBox(height: 4),
+            Text('Descarga tu colección completa en formato JSON.',
               style: TextStyle(color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 14)),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: _exporting ? null : _export,
                 icon: _exporting
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Icon(Icons.download_outlined),
+                    ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : Icon(Icons.download_outlined),
                 label: Text(_exporting ? 'Exportando...' : 'Exportar mi colección (JSON)',
-                  style: const TextStyle(fontSize: 13)),
+                  style: TextStyle(fontSize: 13)),
               ),
             ),
 
-            const SizedBox(height: 28),
-            const Divider(color: RpgColors.border),
-            const SizedBox(height: 16),
+            SizedBox(height: 28),
+            Divider(color: RpgColors.border),
+            SizedBox(height: 16),
 
             // IMPORT
             _SectionHeader('IMPORTAR'),
-            const SizedBox(height: 4),
-            const Text('Importa tu historial desde distintas plataformas.',
+            SizedBox(height: 4),
+            Text('Importa tu historial desde distintas plataformas.',
               style: TextStyle(color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 14)),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
 
             _ImportButton(
               icon: Icons.backup_outlined,
@@ -289,7 +289,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
               color: RpgColors.gold,
               onTap: _importing ? null : () => _importFile('own_json'),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             _ImportButton(
               icon: Icons.list_alt_outlined,
               label: 'Importar desde MAL (XML)',
@@ -297,7 +297,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
               color: RpgColors.statusWatching,
               onTap: _importing ? null : () => _importFile('mal_xml'),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             _ImportButton(
               icon: Icons.movie_outlined,
               label: 'Importar desde Letterboxd (CSV)',
@@ -307,13 +307,13 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
             ),
 
             if (_importing) ...[
-              const SizedBox(height: 20),
-              const Center(child: CircularProgressIndicator(color: RpgColors.gold)),
-              const SizedBox(height: 8),
-              const Center(child: Text('Importando…', style: TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson'))),
+              SizedBox(height: 20),
+              Center(child: CircularProgressIndicator(color: RpgColors.gold)),
+              SizedBox(height: 8),
+              Center(child: Text('Importando…', style: TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson'))),
             ],
 
-            const SizedBox(height: 40),
+            SizedBox(height: 40),
           ],
         ),
       ),
@@ -326,7 +326,7 @@ class _SectionHeader extends StatelessWidget {
   const _SectionHeader(this.text);
 
   @override
-  Widget build(BuildContext context) => Text(text, style: const TextStyle(
+  Widget build(BuildContext context) => Text(text, style: TextStyle(
     fontSize: 13, color: RpgColors.textPrimary, letterSpacing: 0.5, fontWeight: FontWeight.w700));
 }
 
@@ -365,15 +365,15 @@ class _ImportButton extends StatelessWidget {
             ),
             child: Icon(icon, color: color, size: 22),
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: 14),
           Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(label, style: TextStyle(
                 color: onTap != null ? RpgColors.textPrimary : RpgColors.textMuted,
                 fontSize: 12, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 2),
-              Text(subtitle, style: const TextStyle(
+              SizedBox(height: 2),
+              Text(subtitle, style: TextStyle(
                 color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 12)),
             ],
           )),
@@ -396,8 +396,8 @@ class _ResultRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(children: [
       Icon(icon, color: color, size: 18),
-      const SizedBox(width: 10),
-      Text(label, style: const TextStyle(color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 14)),
+      SizedBox(width: 10),
+      Text(label, style: TextStyle(color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 14)),
       const Spacer(),
       Text(value, style: TextStyle(color: color, fontFamily: 'DMSans', fontSize: 16, fontWeight: FontWeight.bold)),
     ]);

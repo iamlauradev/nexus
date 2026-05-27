@@ -38,11 +38,11 @@ class EmptyState extends StatelessWidget {
               ),
               child: Icon(icon, color: RpgColors.textMuted, size: 40),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Cinzel',
                 fontSize: 15,
                 color: RpgColors.textSecondary,
@@ -50,11 +50,11 @@ class EmptyState extends StatelessWidget {
               ),
             ),
             if (subtitle != null) ...[
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Text(
                 subtitle!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Crimson',
                   fontSize: 14,
                   color: RpgColors.textMuted,
@@ -62,10 +62,10 @@ class EmptyState extends StatelessWidget {
               ),
             ],
             if (actionLabel != null && onAction != null) ...[
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               ElevatedButton.icon(
                 onPressed: onAction,
-                icon: const Icon(Icons.add, size: 18),
+                icon: Icon(Icons.add, size: 18),
                 label: Text(actionLabel!),
               ),
             ],

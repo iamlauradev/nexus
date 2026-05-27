@@ -26,18 +26,23 @@ class RpgSpacing {
 }
 
 // ---------------------------------------------------------------------------
-// Color palette — deep purple-black identity
+// Color palette — deep purple-black identity (dark) / soft lavender (light)
 // ---------------------------------------------------------------------------
 class RpgColors {
-  // Elevation stack — all share purple hue (~270°) for visual cohesion
-  static const Color obsidian    = Color(0xFF09080F); // scaffold base
-  static const Color darkVoid    = Color(0xFF0F0D1A); // nav bars, sections
-  static const Color charcoal    = Color(0xFF141130); // inputs, subtle containers
-  static const Color surface     = Color(0xFF1A1730); // cards
-  static const Color surfaceHigh = Color(0xFF221F40); // elevated cards, modals
-  static const Color border      = Color(0xFF2A2548); // interactive borders only
+  static bool _dark = true;
+  static void setMode(bool dark) { _dark = dark; }
+  static bool get isDark => _dark;
 
-  // Primary accent — indigo-violet (distinctive, not generic Tailwind purple)
+  // Elevation stack — adaptive dark/light
+  static Color get obsidian    => _dark ? const Color(0xFF09080F) : const Color(0xFFF5F3FF);
+  static Color get darkVoid    => _dark ? const Color(0xFF0F0D1A) : const Color(0xFFFFFFFF);
+  static Color get charcoal    => _dark ? const Color(0xFF141130) : const Color(0xFFEDE9FF);
+  static Color get surface     => _dark ? const Color(0xFF1A1730) : const Color(0xFFFFFFFF);
+  static Color get surfaceHigh => _dark ? const Color(0xFF221F40) : const Color(0xFFF8F5FF);
+  static Color get border      => _dark ? const Color(0xFF2A2548) : const Color(0xFFCDC5F0);
+  static Color get divider     => _dark ? const Color(0xFF1E1C38) : const Color(0xFFE8E4FF);
+
+  // Primary accent — indigo-violet (same in both modes)
   static const Color accent      = Color(0xFF7C6FEB);
   static const Color gold        = Color(0xFF7C6FEB);  // alias kept for compat
   static const Color goldLight   = Color(0xFF9D94F5);
@@ -50,10 +55,10 @@ class RpgColors {
   static const Color amethystGlow  = Color(0x3338BDF8);
   static const Color violet        = Color(0xFF4C1D95);
 
-  // Text — warm white family
-  static const Color textPrimary   = Color(0xFFF4F1FF); // slightly warm, soft on eyes
-  static const Color textSecondary = Color(0xFF8B84B0); // muted purple-gray
-  static const Color textMuted     = Color(0xFF4A4570); // deep muted
+  // Text — adaptive warm white (dark) / deep purple (light)
+  static Color get textPrimary   => _dark ? const Color(0xFFF4F1FF) : const Color(0xFF1A1730);
+  static Color get textSecondary => _dark ? const Color(0xFF8B84B0) : const Color(0xFF4A4570);
+  static Color get textMuted     => _dark ? const Color(0xFF4A4570) : const Color(0xFF8B84B0);
 
   // Emission status
   static const Color emissionAiring    = Color(0xFF3CC98A); // emerald
@@ -214,20 +219,30 @@ String typeLabel(String? type) {
 ThemeData buildRpgTheme() {
   return ThemeData(
     useMaterial3: true,
-    brightness: Brightness.dark,
+    brightness: RpgColors.isDark ? Brightness.dark : Brightness.light,
     scaffoldBackgroundColor: RpgColors.obsidian,
-    colorScheme: ColorScheme.dark(
-      primary:     RpgColors.accent,
-      secondary:   RpgColors.amethyst,
-      surface:     RpgColors.surface,
-      error:       RpgColors.statusDropped,
-      onPrimary:   Colors.white,
-      onSecondary: RpgColors.textPrimary,
-      onSurface:   RpgColors.textPrimary,
-    ),
+    colorScheme: RpgColors.isDark
+      ? ColorScheme.dark(
+          primary:     RpgColors.accent,
+          secondary:   RpgColors.amethyst,
+          surface:     RpgColors.surface,
+          error:       RpgColors.statusDropped,
+          onPrimary:   Colors.white,
+          onSecondary: RpgColors.textPrimary,
+          onSurface:   RpgColors.textPrimary,
+        )
+      : ColorScheme.light(
+          primary:     RpgColors.accent,
+          secondary:   RpgColors.amethyst,
+          surface:     RpgColors.surface,
+          error:       RpgColors.statusDropped,
+          onPrimary:   Colors.white,
+          onSecondary: RpgColors.textPrimary,
+          onSurface:   RpgColors.textPrimary,
+        ),
 
     // AppBar — same as scaffold, seamless feel
-    appBarTheme: const AppBarTheme(
+    appBarTheme: AppBarTheme(
       backgroundColor: RpgColors.obsidian,
       foregroundColor: RpgColors.textPrimary,
       elevation: 0,
@@ -243,7 +258,7 @@ ThemeData buildRpgTheme() {
     ),
 
     // Bottom nav — elevated one step
-    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+    bottomNavigationBarTheme: BottomNavigationBarThemeData(
       backgroundColor: RpgColors.darkVoid,
       selectedItemColor: RpgColors.accent,
       unselectedItemColor: RpgColors.textMuted,
@@ -268,18 +283,18 @@ ThemeData buildRpgTheme() {
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: RpgColors.border),
+        borderSide: BorderSide(color: RpgColors.border),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: RpgColors.border),
+        borderSide: BorderSide(color: RpgColors.border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: const BorderSide(color: RpgColors.accent, width: 1.5),
       ),
-      labelStyle: const TextStyle(color: RpgColors.textSecondary, fontFamily: 'DMSans', fontSize: 13),
-      hintStyle: const TextStyle(color: RpgColors.textMuted, fontFamily: 'DMSans', fontSize: 13),
+      labelStyle: TextStyle(color: RpgColors.textSecondary, fontFamily: 'DMSans', fontSize: 13),
+      hintStyle: TextStyle(color: RpgColors.textMuted, fontFamily: 'DMSans', fontSize: 13),
     ),
 
     // Buttons
@@ -290,22 +305,22 @@ ThemeData buildRpgTheme() {
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        textStyle: const TextStyle(fontFamily: 'DMSans', fontSize: 14, fontWeight: FontWeight.w600, letterSpacing: 0.2),
+        textStyle: TextStyle(fontFamily: 'DMSans', fontSize: 14, fontWeight: FontWeight.w600, letterSpacing: 0.2),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: RpgColors.textSecondary,
-        side: const BorderSide(color: RpgColors.border),
+        side: BorderSide(color: RpgColors.border),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        textStyle: const TextStyle(fontFamily: 'DMSans', fontSize: 13, fontWeight: FontWeight.w500),
+        textStyle: TextStyle(fontFamily: 'DMSans', fontSize: 13, fontWeight: FontWeight.w500),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: RpgColors.textSecondary,
-        textStyle: const TextStyle(fontFamily: 'DMSans', fontSize: 13),
+        textStyle: TextStyle(fontFamily: 'DMSans', fontSize: 13),
       ),
     ),
 
@@ -313,7 +328,7 @@ ThemeData buildRpgTheme() {
     //   Cinzel   → brand identity (display, big titles)
     //   DMSans   → UI chrome (labels, nav, buttons, metadata)
     //   Crimson  → content (descriptions, body text)
-    textTheme: const TextTheme(
+    textTheme: TextTheme(
       displayLarge:  TextStyle(fontFamily: 'Cinzel', color: RpgColors.textPrimary, fontSize: 34, letterSpacing: 1.5, fontWeight: FontWeight.w700),
       displayMedium: TextStyle(fontFamily: 'Cinzel', color: RpgColors.textPrimary, fontSize: 26, letterSpacing: 1),
       displaySmall:  TextStyle(fontFamily: 'Cinzel', color: RpgColors.textPrimary, fontSize: 20, letterSpacing: 0.5),
@@ -329,13 +344,13 @@ ThemeData buildRpgTheme() {
     ),
 
     // Divider — very subtle
-    dividerTheme: const DividerThemeData(color: Color(0xFF1E1C38), thickness: 1),
+    dividerTheme: DividerThemeData(color: RpgColors.divider, thickness: 1),
 
     // Chips — pill style
     chipTheme: ChipThemeData(
       backgroundColor: RpgColors.charcoal,
-      labelStyle: const TextStyle(color: RpgColors.textSecondary, fontSize: 12, fontFamily: 'DMSans'),
-      side: const BorderSide(color: RpgColors.border),
+      labelStyle: TextStyle(color: RpgColors.textSecondary, fontSize: 12, fontFamily: 'DMSans'),
+      side: BorderSide(color: RpgColors.border),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     ),
@@ -350,15 +365,15 @@ ThemeData buildRpgTheme() {
         border: Border.all(color: RpgColors.accent.withOpacity(0.5)),
       ),
       indicatorSize: TabBarIndicatorSize.tab,
-      labelStyle: const TextStyle(fontFamily: 'DMSans', fontSize: 12, fontWeight: FontWeight.w600),
-      unselectedLabelStyle: const TextStyle(fontFamily: 'DMSans', fontSize: 12),
+      labelStyle: TextStyle(fontFamily: 'DMSans', fontSize: 12, fontWeight: FontWeight.w600),
+      unselectedLabelStyle: TextStyle(fontFamily: 'DMSans', fontSize: 12),
       dividerColor: Colors.transparent,
     ),
 
     // SnackBar
     snackBarTheme: SnackBarThemeData(
       backgroundColor: RpgColors.surfaceHigh,
-      contentTextStyle: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'DMSans', fontSize: 13),
+      contentTextStyle: TextStyle(color: RpgColors.textPrimary, fontFamily: 'DMSans', fontSize: 13),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       behavior: SnackBarBehavior.floating,
     ),
@@ -367,8 +382,8 @@ ThemeData buildRpgTheme() {
     dialogTheme: DialogThemeData(
       backgroundColor: RpgColors.surfaceHigh,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      titleTextStyle: const TextStyle(fontFamily: 'Cinzel', fontSize: 16, fontWeight: FontWeight.w700, color: RpgColors.textPrimary),
-      contentTextStyle: const TextStyle(fontFamily: 'Crimson', fontSize: 15, color: RpgColors.textSecondary),
+      titleTextStyle: TextStyle(fontFamily: 'Cinzel', fontSize: 16, fontWeight: FontWeight.w700, color: RpgColors.textPrimary),
+      contentTextStyle: TextStyle(fontFamily: 'Crimson', fontSize: 15, color: RpgColors.textSecondary),
     ),
   );
 }
@@ -377,6 +392,6 @@ ThemeData buildRpgTheme() {
 // Theme switcher — dark-first app
 // ---------------------------------------------------------------------------
 class AppTheme {
-  static ThemeData dark()  => buildRpgTheme();
-  static ThemeData light() => buildRpgTheme(); // dark-only app
+  static ThemeData dark()  { RpgColors.setMode(true);  return buildRpgTheme(); }
+  static ThemeData light() { RpgColors.setMode(false); return buildRpgTheme(); }
 }

@@ -62,14 +62,14 @@ class _StatsScreenState extends State<StatsScreen> {
       appBar: AppBar(
         backgroundColor: RpgColors.darkVoid,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: RpgColors.textPrimary),
+          icon: Icon(Icons.arrow_back, color: RpgColors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('ESTADÍSTICAS', style: TextStyle(
+        title: Text('ESTADÍSTICAS', style: TextStyle(
           fontFamily: 'Cinzel', fontSize: 15, color: RpgColors.textPrimary, letterSpacing: 1)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_outlined, color: RpgColors.textMuted),
+            icon: Icon(Icons.refresh_outlined, color: RpgColors.textMuted),
             onPressed: _load,
             tooltip: 'Actualizar',
           ),
@@ -83,11 +83,11 @@ class _StatsScreenState extends State<StatsScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           child: _loading
-              ? const Center(child: Padding(
+              ? Center(child: Padding(
                   padding: EdgeInsets.all(40),
                   child: CircularProgressIndicator(color: RpgColors.gold)))
               : _stats == null
-                  ? const Center(child: Text('Sin datos', style: TextStyle(color: RpgColors.textMuted)))
+                  ? Center(child: Text('Sin datos', style: TextStyle(color: RpgColors.textMuted)))
                   : _buildContent(),
         ),
       ),
@@ -153,11 +153,11 @@ class _StatsScreenState extends State<StatsScreen> {
       children: [
         Row(children: [
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('ESTADÍSTICAS', style: TextStyle(
+            Text('ESTADÍSTICAS', style: TextStyle(
               fontFamily: 'DMSans', fontSize: 20, color: RpgColors.textPrimary,
               fontWeight: FontWeight.w700, letterSpacing: 2)),
-            const SizedBox(height: 4),
-            Text('$total obras en tu colección', style: const TextStyle(
+            SizedBox(height: 4),
+            Text('$total obras en tu colección', style: TextStyle(
               fontFamily: 'Crimson', color: RpgColors.textSecondary, fontSize: 14)),
           ])),
           if (completedThisYear > 0)
@@ -168,119 +168,119 @@ class _StatsScreenState extends State<StatsScreen> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(children: [
-                Text('$completedThisYear', style: const TextStyle(
+                Text('$completedThisYear', style: TextStyle(
                   fontFamily: 'DMSans', fontSize: 20, color: RpgColors.statusComplete, fontWeight: FontWeight.bold)),
-                const Text('este año', style: TextStyle(
+                Text('este año', style: TextStyle(
                   fontFamily: 'DMSans', fontSize: 10, color: RpgColors.textMuted)),
               ]),
             ),
         ]),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
 
         const GoldDivider(label: 'POR CATEGORÍA'),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         _SectionGrid(data: byType),
 
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
         const GoldDivider(label: 'POR ESTADO'),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         _StatusBars(data: byStatus, total: total),
 
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
         const GoldDivider(label: 'VALORACIONES'),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         _RatingBars(data: byRating, total: total),
 
         // Tiempo invertido
         if (timeSpentMinutes > 0) ...[
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           const GoldDivider(label: 'TIEMPO INVERTIDO'),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _TimeSpentBox(totalMinutes: timeSpentMinutes),
         ],
 
         // Distribución de puntuaciones
         if (scoreDist.isNotEmpty) ...[
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           const GoldDivider(label: 'DISTRIBUCIÓN DE PUNTUACIONES'),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _ScoreDistributionChart(data: scoreDist),
         ],
 
         // Actividad mensual
         if (monthlyAdded.isNotEmpty) ...[
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           const GoldDivider(label: 'ACTIVIDAD MENSUAL'),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _MonthlyChart(data: monthlyAdded),
         ],
 
         // Estadísticas por tipo de contenido
         if (contentTypeStats.isNotEmpty) ...[
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           const GoldDivider(label: 'POR TIPO DE CONTENIDO'),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _ContentTypeBreakdown(data: contentTypeStats),
         ],
 
         // Top géneros
         if (topGenres.isNotEmpty || noGenreCount > 0) ...[
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           const GoldDivider(label: 'TOP GÉNEROS'),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           if (topGenres.isNotEmpty) _GenreBars(data: topGenres),
           if (noGenreCount > 0) ...[
-            if (topGenres.isNotEmpty) const SizedBox(height: 8),
+            if (topGenres.isNotEmpty) SizedBox(height: 8),
             Row(children: [
-              const Icon(Icons.info_outline, size: 13, color: RpgColors.textMuted),
-              const SizedBox(width: 5),
+              Icon(Icons.info_outline, size: 13, color: RpgColors.textMuted),
+              SizedBox(width: 5),
               Text('$noGenreCount obras sin datos de género',
-                style: const TextStyle(fontFamily: 'Crimson', fontSize: 12, color: RpgColors.textMuted)),
+                style: TextStyle(fontFamily: 'Crimson', fontSize: 12, color: RpgColors.textMuted)),
             ]),
           ],
         ],
 
         // Géneros por categoría
         if (topGenresByCat.isNotEmpty) ...[
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           const GoldDivider(label: 'GÉNEROS POR CATEGORÍA'),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _GenresByCategory(data: topGenresByCat),
         ],
 
         // Actividad reciente
         if (recentActivity.isNotEmpty) ...[
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           const GoldDivider(label: 'ACTIVIDAD RECIENTE'),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _RecentActivity(list: recentActivity),
         ],
 
         // Puntuación media por tipo
         if (avgScoreByType.isNotEmpty) ...[
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           const GoldDivider(label: 'PUNTUACIÓN MEDIA POR TIPO'),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _AvgScoreByType(data: avgScoreByType),
         ],
 
         // Más revisionados
         if (topRewatchedList.isNotEmpty) ...[
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           const GoldDivider(label: 'MÁS REVISIONADOS'),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _TopRewatched(list: topRewatchedList),
         ],
 
         // Distribución por década
         if (decadeDistribution.isNotEmpty) ...[
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           const GoldDivider(label: 'POR DÉCADA'),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _DecadeChart(data: decadeDistribution),
         ],
 
-        const SizedBox(height: 40),
+        SizedBox(height: 40),
       ],
     );
   }
@@ -323,17 +323,17 @@ class _SectionGrid extends StatelessWidget {
               ),
               child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 Icon(s.icon, color: RpgColors.gold.withOpacity(0.8), size: 20),
-                const SizedBox(height: 4),
-                Text('${s.count}', style: const TextStyle(
+                SizedBox(height: 4),
+                Text('${s.count}', style: TextStyle(
                   fontFamily: 'DMSans', fontSize: 16, color: RpgColors.textPrimary, fontWeight: FontWeight.bold)),
-                Text(s.label, style: const TextStyle(
+                Text(s.label, style: TextStyle(
                   fontFamily: 'DMSans', fontSize: 9, color: RpgColors.textMuted)),
               ]),
             ),
           )).toList(),
         ),
         if (comicBreakdown.isNotEmpty) ...[
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Row(
             children: comicBreakdown.map((t) => Expanded(
               child: Container(
@@ -344,9 +344,9 @@ class _SectionGrid extends StatelessWidget {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Column(children: [
-                  Text('${data[t.$1] ?? 0}', style: const TextStyle(
+                  Text('${data[t.$1] ?? 0}', style: TextStyle(
                     fontSize: 13, color: RpgColors.gold, fontWeight: FontWeight.bold)),
-                  Text(t.$2, style: const TextStyle(
+                  Text(t.$2, style: TextStyle(
                     fontFamily: 'DMSans', fontSize: 9, color: RpgColors.textMuted)),
                 ]),
               ),
@@ -376,10 +376,10 @@ class _StatusBars extends StatelessWidget {
           child: Row(children: [
             SizedBox(
               width: 82,
-              child: Text(statusLabel(status), style: const TextStyle(
+              child: Text(statusLabel(status), style: TextStyle(
                 color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 13)),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Expanded(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(4),
@@ -392,7 +392,7 @@ class _StatusBars extends StatelessWidget {
                 ]),
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             SizedBox(
               width: 34,
               child: Text('$count', textAlign: TextAlign.right, style: TextStyle(
@@ -417,7 +417,7 @@ class _RatingBars extends StatelessWidget {
     final filtered = configs.where((r) => (data[r['key']] ?? 0) > 0).toList();
 
     if (filtered.isEmpty) {
-      return const Text('Sin valoraciones aún',
+      return Text('Sin valoraciones aún',
         style: TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson'));
     }
 
@@ -433,11 +433,11 @@ class _RatingBars extends StatelessWidget {
           child: Row(children: [
             SizedBox(
               width: 110,
-              child: Text(label, style: const TextStyle(
+              child: Text(label, style: TextStyle(
                 color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 12),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
             ),
-            const SizedBox(width: 6),
+            SizedBox(width: 6),
             Expanded(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(4),
@@ -450,7 +450,7 @@ class _RatingBars extends StatelessWidget {
                 ]),
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             SizedBox(
               width: 28,
               child: Text('$count', textAlign: TextAlign.right, style: TextStyle(
@@ -504,21 +504,21 @@ class _TimeSpentBox extends StatelessWidget {
       ),
       child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
         Column(children: [
-          const Icon(Icons.schedule_outlined, color: RpgColors.gold, size: 28),
-          const SizedBox(height: 6),
-          Text('~${_format()}', style: const TextStyle(
+          Icon(Icons.schedule_outlined, color: RpgColors.gold, size: 28),
+          SizedBox(height: 6),
+          Text('~${_format()}', style: TextStyle(
             fontFamily: 'DMSans', fontSize: 18, color: RpgColors.textPrimary, fontWeight: FontWeight.bold)),
-          Text(_subtitle(), style: const TextStyle(
+          Text(_subtitle(), style: TextStyle(
             fontFamily: 'Crimson', fontSize: 12, color: RpgColors.textMuted)),
         ]),
         if (hours >= 24) ...[
           Container(width: 1, height: 50, color: RpgColors.border),
           Column(children: [
-            const Icon(Icons.calendar_today_outlined, color: RpgColors.amethystLight, size: 28),
-            const SizedBox(height: 6),
-            Text('~${days.toStringAsFixed(1)} días', style: const TextStyle(
+            Icon(Icons.calendar_today_outlined, color: RpgColors.amethystLight, size: 28),
+            SizedBox(height: 6),
+            Text('~${days.toStringAsFixed(1)} días', style: TextStyle(
               fontFamily: 'DMSans', fontSize: 18, color: RpgColors.textPrimary, fontWeight: FontWeight.bold)),
-            const Text('equivalente', style: TextStyle(
+            Text('equivalente', style: TextStyle(
               fontFamily: 'Crimson', fontSize: 12, color: RpgColors.textMuted)),
           ]),
         ],
@@ -573,7 +573,7 @@ class _ScoreDistributionChart extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   '${val.toInt()}',
-                  style: const TextStyle(color: RpgColors.textMuted, fontSize: 10, fontFamily: 'Crimson'),
+                  style: TextStyle(color: RpgColors.textMuted, fontSize: 10, fontFamily: 'Crimson'),
                 ),
               ),
               reservedSize: 20,
@@ -643,11 +643,11 @@ class _MonthlyChart extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
                       _monthNames[(month - 1).clamp(0, 11)],
-                      style: const TextStyle(color: RpgColors.textMuted, fontSize: 10, fontFamily: 'Crimson'),
+                      style: TextStyle(color: RpgColors.textMuted, fontSize: 10, fontFamily: 'Crimson'),
                     ),
                   );
                 }
-                return Text(key, style: const TextStyle(color: RpgColors.textMuted, fontSize: 9));
+                return Text(key, style: TextStyle(color: RpgColors.textMuted, fontSize: 9));
               },
               reservedSize: 20,
             ),
@@ -715,17 +715,17 @@ class _ContentTypeCard extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Icon(icon, color: RpgColors.gold.withOpacity(0.8), size: 16),
-          const SizedBox(width: 8),
-          Text(label, style: const TextStyle(
+          SizedBox(width: 8),
+          Text(label, style: TextStyle(
             fontSize: 12, color: RpgColors.textPrimary, fontWeight: FontWeight.w600)),
           const Spacer(),
-          Text('$total', style: const TextStyle(
+          Text('$total', style: TextStyle(
             fontFamily: 'DMSans', fontSize: 14, color: RpgColors.gold, fontWeight: FontWeight.bold)),
-          const Text('  obras', style: TextStyle(
+          Text('  obras', style: TextStyle(
             fontFamily: 'Crimson', fontSize: 12, color: RpgColors.textMuted)),
         ]),
         if (active.isNotEmpty) ...[
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           ...active.map((status) {
             final count = statusMap[status] ?? 0;
             final pct   = total > 0 ? count / total : 0.0;
@@ -733,9 +733,9 @@ class _ContentTypeCard extends StatelessWidget {
             return Padding(
               padding: const EdgeInsets.only(bottom: 5),
               child: Row(children: [
-                SizedBox(width: 80, child: Text(statusLabel(status), style: const TextStyle(
+                SizedBox(width: 80, child: Text(statusLabel(status), style: TextStyle(
                   color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 11))),
-                const SizedBox(width: 6),
+                SizedBox(width: 6),
                 Expanded(
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(3),
@@ -748,7 +748,7 @@ class _ContentTypeCard extends StatelessWidget {
                     ]),
                   ),
                 ),
-                const SizedBox(width: 6),
+                SizedBox(width: 6),
                 SizedBox(width: 28, child: Text('$count', textAlign: TextAlign.right, style: TextStyle(
                   color: color, fontSize: 11, fontWeight: FontWeight.bold))),
               ]),
@@ -780,11 +780,11 @@ class _GenreBars extends StatelessWidget {
           child: Row(children: [
             SizedBox(
               width: 100,
-              child: Text(e.key, style: const TextStyle(
+              child: Text(e.key, style: TextStyle(
                 color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 12),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Expanded(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(4),
@@ -797,13 +797,13 @@ class _GenreBars extends StatelessWidget {
                 ]),
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             SizedBox(
               width: 42,
               child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                Text('${e.value}', style: const TextStyle(
+                Text('${e.value}', style: TextStyle(
                   color: RpgColors.amethystLight, fontSize: 11, fontWeight: FontWeight.bold)),
-                Text(' $pctOfTotal%', style: const TextStyle(
+                Text(' $pctOfTotal%', style: TextStyle(
                   color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 10)),
               ]),
             ),
@@ -842,10 +842,10 @@ class _AvgScoreByType extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: Row(children: [
-            SizedBox(width: 80, child: Text(label, style: const TextStyle(
+            SizedBox(width: 80, child: Text(label, style: TextStyle(
               color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 13),
               maxLines: 1, overflow: TextOverflow.ellipsis)),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Expanded(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(4),
@@ -858,7 +858,7 @@ class _AvgScoreByType extends StatelessWidget {
                 ]),
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             SizedBox(width: 36, child: Text(e.value.toStringAsFixed(1), textAlign: TextAlign.right,
               style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold))),
           ]),
@@ -901,21 +901,21 @@ class _TopRewatched extends StatelessWidget {
                 color: RpgColors.gold.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: Center(child: Text('${i + 1}', style: const TextStyle(
+              child: Center(child: Text('${i + 1}', style: TextStyle(
                 fontSize: 11, color: RpgColors.gold, fontWeight: FontWeight.bold))),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(title, style: const TextStyle(
+              Text(title, style: TextStyle(
                 color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 14),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
-              Text(_typeLabels[type] ?? type, style: const TextStyle(
+              Text(_typeLabels[type] ?? type, style: TextStyle(
                 color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 11)),
             ])),
             Row(children: [
-              const Icon(Icons.replay_outlined, size: 14, color: RpgColors.amethystLight),
-              const SizedBox(width: 4),
-              Text('x$count', style: const TextStyle(
+              Icon(Icons.replay_outlined, size: 14, color: RpgColors.amethystLight),
+              SizedBox(width: 4),
+              Text('x$count', style: TextStyle(
                 fontSize: 13, color: RpgColors.amethystLight, fontWeight: FontWeight.bold)),
             ]),
           ]),
@@ -940,9 +940,9 @@ class _DecadeChart extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Row(children: [
-            SizedBox(width: 52, child: Text('${e.key}s', style: const TextStyle(
+            SizedBox(width: 52, child: Text('${e.key}s', style: TextStyle(
               color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 13))),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Expanded(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(4),
@@ -955,9 +955,9 @@ class _DecadeChart extends StatelessWidget {
                 ]),
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             SizedBox(width: 28, child: Text('${e.value}', textAlign: TextAlign.right,
-              style: const TextStyle(color: RpgColors.gold, fontFamily: 'DMSans', fontSize: 12, fontWeight: FontWeight.bold))),
+              style: TextStyle(color: RpgColors.gold, fontFamily: 'DMSans', fontSize: 12, fontWeight: FontWeight.bold))),
           ]),
         );
       }).toList(),
@@ -1000,7 +1000,7 @@ class _GenresByCategory extends StatelessWidget {
             Text(cat, style: TextStyle(
               fontFamily: 'DMSans', fontSize: 11, color: color,
               fontWeight: FontWeight.bold, letterSpacing: 0.3)),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             ...genres.map((g) {
               final count = (g['count'] as num).toInt();
               final pct = maxVal > 0 ? count / maxVal : 0.0;
@@ -1008,9 +1008,9 @@ class _GenresByCategory extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 5),
                 child: Row(children: [
                   SizedBox(width: 90, child: Text(g['genre'].toString(),
-                    style: const TextStyle(color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 11),
+                    style: TextStyle(color: RpgColors.textSecondary, fontFamily: 'Crimson', fontSize: 11),
                     maxLines: 1, overflow: TextOverflow.ellipsis)),
-                  const SizedBox(width: 6),
+                  SizedBox(width: 6),
                   Expanded(child: ClipRRect(
                     borderRadius: BorderRadius.circular(3),
                     child: Stack(children: [
@@ -1021,7 +1021,7 @@ class _GenresByCategory extends StatelessWidget {
                       ),
                     ]),
                   )),
-                  const SizedBox(width: 6),
+                  SizedBox(width: 6),
                   SizedBox(width: 22, child: Text('$count', textAlign: TextAlign.right,
                     style: TextStyle(color: color, fontFamily: 'DMSans', fontSize: 10, fontWeight: FontWeight.bold))),
                 ]),
@@ -1085,23 +1085,23 @@ class _RecentActivity extends StatelessWidget {
           child: Row(children: [
             Container(width: 3, height: 36,
               decoration: BoxDecoration(color: toColor, borderRadius: BorderRadius.circular(2))),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(title, style: const TextStyle(
+              Text(title, style: TextStyle(
                 color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 2),
+              SizedBox(height: 2),
               Row(children: [
-                Text(_statusLabels[from] ?? from, style: const TextStyle(
+                Text(_statusLabels[from] ?? from, style: TextStyle(
                   color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 11)),
-                const Padding(
+                Padding(
                   padding: EdgeInsets.symmetric(horizontal: 5),
                   child: Icon(Icons.arrow_forward, size: 10, color: RpgColors.textMuted)),
                 Text(_statusLabels[to] ?? to, style: TextStyle(
                   color: toColor, fontFamily: 'Crimson', fontSize: 11, fontWeight: FontWeight.bold)),
               ]),
             ])),
-            Text(_timeAgo(when), style: const TextStyle(
+            Text(_timeAgo(when), style: TextStyle(
               color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 10)),
           ]),
         );

@@ -14,13 +14,13 @@ class GoldDivider extends StatelessWidget {
         if (label != null)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text(label!, style: const TextStyle(
+            child: Text(label!, style: TextStyle(
               color: RpgColors.textMuted,
               fontSize: 10, letterSpacing: 0.8, fontWeight: FontWeight.w500,
             )),
           )
         else
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
         Expanded(child: Container(height: 1, color: RpgColors.border)),
       ],
     );
@@ -79,7 +79,7 @@ class EmissionBadge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(width: 5, height: 5, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-          const SizedBox(width: 4),
+          SizedBox(width: 4),
           Text(label, style: TextStyle(color: color, fontSize: 11, fontFamily: 'DMSans', fontWeight: FontWeight.w500)),
         ],
       ),

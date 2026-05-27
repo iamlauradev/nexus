@@ -107,7 +107,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
       lastDate: DateTime(2100),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.dark(
+          colorScheme: ColorScheme.dark(
             primary: RpgColors.gold,
             onPrimary: RpgColors.obsidian,
             surface: RpgColors.surface,
@@ -279,7 +279,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
 
     return Scaffold(
       backgroundColor: RpgColors.surface,
-      appBar: AppBar(title: const Text('Añadir')),
+      appBar: AppBar(title: Text('Añadir')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -288,7 +288,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             // Type selector
             if (_showTypeSelector) ...[
               _Label('Tipo'),
-              const SizedBox(height: 6),
+              SizedBox(height: 6),
               SizedBox(
                 height: 36,
                 child: ListView(
@@ -315,13 +315,13 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                   }).toList(),
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
             ],
 
             // Search or manual
             if (!_manualMode) ...[
               _Label('Buscar'),
-              const SizedBox(height: 6),
+              SizedBox(height: 6),
               Row(children: [
                 Expanded(
                   child: TextField(
@@ -330,23 +330,23 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                       hintText: 'Título…',
                       prefixIcon: Icon(Icons.search, color: RpgColors.gold, size: 18),
                     ),
-                    style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+                    style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
                     onSubmitted: (_) => _search(),
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 ElevatedButton(onPressed: _search,
-                  child: const Text('Buscar', style: TextStyle(fontFamily: 'DMSans', fontSize: 12))),
+                  child: Text('Buscar', style: TextStyle(fontFamily: 'DMSans', fontSize: 12))),
               ]),
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
               TextButton(
                 onPressed: () => setState(() { _manualMode = true; _selectedItems.clear(); }),
-                child: const Text('→ Añadir manualmente', style: TextStyle(color: RpgColors.textMuted, fontSize: 12)),
+                child: Text('→ Añadir manualmente', style: TextStyle(color: RpgColors.textMuted, fontSize: 12)),
               ),
 
               // Results dropdown (compact, fixed-height container)
               if (_searching)
-                const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator(color: RpgColors.gold))),
+                Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator(color: RpgColors.gold))),
               if (_results.isNotEmpty) ...[
                 Container(
                   constraints: const BoxConstraints(maxHeight: 300),
@@ -363,7 +363,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text('${_results.length} resultado${_results.length != 1 ? "s" : ""}',
-                              style: const TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 12)),
+                              style: TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 12)),
                             if (_results.length > 1)
                               GestureDetector(
                                 onTap: () {
@@ -379,19 +379,19 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                                 },
                                 child: Text(
                                   _selectedItems.length == _results.length ? 'Deseleccionar todo' : 'Seleccionar todo',
-                                  style: const TextStyle(color: RpgColors.gold, fontFamily: 'Crimson', fontSize: 12),
+                                  style: TextStyle(color: RpgColors.gold, fontFamily: 'Crimson', fontSize: 12),
                                 ),
                               ),
                           ],
                         ),
                       ),
-                      const Divider(height: 1, color: RpgColors.border),
+                      Divider(height: 1, color: RpgColors.border),
                       Flexible(
                         child: ListView.separated(
                           shrinkWrap: true,
                           padding: const EdgeInsets.symmetric(vertical: 4),
                           itemCount: _results.length,
-                          separatorBuilder: (_, __) => const Divider(height: 1, color: RpgColors.border, indent: 10, endIndent: 10),
+                          separatorBuilder: (_, __) => Divider(height: 1, color: RpgColors.border, indent: 10, endIndent: 10),
                           itemBuilder: (_, i) => _CompactResultTile(
                             result: _results[i],
                             selected: _isSelected(_results[i]),
@@ -402,13 +402,13 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
               ],
 
               // Selected chips
               if (_selectedItems.isNotEmpty) ...[
                 _Label('Seleccionados (${_selectedItems.length})'),
-                const SizedBox(height: 6),
+                SizedBox(height: 6),
                 Wrap(
                   spacing: 6,
                   runSpacing: 4,
@@ -423,58 +423,58 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                       ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 160),
                         child: Text(r.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13)),
+                          style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13)),
                       ),
-                      const SizedBox(width: 4),
+                      SizedBox(width: 4),
                       GestureDetector(
                         onTap: () => setState(() => _selectedItems.removeWhere((s) => s.externalId == r.externalId)),
-                        child: const Icon(Icons.close, size: 14, color: RpgColors.textMuted),
+                        child: Icon(Icons.close, size: 14, color: RpgColors.textMuted),
                       ),
                     ]),
                   )).toList(),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
               ],
             ] else ...[
               _Label('Título'),
-              const SizedBox(height: 6),
+              SizedBox(height: 6),
               TextField(
                 controller: _titleCtrl,
                 decoration: const InputDecoration(hintText: 'Título de la obra'),
-                style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+                style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
               TextButton(
                 onPressed: () => setState(() { _manualMode = false; _titleCtrl.clear(); }),
-                child: const Text('→ Volver a la búsqueda', style: TextStyle(color: RpgColors.textMuted, fontSize: 12)),
+                child: Text('→ Volver a la búsqueda', style: TextStyle(color: RpgColors.textMuted, fontSize: 12)),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
             ],
 
-            const Divider(color: RpgColors.border, height: 24),
+            Divider(color: RpgColors.border, height: 24),
 
             // Status
             _Label('Mi estado'),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             DropdownButtonFormField<String>(
               value: _status,
               dropdownColor: RpgColors.charcoal,
               decoration: const InputDecoration(isDense: true),
-              style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+              style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
               items: _statuses.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
               onChanged: (v) { if (v != null) setState(() => _status = v); },
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
 
             // Emission status (not for movies, not for multi-select — each item brings its own)
             if (_type != 'MOVIE' && _selectedItems.length <= 1) ...[
               _Label('Estado de emisión'),
-              const SizedBox(height: 6),
+              SizedBox(height: 6),
               DropdownButtonFormField<String>(
                 value: _emissionStatus,
                 dropdownColor: RpgColors.charcoal,
                 decoration: const InputDecoration(isDense: true),
-                style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+                style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
                 items: _emissionStatuses.entries.map((e) => DropdownMenuItem(
                   value: e.key,
                   child: Row(children: [
@@ -488,38 +488,38 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 )).toList(),
                 onChanged: (v) { if (v != null) setState(() => _emissionStatus = v); },
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               _Label('Día de emisión (opcional)'),
-              const SizedBox(height: 6),
+              SizedBox(height: 6),
               _EmissionDayPicker(
                 value: _emissionDay,
                 onChanged: (v) => setState(() => _emissionDay = v),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
             ],
 
             // Rating
             _Label('Valoración'),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             DropdownButtonFormField<String>(
               value: effectiveRating,
               dropdownColor: RpgColors.charcoal,
               decoration: const InputDecoration(isDense: true),
-              style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+              style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
               items: ratings.map((r) {
                 final color = RatingConfigCache.colorFor(r['key']);
                 return DropdownMenuItem(
                   value: r['key'] as String,
                   child: Row(children: [
                     Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     Text(r['label'] as String),
                   ]),
                 );
               }).toList(),
               onChanged: (v) { if (v != null) setState(() => _ratingLabel = v); },
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
 
             // Episode stepper: only when 0 or 1 items selected (not batch)
             if (_hasEpisodes && (singleSelected || _manualMode)) ...[
@@ -532,7 +532,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 onChanged: (v) => setState(() => _epCurrent = v),
                 onTotalChanged: (v) => setState(() => _epTotal = v),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
             ],
 
             // Rewatch counter: only single or manual
@@ -544,7 +544,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                     : _type == 'MOVIE' ? 'REVISIONES' : 'REVISIONADOS',
                 onChanged: (v) => setState(() => _rewatchCount = v),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
             ],
 
             TextField(
@@ -553,9 +553,9 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 labelText: 'Notas de progreso (T2 E5, arc X…)',
                 prefixIcon: Icon(Icons.bookmark_outline, color: RpgColors.gold, size: 18),
               ),
-              style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+              style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
 
             TextField(
               controller: _platformCtrl,
@@ -563,9 +563,9 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 labelText: 'Plataforma',
                 prefixIcon: Icon(Icons.devices_outlined, color: RpgColors.gold, size: 18),
               ),
-              style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
+              style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson'),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
 
             TextField(
               controller: _notesCtrl,
@@ -574,13 +574,13 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 labelText: 'Notas / reseña',
                 alignLabelWithHint: true,
               ),
-              style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', height: 1.5),
+              style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', height: 1.5),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
 
             // Date pickers
             _Label('Fechas (opcional)'),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             Row(children: [
               Expanded(
                 child: GestureDetector(
@@ -592,24 +592,24 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(children: [
-                      const Icon(Icons.play_circle_outline, size: 14, color: RpgColors.statusWatching),
-                      const SizedBox(width: 6),
+                      Icon(Icons.play_circle_outline, size: 14, color: RpgColors.statusWatching),
+                      SizedBox(width: 6),
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        const Text('INICIO', style: TextStyle(
+                        Text('INICIO', style: TextStyle(
                           fontSize: 8, color: RpgColors.textMuted, letterSpacing: 0.6, fontWeight: FontWeight.w500)),
                         Text(_formatDate(_startedAt),
-                          style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13)),
+                          style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13)),
                       ])),
                       if (_startedAt != null)
                         GestureDetector(
                           onTap: () => setState(() => _startedAt = null),
-                          child: const Icon(Icons.close, size: 14, color: RpgColors.textMuted),
+                          child: Icon(Icons.close, size: 14, color: RpgColors.textMuted),
                         ),
                     ]),
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Expanded(
                 child: GestureDetector(
                   onTap: () => _pickDate(isStart: false),
@@ -620,25 +620,25 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(children: [
-                      const Icon(Icons.check_circle_outline, size: 14, color: RpgColors.statusComplete),
-                      const SizedBox(width: 6),
+                      Icon(Icons.check_circle_outline, size: 14, color: RpgColors.statusComplete),
+                      SizedBox(width: 6),
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        const Text('FIN', style: TextStyle(
+                        Text('FIN', style: TextStyle(
                           fontSize: 8, color: RpgColors.textMuted, letterSpacing: 0.6, fontWeight: FontWeight.w500)),
                         Text(_formatDate(_completedAt),
-                          style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13)),
+                          style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13)),
                       ])),
                       if (_completedAt != null)
                         GestureDetector(
                           onTap: () => setState(() => _completedAt = null),
-                          child: const Icon(Icons.close, size: 14, color: RpgColors.textMuted),
+                          child: Icon(Icons.close, size: 14, color: RpgColors.textMuted),
                         ),
                     ]),
                   ),
                 ),
               ),
             ]),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
 
             SizedBox(
               width: double.infinity,
@@ -653,12 +653,12 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                             : _selectedItems.length == 1
                                 ? 'AÑADIR (1)'
                                 : 'AÑADIR ${_selectedItems.length} OBRAS',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'DMSans', letterSpacing: 1, fontWeight: FontWeight.w700, fontSize: 14),
                       ),
               ),
             ),
-            const SizedBox(height: 40),
+            SizedBox(height: 40),
           ],
         ),
       ),
@@ -725,12 +725,12 @@ class _CompactResultTile extends StatelessWidget {
                   ),
                 ),
                 child: selected
-                    ? const Icon(Icons.check, size: 12, color: RpgColors.gold)
+                    ? Icon(Icons.check, size: 12, color: RpgColors.gold)
                     : null,
               )
             else
               Icon(Icons.check_circle, size: 18, color: statusColor),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
 
             // Small cover
             ClipRRect(
@@ -743,7 +743,7 @@ class _CompactResultTile extends StatelessWidget {
                     )
                   : _nocover(),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
 
             // Title + meta + library badge
             Expanded(
@@ -784,13 +784,13 @@ class _CompactResultTile extends StatelessWidget {
                   else
                     Row(children: [
                       if (result.year != null)
-                        Text('${result.year}', style: const TextStyle(
+                        Text('${result.year}', style: TextStyle(
                           color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 11)),
                       if (result.year != null && result.score != null)
-                        const Text('  ·  ', style: TextStyle(color: RpgColors.textMuted, fontSize: 11)),
+                        Text('  ·  ', style: TextStyle(color: RpgColors.textMuted, fontSize: 11)),
                       if (result.score != null)
                         Text('★ ${result.score!.toStringAsFixed(1)}',
-                          style: const TextStyle(color: RpgColors.statusPlan, fontFamily: 'Crimson', fontSize: 11)),
+                          style: TextStyle(color: RpgColors.statusPlan, fontFamily: 'Crimson', fontSize: 11)),
                     ]),
                 ],
               ),
@@ -804,7 +804,7 @@ class _CompactResultTile extends StatelessWidget {
                 borderRadius: BorderRadius.circular(3),
               ),
               child: Text(result.source.toUpperCase(),
-                style: const TextStyle(color: RpgColors.textMuted, fontSize: 8, fontWeight: FontWeight.w500)),
+                style: TextStyle(color: RpgColors.textMuted, fontSize: 8, fontWeight: FontWeight.w500)),
             ),
           ],
         ),
@@ -814,7 +814,7 @@ class _CompactResultTile extends StatelessWidget {
 
   Widget _nocover() => Container(
     width: 28, height: 40, color: RpgColors.surface,
-    child: const Icon(Icons.image_outlined, color: RpgColors.border, size: 12),
+    child: Icon(Icons.image_outlined, color: RpgColors.border, size: 12),
   );
 }
 
@@ -875,7 +875,7 @@ class _Label extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     text.toUpperCase(),
-    style: const TextStyle(fontFamily: 'DMSans', fontSize: 10, color: RpgColors.textMuted, letterSpacing: 0.5),
+    style: TextStyle(fontFamily: 'DMSans', fontSize: 10, color: RpgColors.textMuted, letterSpacing: 0.5),
   );
 }
 
@@ -906,7 +906,7 @@ class _EpisodeStepper extends StatelessWidget {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text(label, style: const TextStyle(
+          Text(label, style: TextStyle(
             fontSize: 9, color: RpgColors.textMuted, letterSpacing: 0.8, fontWeight: FontWeight.w500)),
           Row(children: [
             GestureDetector(
@@ -925,7 +925,7 @@ class _EpisodeStepper extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Text(
                 total != null ? '$current / $total' : '$current',
-                style: const TextStyle(
+                style: TextStyle(
                   color: RpgColors.gold, fontFamily: 'DMSans', fontSize: 14, fontWeight: FontWeight.bold),
               ),
             ),
@@ -946,7 +946,7 @@ class _EpisodeStepper extends StatelessWidget {
           ]),
         ]),
         if (total != null && total! > 0) ...[
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: Stack(children: [
@@ -958,9 +958,9 @@ class _EpisodeStepper extends StatelessWidget {
             ]),
           ),
         ] else ...[
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Row(children: [
-            const Text('Total: ', style: TextStyle(
+            Text('Total: ', style: TextStyle(
               color: RpgColors.textMuted, fontFamily: 'Crimson', fontSize: 12)),
             Expanded(
               child: TextField(
@@ -969,7 +969,7 @@ class _EpisodeStepper extends StatelessWidget {
                   hintText: 'Desconocido',
                   isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 ),
-                style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13),
+                style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13),
                 onChanged: (v) => onTotalChanged(int.tryParse(v)),
               ),
             ),
@@ -1001,15 +1001,15 @@ class _RewatchCounter extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(children: [
-        const Icon(Icons.replay_outlined, size: 16, color: RpgColors.textMuted),
-        const SizedBox(width: 8),
+        Icon(Icons.replay_outlined, size: 16, color: RpgColors.textMuted),
+        SizedBox(width: 8),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label, style: const TextStyle(
+            Text(label, style: TextStyle(
               fontSize: 9, color: RpgColors.textMuted, letterSpacing: 0.8, fontWeight: FontWeight.w500)),
             Text(
               count == 0 ? 'Sin revisiones' : 'x$count ${count == 1 ? "vez" : "veces"}',
-              style: const TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13),
+              style: TextStyle(color: RpgColors.textPrimary, fontFamily: 'Crimson', fontSize: 13),
             ),
           ]),
         ),
@@ -1022,10 +1022,10 @@ class _RewatchCounter extends StatelessWidget {
                 color: RpgColors.surface,
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: const Icon(Icons.remove, size: 14, color: RpgColors.textMuted),
+              child: Icon(Icons.remove, size: 14, color: RpgColors.textMuted),
             ),
           ),
-        const SizedBox(width: 6),
+        SizedBox(width: 6),
         GestureDetector(
           onTap: () => onChanged(count + 1),
           child: Container(
@@ -1035,7 +1035,7 @@ class _RewatchCounter extends StatelessWidget {
               borderRadius: BorderRadius.circular(6),
               border: Border.all(color: RpgColors.gold),
             ),
-            child: const Icon(Icons.add, size: 14, color: RpgColors.gold),
+            child: Icon(Icons.add, size: 14, color: RpgColors.gold),
           ),
         ),
       ]),

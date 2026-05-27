@@ -104,7 +104,7 @@ class _MediaCardState extends State<MediaCard> {
                                 fit: BoxFit.cover,
                                 placeholder: (_, __) => Container(
                                   color: RpgColors.charcoal,
-                                  child: const Icon(Icons.image, color: RpgColors.border),
+                                  child: Icon(Icons.image, color: RpgColors.border),
                                 ),
                                 errorWidget: (_, __, ___) => _placeholder(),
                               )
@@ -138,7 +138,7 @@ class _MediaCardState extends State<MediaCard> {
                                   color: RpgColors.gold,
                                   borderRadius: BorderRadius.circular(5),
                                 ),
-                                child: const Text('NUEVO', style: TextStyle(
+                                child: Text('NUEVO', style: TextStyle(
                                   fontSize: 7, fontFamily: 'DMSans',
                                   color: Colors.white, fontWeight: FontWeight.w700,
                                   letterSpacing: 0.3,
@@ -175,7 +175,7 @@ class _MediaCardState extends State<MediaCard> {
                             media.title,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'DMSans',
                               fontSize: 12,
                               color: RpgColors.textPrimary,
@@ -194,7 +194,7 @@ class _MediaCardState extends State<MediaCard> {
                                   children: [
                                     Text(
                                       typeLabel(media.type),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 10, color: RpgColors.textMuted,
                                         fontFamily: 'DMSans',
                                       ),
@@ -204,7 +204,7 @@ class _MediaCardState extends State<MediaCard> {
                                         entry.epTotal != null
                                             ? '${entry.epCurrent ?? 0}/${entry.epTotal}'
                                             : 'Ep. ${entry.epCurrent ?? 0}',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 10, color: RpgColors.gold,
                                           fontFamily: 'DMSans', fontWeight: FontWeight.w500,
                                         ),
@@ -225,7 +225,7 @@ class _MediaCardState extends State<MediaCard> {
                                       borderRadius: BorderRadius.circular(6),
                                       border: Border.all(color: RpgColors.accent.withOpacity(0.5)),
                                     ),
-                                    child: const Icon(Icons.add, size: 13, color: RpgColors.accent),
+                                    child: Icon(Icons.add, size: 13, color: RpgColors.accent),
                                   ),
                                 ),
                             ],
@@ -258,7 +258,7 @@ class _MediaCardState extends State<MediaCard> {
 
   Widget _placeholder() => Container(
     color: RpgColors.charcoal,
-    child: const Center(
+    child: Center(
       child: Icon(Icons.auto_stories, color: RpgColors.border, size: 32),
     ),
   );
@@ -337,16 +337,16 @@ class _MediaListTileState extends State<MediaListTile> {
                       placeholder: (_, __) => Container(width: 44, height: 60, color: RpgColors.charcoal),
                       errorWidget: (_, __, ___) => Container(
                         width: 44, height: 60, color: RpgColors.charcoal,
-                        child: const Icon(Icons.broken_image, color: RpgColors.border, size: 18),
+                        child: Icon(Icons.broken_image, color: RpgColors.border, size: 18),
                       ),
                     )
                   : Container(
                       width: 44, height: 60,
                       color: RpgColors.charcoal,
-                      child: const Icon(Icons.auto_stories, color: RpgColors.border, size: 18),
+                      child: Icon(Icons.auto_stories, color: RpgColors.border, size: 18),
                     ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -357,7 +357,7 @@ class _MediaListTileState extends State<MediaListTile> {
                         Expanded(
                           child: Text(
                             media.title,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'DMSans', fontSize: 14,
                               color: RpgColors.textPrimary, fontWeight: FontWeight.w500,
                             ),
@@ -366,14 +366,14 @@ class _MediaListTileState extends State<MediaListTile> {
                           ),
                         ),
                         if (isNewToday) ...[
-                          const SizedBox(width: 6),
+                          SizedBox(width: 6),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                             decoration: BoxDecoration(
                               color: RpgColors.gold,
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: const Text('NUEVO', style: TextStyle(
+                            child: Text('NUEVO', style: TextStyle(
                               fontSize: 7, fontFamily: 'DMSans',
                               color: Colors.white, fontWeight: FontWeight.w700,
                             )),
@@ -381,28 +381,28 @@ class _MediaListTileState extends State<MediaListTile> {
                         ],
                       ],
                     ),
-                    const SizedBox(height: 3),
+                    SizedBox(height: 3),
                     Row(
                       children: [
                         Text(typeLabel(media.type),
-                          style: const TextStyle(fontSize: 11, color: RpgColors.textMuted, fontFamily: 'DMSans')),
+                          style: TextStyle(fontSize: 11, color: RpgColors.textMuted, fontFamily: 'DMSans')),
                         if (media.year != null) ...[
-                          const Text(' · ', style: TextStyle(color: RpgColors.textMuted, fontSize: 11)),
+                          Text(' · ', style: TextStyle(color: RpgColors.textMuted, fontSize: 11)),
                           Text('${media.year}',
-                            style: const TextStyle(fontSize: 11, color: RpgColors.textMuted, fontFamily: 'DMSans')),
+                            style: TextStyle(fontSize: 11, color: RpgColors.textMuted, fontFamily: 'DMSans')),
                         ],
                         if (media.country != null) ...[
-                          const Text(' · ', style: TextStyle(color: RpgColors.textMuted, fontSize: 11)),
+                          Text(' · ', style: TextStyle(color: RpgColors.textMuted, fontSize: 11)),
                           Text(media.country!,
-                            style: const TextStyle(fontSize: 11, color: RpgColors.textMuted, fontFamily: 'DMSans')),
+                            style: TextStyle(fontSize: 11, color: RpgColors.textMuted, fontFamily: 'DMSans')),
                         ],
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6),
                     Row(
                       children: [
                         StatusBadge(status: entry.status),
-                        const SizedBox(width: 6),
+                        SizedBox(width: 6),
                         RatingBadge(label: entry.ratingLabel),
                         const Spacer(),
                         if (_trackingEpisodes)
@@ -410,13 +410,13 @@ class _MediaListTileState extends State<MediaListTile> {
                             entry.epTotal != null
                                 ? '${entry.epCurrent ?? 0} / ${entry.epTotal}'
                                 : 'Cap. ${entry.epCurrent ?? 0}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11, color: RpgColors.gold,
                               fontFamily: 'DMSans', fontWeight: FontWeight.w500),
                           )
                         else if (entry.progress != null)
                           Text(entry.progress!,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11, color: RpgColors.gold,
                               fontFamily: 'DMSans', fontWeight: FontWeight.w500)),
                       ],
@@ -424,7 +424,7 @@ class _MediaListTileState extends State<MediaListTile> {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               if (widget.onEpisodePlus != null && _trackingEpisodes)
                 GestureDetector(
                   onTap: () {
@@ -438,11 +438,11 @@ class _MediaListTileState extends State<MediaListTile> {
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: RpgColors.accent.withOpacity(0.4)),
                     ),
-                    child: const Icon(Icons.add, size: 16, color: RpgColors.accent),
+                    child: Icon(Icons.add, size: 16, color: RpgColors.accent),
                   ),
                 )
               else
-                const Icon(Icons.chevron_right, color: RpgColors.textMuted, size: 18),
+                Icon(Icons.chevron_right, color: RpgColors.textMuted, size: 18),
             ],
           ),
         ),

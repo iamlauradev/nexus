@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../theme/rpg_theme.dart';
 import '../services/api_service.dart';
-import 'media_list_screen.dart';
 
 // ---------------------------------------------------------------------------
 // Category definitions
@@ -101,19 +101,17 @@ class _CatalogHubScreenState extends State<CatalogHubScreen> {
   }
 
   void _open(_Category cat) {
-    Navigator.of(context).push(_hubRoute(
-      MediaListScreen(
-        types: cat.types.isEmpty ? null : cat.types,
-        sectionLabel: cat.label,
-      ),
-    ));
+    context.push('/catalog/media', extra: {
+      'types': cat.types.isEmpty ? null : cat.types,
+      'label': cat.label,
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: RpgColors.obsidian,
-      appBar: AppBar(title: const Text('Catálogo')),
+      appBar: AppBar(title: Text('Catálogo')),
       body: RefreshIndicator(
         onRefresh: _loadCounts,
         color: RpgColors.accent,
@@ -121,11 +119,12 @@ class _CatalogHubScreenState extends State<CatalogHubScreen> {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
           children: [
             _SearchHint(
-              onTap: () => _open(
-                const _Category(label: 'Catálogo', types: [], icon: Icons.apps_rounded, color: RpgColors.accent),
-              ),
+              onTap: () => context.push('/catalog/media', extra: {
+                'types': null,
+                'label': 'Catálogo',
+              }),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -168,7 +167,7 @@ class _SearchHint extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: RpgColors.border),
         ),
-        child: const Row(
+        child: Row(
           children: [
             Icon(Icons.search, color: RpgColors.textMuted, size: 18),
             SizedBox(width: 10),
@@ -234,7 +233,7 @@ class _CategoryCard extends StatelessWidget {
             const Spacer(),
             Text(
               category.label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Cinzel',
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
@@ -242,9 +241,9 @@ class _CategoryCard extends StatelessWidget {
                 height: 1.3,
               ),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             if (count == null)
-              const SizedBox(
+              SizedBox(
                 width: 48,
                 height: 6,
                 child: LinearProgressIndicator(
@@ -255,7 +254,7 @@ class _CategoryCard extends StatelessWidget {
             else
               Text(
                 '$count ${count == 1 ? "entrada" : "entradas"}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   color: RpgColors.textSecondary,
                 ),
@@ -267,21 +266,3 @@ class _CategoryCard extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Route transition helper
-// ---------------------------------------------------------------------------
-
-Route<T> _hubRoute<T>(Widget page) => PageRouteBuilder<T>(
-      pageBuilder: (_, __, ___) => page,
-      transitionDuration: const Duration(milliseconds: 220),
-      transitionsBuilder: (_, anim, __, child) => FadeTransition(
-        opacity: anim,
-        child: SlideTransition(
-          position: Tween(
-            begin: const Offset(0.04, 0),
-            end: Offset.zero,
-          ).chain(CurveTween(curve: Curves.easeOutCubic)).animate(anim),
-          child: child,
-        ),
-      ),
-    );

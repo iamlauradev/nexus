@@ -25,7 +25,7 @@ class SectionHeader extends StatelessWidget {
           Expanded(
             child: Text(
               title.toUpperCase(),
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'DMSans',
                 fontSize: 11,
                 color: RpgColors.accent,
@@ -50,12 +50,12 @@ class SectionDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Expanded(child: Divider(color: RpgColors.border)),
+        Expanded(child: Divider(color: RpgColors.border)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
             title.toUpperCase(),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 9,
               color: RpgColors.textMuted,
               letterSpacing: 0.8,
@@ -63,7 +63,7 @@ class SectionDivider extends StatelessWidget {
             ),
           ),
         ),
-        const Expanded(child: Divider(color: RpgColors.border)),
+        Expanded(child: Divider(color: RpgColors.border)),
       ],
     );
   }

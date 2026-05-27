@@ -48,6 +48,7 @@ class _MediaListScreenState extends State<MediaListScreen> {
   String _status = 'all';
   String _rating = 'all';
   String _genre  = 'all';
+  String _emissionStatus = 'all';
   String _typeFilter = 'all'; // only active when widget.types is null
   String _sort = 'updated';
   String _view = 'grid';
@@ -190,7 +191,21 @@ class _MediaListScreenState extends State<MediaListScreen> {
     if (_genre != 'all') {
       result = result.where((e) => (e.media?.genres ?? []).contains(_genre)).toList();
     }
+    if (_emissionStatus != 'all') {
+      result = result.where((e) => e.media?.emissionStatus == _emissionStatus).toList();
+    }
     return result;
+  }
+
+  // Emission statuses present in loaded entries (only shown when >= 2 distinct values)
+  List<String> get _availableEmissionStatuses {
+    final seen = <String>{};
+    for (final e in _entries) {
+      final s = e.media?.emissionStatus;
+      if (s != null && s.isNotEmpty) seen.add(s);
+    }
+    if (seen.length < 2) return [];
+    return seen.toList();
   }
 
   // Genres present in loaded entries, sorted by frequency (min 2 entries)
@@ -286,16 +301,16 @@ class _MediaListScreenState extends State<MediaListScreen> {
                   borderRadius: BorderRadius.circular(2)),
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Text(
               entry.media?.title ?? '',
-              style: const TextStyle(fontSize: 13, color: RpgColors.textPrimary, fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: 13, color: RpgColors.textPrimary, fontWeight: FontWeight.w500),
               maxLines: 1, overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 4),
-            const Text('Cambiar estado:', style: TextStyle(
+            SizedBox(height: 4),
+            Text('Cambiar estado:', style: TextStyle(
               fontFamily: 'Crimson', fontSize: 12, color: RpgColors.textMuted)),
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             ...labels.entries.map((e) => InkWell(
               onTap: () async {
                 Navigator.pop(context);
@@ -333,7 +348,7 @@ class _MediaListScreenState extends State<MediaListScreen> {
                       shape: BoxShape.circle,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Text(e.value, style: TextStyle(
                     fontFamily: 'Crimson', fontSize: 15,
                     color: entry.status == e.key ? RpgColors.gold : RpgColors.textPrimary,
@@ -341,7 +356,7 @@ class _MediaListScreenState extends State<MediaListScreen> {
                   )),
                   if (entry.status == e.key) ...[
                     const Spacer(),
-                    const Icon(Icons.check, size: 14, color: RpgColors.gold),
+                    Icon(Icons.check, size: 14, color: RpgColors.gold),
                   ],
                 ]),
               ),
@@ -360,7 +375,7 @@ class _MediaListScreenState extends State<MediaListScreen> {
         _buildFilters(context),
         Expanded(
           child: _loading
-              ? const Center(child: CircularProgressIndicator(color: RpgColors.gold))
+              ? Center(child: CircularProgressIndicator(color: RpgColors.gold))
               : displayed.isEmpty
                   ? _buildEmpty()
                   : RefreshIndicator(
@@ -402,10 +417,10 @@ class _MediaListScreenState extends State<MediaListScreen> {
       controller: _searchCtrl,
       decoration: InputDecoration(
         hintText: 'Buscar en $sectionLabel...',
-        prefixIcon: const Icon(Icons.search, color: RpgColors.textMuted, size: 18),
+        prefixIcon: Icon(Icons.search, color: RpgColors.textMuted, size: 18),
         suffixIcon: _searchCtrl.text.isNotEmpty
             ? IconButton(
-                icon: const Icon(Icons.clear, size: 16),
+                icon: Icon(Icons.clear, size: 16),
                 onPressed: () {
                   _searchCtrl.clear();
                   setState(() => _searchQuery = '');
@@ -416,11 +431,11 @@ class _MediaListScreenState extends State<MediaListScreen> {
         fillColor: RpgColors.charcoal,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: RpgColors.border),
+          borderSide: BorderSide(color: RpgColors.border),
         ),
         contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       ),
-      style: const TextStyle(color: RpgColors.textPrimary, fontSize: 14),
+      style: TextStyle(color: RpgColors.textPrimary, fontSize: 14),
       onChanged: _onSearchChanged,
     );
 
@@ -438,6 +453,26 @@ class _MediaListScreenState extends State<MediaListScreen> {
           color: RpgColors.gold,
           size: isDesktop ? 20 : 18,
         ),
+      ),
+    );
+
+    final emissionStatuses = _availableEmissionStatuses;
+    final emissionChips = emissionStatuses.isEmpty ? const SizedBox.shrink() : SizedBox(
+      height: 30,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          _GenreChip(
+            label: 'Todos',
+            selected: _emissionStatus == 'all',
+            onTap: () => setState(() => _emissionStatus = 'all'),
+          ),
+          ...emissionStatuses.map((s) => _GenreChip(
+            label: emissionLabel(s),
+            selected: _emissionStatus == s,
+            onTap: () => setState(() => _emissionStatus = _emissionStatus == s ? 'all' : s),
+          )),
+        ],
       ),
     );
 
@@ -471,34 +506,38 @@ class _MediaListScreenState extends State<MediaListScreen> {
             Row(
               children: [
                 Expanded(flex: 3, child: searchField),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 viewToggle,
                 if (showTypeFilter) ...[
-                  const SizedBox(width: 10),
+                  SizedBox(width: 10),
                   SizedBox(width: 130, child: _DropFilter(
                     value: _typeFilter, items: _typeLabels,
                     onChanged: (v) { setState(() { _typeFilter = v; _currentLimit = 50; }); _loadEntries(); },
                   )),
                 ],
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 SizedBox(width: 140, child: _DropFilter(
                   value: _status, items: statusItems,
                   onChanged: (v) { setState(() => _status = v); _loadEntries(); },
                 )),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 SizedBox(width: 140, child: _DropFilter(
                   value: _rating, items: _ratingFilterItems,
                   onChanged: (v) { setState(() => _rating = v); _loadEntries(); },
                 )),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 SizedBox(width: 140, child: _DropFilter(
                   value: _sort, items: sortItems,
                   onChanged: (v) { setState(() { _sort = v; _entries = _applySorting(_entries); }); },
                 )),
               ],
             ),
+            if (emissionStatuses.isNotEmpty) ...[
+              SizedBox(height: 8),
+              emissionChips,
+            ],
             if (genres.isNotEmpty) ...[
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               genreChips,
             ],
           ],
@@ -514,36 +553,40 @@ class _MediaListScreenState extends State<MediaListScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           searchField,
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           Row(
             children: [
               viewToggle,
-              const SizedBox(width: 6),
+              SizedBox(width: 6),
               if (showTypeFilter) ...[
                 Expanded(child: _DropFilter(
                   value: _typeFilter, items: _typeLabels,
                   onChanged: (v) { setState(() { _typeFilter = v; _currentLimit = 50; }); _loadEntries(); },
                 )),
-                const SizedBox(width: 6),
+                SizedBox(width: 6),
               ],
               Expanded(child: _DropFilter(
                 value: _status, items: statusItems,
                 onChanged: (v) { setState(() => _status = v); _loadEntries(); },
               )),
-              const SizedBox(width: 6),
+              SizedBox(width: 6),
               Expanded(child: _DropFilter(
                 value: _rating, items: _ratingFilterItems,
                 onChanged: (v) { setState(() => _rating = v); _loadEntries(); },
               )),
-              const SizedBox(width: 6),
+              SizedBox(width: 6),
               Expanded(child: _DropFilter(
                 value: _sort, items: sortItems,
                 onChanged: (v) { setState(() { _sort = v; _entries = _applySorting(_entries); }); },
               )),
             ],
           ),
+          if (emissionStatuses.isNotEmpty) ...[
+            SizedBox(height: 6),
+            emissionChips,
+          ],
           if (genres.isNotEmpty) ...[
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             genreChips,
           ],
         ],
@@ -604,7 +647,7 @@ class _MediaListScreenState extends State<MediaListScreen> {
             setState(() => _currentLimit += 50);
             await _loadEntries();
           },
-          child: const Text('Cargar más', style: TextStyle(color: RpgColors.accent)),
+          child: Text('Cargar más', style: TextStyle(color: RpgColors.accent)),
         ),
       ),
     );
@@ -615,20 +658,20 @@ class _MediaListScreenState extends State<MediaListScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.auto_stories, color: RpgColors.border, size: 56),
-          const SizedBox(height: 16),
-          const Text('El grimorio está vacío', style: TextStyle(
+          Icon(Icons.auto_stories, color: RpgColors.border, size: 56),
+          SizedBox(height: 16),
+          Text('El grimorio está vacío', style: TextStyle(
               color: RpgColors.textSecondary, fontSize: 16)),
-          const SizedBox(height: 8),
-          const Text(
+          SizedBox(height: 8),
+          Text(
             'Añade tu primera entrada al catálogo',
             style: TextStyle(color: RpgColors.textMuted, fontFamily: 'Crimson'),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: _addNew,
-            icon: const Icon(Icons.add, color: RpgColors.goldLight),
-            label: const Text('Añadir', style: TextStyle(color: RpgColors.goldLight)),
+            icon: Icon(Icons.add, color: RpgColors.goldLight),
+            label: Text('Añadir', style: TextStyle(color: RpgColors.goldLight)),
           ),
         ],
       ),
@@ -673,8 +716,8 @@ class _DropFilter extends StatelessWidget {
         child: DropdownButton<String>(
           value: safeValue,
           dropdownColor: RpgColors.surface,
-          style: const TextStyle(color: RpgColors.textSecondary, fontSize: 12, fontFamily: 'Crimson'),
-          icon: const Icon(Icons.arrow_drop_down, color: RpgColors.textMuted, size: 16),
+          style: TextStyle(color: RpgColors.textSecondary, fontSize: 12, fontFamily: 'Crimson'),
+          icon: Icon(Icons.arrow_drop_down, color: RpgColors.textMuted, size: 16),
           isDense: true,
           isExpanded: true,
           items: items.entries.map((e) => DropdownMenuItem(

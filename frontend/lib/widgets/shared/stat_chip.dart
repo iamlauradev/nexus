@@ -32,7 +32,7 @@ class StatChip extends StatelessWidget {
         children: [
           if (icon != null) ...[
             Icon(icon, color: c, size: 16),
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
           ],
           Text(
             value,
@@ -43,10 +43,10 @@ class StatChip extends StatelessWidget {
               color: c,
             ),
           ),
-          const SizedBox(height: 2),
+          SizedBox(height: 2),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'DMSans',
               fontSize: 10,
               color: RpgColors.textMuted,

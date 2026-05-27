@@ -90,7 +90,7 @@ class _ShimmerCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const _ShimmerBox(width: double.infinity, height: 10),
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 const _ShimmerBox(width: 60, height: 8),
               ],
             ),
@@ -131,7 +131,7 @@ class _ShimmerListTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: RpgColors.surface,
         borderRadius: BorderRadius.circular(6),
-        border: const Border(left: BorderSide(color: RpgColors.border, width: 3)),
+        border: Border(left: BorderSide(color: RpgColors.border, width: 3)),
       ),
       child: Row(
         children: [
@@ -142,15 +142,15 @@ class _ShimmerListTile extends StatelessWidget {
               borderRadius: BorderRadius.circular(4),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const _ShimmerBox(width: double.infinity, height: 14),
-                const SizedBox(height: 6),
+                SizedBox(height: 6),
                 const _ShimmerBox(width: 100, height: 10),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 const _ShimmerBox(width: 140, height: 10),
               ],
             ),
@@ -184,7 +184,7 @@ class ShimmerStatCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const _ShimmerBox(width: 80, height: 12),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             const _ShimmerBox(width: 40, height: 24),
             const Spacer(),
             const _ShimmerBox(width: double.infinity, height: 8),

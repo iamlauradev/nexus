@@ -54,6 +54,35 @@ GoRouter _makeRouter(AuthProvider auth) {
             GoRoute(
               path: '/catalog',
               pageBuilder: (_, state) => _fadePage(state, const CatalogHubScreen()),
+              routes: [
+                GoRoute(
+                  path: 'media',
+                  pageBuilder: (_, state) {
+                    final extra = state.extra as Map<String, dynamic>?;
+                    final types = extra?['types'] as List<String>?;
+                    final label = (extra?['label'] as String?) ?? 'Catálogo';
+                    return CustomTransitionPage<void>(
+                      key: state.pageKey,
+                      child: Scaffold(
+                        backgroundColor: RpgColors.obsidian,
+                        appBar: AppBar(title: Text(label)),
+                        body: MediaListScreen(types: types, sectionLabel: label),
+                      ),
+                      transitionDuration: const Duration(milliseconds: 220),
+                      transitionsBuilder: (_, anim, __, child) => FadeTransition(
+                        opacity: anim,
+                        child: SlideTransition(
+                          position: Tween(
+                            begin: const Offset(0.04, 0),
+                            end: Offset.zero,
+                          ).chain(CurveTween(curve: Curves.easeOutCubic)).animate(anim),
+                          child: child,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
           ]),
           StatefulShellBranch(routes: [
@@ -99,7 +128,7 @@ void main() async {
           padding: const EdgeInsets.all(16),
           child: Text(
             'ERROR: ${details.exceptionAsString()}\n\n${details.stack}',
-            style: const TextStyle(
+            style: TextStyle(
                 color: Colors.white, fontSize: 11, fontFamily: 'monospace'),
           ),
         ),
@@ -168,7 +197,7 @@ class _SplashScreen extends StatelessWidget {
             colors: [Color(0xFF09080F), Color(0xFF0F0D1A)],
           ),
         ),
-        child: const Center(
+        child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -222,7 +251,7 @@ class _ShellScaffold extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         centerTitle: !isDesktop,
-        title: const Text('NEXUS'),
+        title: Text('NEXUS'),
         actions: [
           Consumer<ThemeProvider>(
             builder: (ctx, tp, _) => IconButton(
@@ -234,28 +263,28 @@ class _ShellScaffold extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.bar_chart_outlined,
+            icon: Icon(Icons.bar_chart_outlined,
                 color: RpgColors.textMuted, size: 20),
             onPressed: () => Navigator.push(context,
                 _slideRoute(const StatsScreen())),
             tooltip: 'Estadísticas',
           ),
           IconButton(
-            icon: const Icon(Icons.download_outlined,
+            icon: Icon(Icons.download_outlined,
                 color: RpgColors.textMuted, size: 20),
             onPressed: () => Navigator.push(context,
                 _slideRoute(const ImportExportScreen())),
             tooltip: 'Importar / Exportar',
           ),
           IconButton(
-            icon: const Icon(Icons.tune_outlined,
+            icon: Icon(Icons.tune_outlined,
                 color: RpgColors.textMuted, size: 20),
             onPressed: () => Navigator.push(context,
                 _slideRoute(const RatingConfigScreen())),
             tooltip: 'Configurar valoraciones',
           ),
           IconButton(
-            icon: const Icon(Icons.logout_outlined,
+            icon: Icon(Icons.logout_outlined,
                 color: RpgColors.textMuted, size: 20),
             onPressed: () {
               HapticFeedback.lightImpact();
@@ -294,7 +323,7 @@ class _ShellScaffold extends StatelessWidget {
                 }
               },
               backgroundColor: RpgColors.goldDark,
-              child: const Icon(Icons.add, color: RpgColors.goldLight),
+              child: Icon(Icons.add, color: RpgColors.goldLight),
             )
           : null,
       bottomNavigationBar: isDesktop
@@ -342,7 +371,7 @@ class _MobileNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(top: BorderSide(color: RpgColors.border, width: 1)),
       ),
       child: BottomNavigationBar(
@@ -394,10 +423,10 @@ class _DesktopSidebar extends StatelessWidget {
                       ? NetworkImage(auth.user!.avatarUrl!)
                       : null,
                   child: auth.user!.avatarUrl == null
-                      ? const Icon(Icons.person, size: 16, color: Colors.white)
+                      ? Icon(Icons.person, size: 16, color: Colors.white)
                       : null,
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -405,14 +434,14 @@ class _DesktopSidebar extends StatelessWidget {
                     children: [
                       Text(
                         auth.user!.displayName ?? auth.user!.username,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
                           color: RpgColors.textPrimary, fontWeight: FontWeight.w600,
                           overflow: TextOverflow.ellipsis),
                       ),
                       Text(
                         '@${auth.user!.username}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 10, color: RpgColors.textMuted,
                           overflow: TextOverflow.ellipsis),
                       ),
@@ -421,8 +450,8 @@ class _DesktopSidebar extends StatelessWidget {
                 ),
               ]),
             ),
-          const Divider(height: 1),
-          const SizedBox(height: 8),
+          Divider(height: 1),
+          SizedBox(height: 8),
           // Main tabs
           for (var i = 0; i < _tabs.length; i++)
             _SidebarItem(
@@ -430,7 +459,7 @@ class _DesktopSidebar extends StatelessWidget {
               isSelected: i == selectedIndex,
               onTap: () => onTabSelected(i),
             ),
-          const Divider(height: 1),
+          Divider(height: 1),
           // Extra shortcuts
           _SidebarItem(
             tab: const _NavTab(
@@ -484,7 +513,7 @@ class _SidebarItemState extends State<_SidebarItem> {
               color: widget.isSelected ? RpgColors.accent : RpgColors.textMuted,
               size: 18,
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Text(
               widget.tab.label,
               style: TextStyle(
