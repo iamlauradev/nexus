@@ -310,7 +310,7 @@ class _ExternalResultTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(result.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: RpgColors.textPrimary,
                       fontFamily: 'Crimson',
                       fontSize: 14,
@@ -359,6 +359,6 @@ class _ExternalResultTile extends StatelessWidget {
       color: RpgColors.charcoal,
       borderRadius: BorderRadius.circular(4),
     ),
-    child: const Icon(Icons.image_not_supported_outlined, size: 14, color: RpgColors.border),
+    child: Icon(Icons.image_not_supported_outlined, size: 14, color: RpgColors.border),
   );
 }
