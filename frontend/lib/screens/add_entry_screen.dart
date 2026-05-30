@@ -37,7 +37,8 @@ const _emissionStatuses = {
 class AddEntryScreen extends StatefulWidget {
   final String? initialType;
   final List<String>? availableTypes;
-  const AddEntryScreen({super.key, this.initialType, this.availableTypes});
+  final SearchResult? initialResult;
+  const AddEntryScreen({super.key, this.initialType, this.availableTypes, this.initialResult});
 
   @override
   State<AddEntryScreen> createState() => _AddEntryScreenState();
@@ -88,6 +89,16 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
       _ratingLabel = keys.isNotEmpty ? keys.last : 'sin_valorar';
     }
     if (widget.initialType != null) _type = widget.initialType!;
+    if (widget.initialResult != null) {
+      final r = widget.initialResult!;
+      _type = r.type;
+      _selectedItems.add(r);
+      _emissionStatus = r.emissionStatus ?? '';
+      if (r.episodes != null && r.episodes! > 0) {
+        _epTotal = r.episodes;
+        _epCurrent = 0;
+      }
+    }
     _platformFocus.addListener(() => setState(() {}));
     ApiService.getPlatforms().then((p) { if (mounted) setState(() => _platforms = p); });
   }
