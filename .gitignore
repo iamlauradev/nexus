@@ -24,3 +24,5 @@ activity.txt
 # Android keystore
 *.jks
 *.keystore
+gen_keystore.sh
+github_secrets.txt
