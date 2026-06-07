@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../theme/rpg_theme.dart';
 import '../services/auth_provider.dart';
+import '../services/api_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -40,7 +41,9 @@ class _LoginScreenState extends State<LoginScreen> {
         await auth.login(_usernameCtrl.text.trim(), _passwordCtrl.text);
       }
     } catch (e) {
-      setState(() { _error = e.toString(); });
+      setState(() {
+        _error = e is ApiException ? e.message : 'No se puede conectar al servidor';
+      });
     } finally {
       if (mounted) setState(() { _loading = false; });
     }

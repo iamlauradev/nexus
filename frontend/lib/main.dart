@@ -29,7 +29,7 @@ GoRouter _makeRouter(AuthProvider auth) {
   return GoRouter(
     initialLocation: '/home',
     redirect: (ctx, state) {
-      if (auth.loading) return null;
+      if (auth.loading || auth.serverUnreachable) return null;
       final onLogin = state.matchedLocation == '/login';
       if (!auth.isLogged && !onLogin) return '/login';
       if (auth.isLogged && onLogin) return '/home';
@@ -173,11 +173,59 @@ class _NexusAppState extends State<NexusApp> {
       theme: isDark ? AppTheme.dark() : AppTheme.light(),
       routerConfig: _router,
       builder: (ctx, child) {
-        if (context.watch<AuthProvider>().loading) {
-          return const _SplashScreen();
+        final auth = context.watch<AuthProvider>();
+        if (auth.loading) return const _SplashScreen();
+        if (auth.serverUnreachable) {
+          return _ConnectionErrorScreen(onRetry: auth.init);
         }
         return child ?? const SizedBox.shrink();
       },
+    );
+  }
+}
+
+class _ConnectionErrorScreen extends StatelessWidget {
+  final VoidCallback onRetry;
+  const _ConnectionErrorScreen({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0A0E1A),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.cloud_off_outlined,
+                color: Color(0xFF7C6FEB), size: 56),
+            const SizedBox(height: 20),
+            const Text('Sin conexión al servidor',
+                style: TextStyle(
+                  color: Color(0xFFF4F1FF),
+                  fontFamily: 'DMSans',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                )),
+            const SizedBox(height: 8),
+            const Text('Comprueba que el servidor está activo',
+                style: TextStyle(
+                  color: Color(0xFF8B84B0),
+                  fontFamily: 'DMSans',
+                  fontSize: 13,
+                )),
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Reintentar'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF7C6FEB),
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -75,6 +75,10 @@ def login(request: Request, data: UserLogin):
     if not user or not verify_password(data.password, user["password_hash"]):
         raise HTTPException(401, "Credenciales incorrectas")
     user = dict(user)
+    stored = user["password_hash"]
+    if not (stored.startswith("$2b$") or stored.startswith("$2a$")):
+        execute("UPDATE users SET password_hash = %s WHERE id = %s",
+                (hash_password(data.password), user["id"]))
     access_token = create_token(user["id"], user["username"])
     refresh_token_str, refresh_expires = create_refresh_token(user["id"])
     _store_refresh_token(user["id"], refresh_token_str, refresh_expires)
