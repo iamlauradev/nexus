@@ -1,30 +1,5 @@
 services:
 
-  nexus_redis:
-    image: redis:7-alpine
-    container_name: nexus_redis
-    restart: unless-stopped
-    environment:
-      TZ: Europe/Madrid
-    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD}
-    networks:
-      - homelab_net
-    deploy:
-      resources:
-        limits:
-          memory: 192M
-          cpus: '0.2'
-        reservations:
-          memory: 16M
-    security_opt:
-      - no-new-privileges:true
-    healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-      start_period: 10s
-
   nexus_backend:
     build: ./backend
     container_name: nexus_backend
@@ -39,15 +14,11 @@ services:
       SECRET_KEY:  ${SECRET_KEY}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-10080}
       TMDB_API_KEY: ${TMDB_API_KEY:-}
-      REDIS_HOST:     nexus_redis
+      REDIS_HOST:     shared_redis
       REDIS_PORT:     6379
+      REDIS_DB:       0
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       ANILIST_URL: ${ANILIST_URL:-https://graphql.anilist.co}
-    ports:
-      - "${BACKEND_PORT:-8500}:8000"
-    depends_on:
-      nexus_redis:
-        condition: service_healthy
     networks:
       - homelab_net
     security_opt:
@@ -70,7 +41,7 @@ services:
       - "traefik.http.routers.nexus-api.rule=Host(`nexus-api.iamlaura.dev`)"
       - "traefik.http.routers.nexus-api.entrypoints=websecure"
       - "traefik.http.routers.nexus-api.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.nexus-api.middlewares=security-headers@file"
+      - "traefik.http.routers.nexus-api.middlewares=security-headers@file,api-rate-limit@file"
       - "traefik.http.services.nexus-api.loadbalancer.server.port=8000"
 
   nexus_frontend:
@@ -82,8 +53,6 @@ services:
     restart: unless-stopped
     environment:
       TZ: Europe/Madrid
-    ports:
-      - "${FRONTEND_PORT:-3500}:80"
     depends_on:
       - nexus_backend
     networks:

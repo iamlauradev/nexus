@@ -155,13 +155,15 @@ class NexusApp extends StatefulWidget {
 }
 
 class _NexusAppState extends State<NexusApp> {
-  late GoRouter _router;
+  GoRouter? _router;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final auth = context.read<AuthProvider>();
-    _router = _makeRouter(auth);
+    if (_router == null) {
+      final auth = context.read<AuthProvider>();
+      _router = _makeRouter(auth);
+    }
   }
 
   @override
@@ -171,7 +173,7 @@ class _NexusAppState extends State<NexusApp> {
       title: 'Nexus',
       debugShowCheckedModeBanner: false,
       theme: isDark ? AppTheme.dark() : AppTheme.light(),
-      routerConfig: _router,
+      routerConfig: _router!,
       builder: (ctx, child) {
         final auth = context.watch<AuthProvider>();
         if (auth.loading) return const _SplashScreen();
@@ -296,7 +298,14 @@ class _ShellScaffold extends StatelessWidget {
     final isDesktop = context.isDesktop;
     final idx = shell.currentIndex;
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && idx != 0) {
+          shell.goBranch(0, initialLocation: true);
+        }
+      },
+      child: Scaffold(
       appBar: AppBar(
         centerTitle: !isDesktop,
         title: Text('NEXUS'),
@@ -384,6 +393,7 @@ class _ShellScaffold extends StatelessWidget {
                     initialLocation: i == shell.currentIndex);
               },
             ),
+    ),
     );
   }
 }

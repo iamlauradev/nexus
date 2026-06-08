@@ -50,7 +50,7 @@ class ApiService {
 
   static Future<void> logout() async {
     try {
-      if (_token != null) {
+      if (_token != null && _refreshToken != null) {
         await http.post(
           Uri.parse('$_baseUrl/auth/logout'),
           headers: _headers,

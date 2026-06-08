@@ -235,7 +235,7 @@ class _DetailScreenState extends State<DetailScreen>
         );
         _epCurrent = updated.epCurrent ?? 0;
       });
-      if (mounted && updated.epTotal != null && updated.epCurrent == updated.epTotal && _entry.status != 'completed') {
+      if (mounted && updated.epTotal != null && updated.epCurrent == updated.epTotal && updated.status != 'completed') {
         _suggestComplete();
       }
     } catch (_) {}

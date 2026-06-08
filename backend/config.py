@@ -16,9 +16,9 @@ DB_HOST     = os.environ.get("DB_HOST", "localhost")
 DB_PORT     = int(os.environ.get("DB_PORT", 5432))
 DB_NAME     = os.environ.get("DB_NAME", "nexusdb")
 DB_USER     = os.environ.get("DB_USER", "nexus")
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "nexus2024")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
 
-SECRET_KEY  = os.environ.get("SECRET_KEY", "dev-secret-key")
+SECRET_KEY  = os.environ.get("SECRET_KEY", "")
 TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", 15))
 
 TMDB_API_KEY   = os.environ.get("TMDB_API_KEY", "")

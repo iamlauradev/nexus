@@ -26,3 +26,5 @@ activity.txt
 *.keystore
 gen_keystore.sh
 github_secrets.txt
+reset_password.sh
+improvements.txt

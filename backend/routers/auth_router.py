@@ -103,7 +103,15 @@ def refresh_token(body: RefreshRequest):
         raise HTTPException(401, "Usuario no encontrado")
     user = dict(user)
     new_access_token = create_token(user["id"], user["username"])
-    return {"access_token": new_access_token, "token_type": "bearer"}
+    new_refresh_str, new_refresh_expires = create_refresh_token(user["id"])
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM refresh_tokens WHERE token = %s", (body.refresh_token,))
+        cur.execute(
+            "INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES (%s, %s, %s)",
+            (user["id"], new_refresh_str, new_refresh_expires),
+        )
+    return {"access_token": new_access_token, "refresh_token": new_refresh_str, "token_type": "bearer"}
 
 
 @router.post("/logout")
