@@ -13,6 +13,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       SECRET_KEY:  ${SECRET_KEY}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-10080}
+      FRONTEND_URL: ${FRONTEND_URL:-https://nexus.iamlaura.dev}
       TMDB_API_KEY: ${TMDB_API_KEY:-}
       REDIS_HOST:     shared_redis
       REDIS_PORT:     6379

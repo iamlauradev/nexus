@@ -6,6 +6,7 @@ from limiter import limiter
 from routers import auth_router, media_router, entries_router
 from routers import rating_config_router
 from routers import import_router
+from routers import admin_router
 
 app = FastAPI(title="Nexus API", version="1.0.0")
 
@@ -20,8 +21,8 @@ app.add_middleware(
         "http://localhost:8080",
     ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 app.include_router(auth_router.router)
@@ -29,6 +30,7 @@ app.include_router(media_router.router)
 app.include_router(entries_router.router)
 app.include_router(rating_config_router.router)
 app.include_router(import_router.router)
+app.include_router(admin_router.router)
 
 
 @app.get("/health")

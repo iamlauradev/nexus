@@ -18,9 +18,12 @@ DB_NAME     = os.environ.get("DB_NAME", "nexusdb")
 DB_USER     = os.environ.get("DB_USER", "nexus")
 DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
 
-SECRET_KEY  = os.environ.get("SECRET_KEY", "")
+SECRET_KEY = os.environ.get("SECRET_KEY", "")
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY no definida en el entorno")
 TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", 15))
 
+FRONTEND_URL   = os.environ.get("FRONTEND_URL", "https://nexus.iamlaura.dev")
 TMDB_API_KEY   = os.environ.get("TMDB_API_KEY", "")
 ANILIST_URL    = os.environ.get("ANILIST_URL", "https://graphql.anilist.co")
 
